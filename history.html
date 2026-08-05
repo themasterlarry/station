@@ -1,4 +1,4 @@
-<title>Subscriptions — Station</title>
+<title>History — Station</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -315,22 +315,13 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div id="pExtra"></div>
     </header>
     <section class="pane" id="pane">
-      <div class="tally">
-        <div><div class="lbl">Every month</div><div class="val amt out" id="mMonth">$0</div></div>
-        <div><div class="lbl">Every year</div><div class="val amt out" id="mYear">$0</div></div>
-        <div><div class="lbl">Next 30 days</div><div class="val amt out" id="m30">$0</div></div>
-        <div><div class="lbl">Cancelled so far</div><div class="val amt in" id="mSaved">$0</div></div>
+      <p class="foot-note" style="margin-top:0">Every time something saves, the previous version is kept. If you delete something by accident, or a page saves badly, roll back to any point below. The last 40 versions of each are kept.</p>
+      <div class="seg mini" id="which">
+        <button type="button" data-k="hub:v1" aria-pressed="true">Everything else</button>
+        <button type="button" data-k="cashledger:v1" aria-pressed="false">Money</button>
+        <button type="button" data-k="vault:v1" aria-pressed="false">Vault</button>
       </div>
-      <div class="row-btns" style="margin:14px 0">
-        <button class="btn" data-act="new">Add a subscription</button>
-        <button class="btn ghost sm" data-act="trial">Add a free trial</button>
-      </div>
-      <h2 class="sec">Coming up</h2>
-      <div id="soon"></div>
-      <h2 class="sec"><span>Active</span><span class="r" id="activeCount"></span></h2>
       <div id="list"></div>
-      <h2 class="sec">Cancelled</h2>
-      <div id="dead"></div>
     </section>
   </div>
 </div>
@@ -340,11 +331,10 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
   <div class="dlg-head"><span id="dlgTitle">—</span><button type="button" id="dlgX" aria-label="Close">×</button></div>
   <div class="dlg-body" id="dlgBody"></div>
 </dialog>
-<button class="btn tick fab" data-act="new">+ New</button>
 <script>
 (function(){
 "use strict";
-var PAGE="subs";
+var PAGE="history";
 /* ============================================================
    STATION CORE — shared by every page.
    Storage goes through DB only. Swap DB to move to a server.
@@ -828,174 +818,112 @@ document.addEventListener("keydown",function(e){
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();
-function perYear(s){
-  var c=s.cents||0;
-  if(s.cycle==="weekly") return Math.round(c*52);
-  if(s.cycle==="monthly") return c*12;
-  if(s.cycle==="quarterly") return c*4;
-  return c;
-}
-function perMonth(s){ return Math.round(perYear(s)/12); }
-function advance(s,from){
-  if(s.cycle==="weekly") return addDays(from,7);
-  if(s.cycle==="monthly") return addMonth(from);
-  if(s.cycle==="quarterly") return addMonth(addMonth(addMonth(from)));
-  var d=parseD(from); d.setFullYear(d.getFullYear()+1); return ymd(d);
-}
-function rollForward(s){
-  // catch a next-charge date up to today, so nothing sits stale
-  var moved=false;
-  while(s.next&&s.next<today()){ s.next=advance(s,s.next); moved=true; }
-  return moved;
-}
-function active(){ return (H.subs||[]).filter(function(s){return s.active!==false;}); }
-
+var which="hub:v1", VERS=[];
 function pageHead(){
-  var a=active();
-  var m=a.reduce(function(t,s){return t+perMonth(s);},0);
-  setHead("SB · subscriptions","Subscriptions",
-    a.length+" active  ·  "+money(m)+" a month  ·  "+money(a.reduce(function(t,s){return t+perYear(s);},0))+" a year");
+  setHead("HI · history","History",
+    VERS.length?VERS.length+" saved version"+(VERS.length===1?"":"s")+" of this section":"No older versions yet");
 }
-function chargesIn(days){
-  var out=[];
-  active().forEach(function(s){
-    if(!s.next) return;
-    var d=s.next;
-    while(daysBetween(today(),d)<=days){
-      if(d>=today()) out.push({sub:s,date:d});
-      d=advance(s,d);
-      if(out.length>60) break;
-    }
-  });
-  return out.sort(function(a,b){return a.date.localeCompare(b.date);});
+function agoText(ts){
+  var mins=Math.round((Date.now()-ts)/60000);
+  if(mins<1) return "just now";
+  if(mins<60) return mins+" min ago";
+  var h=Math.round(mins/60);
+  if(h<24) return h+" hour"+(h===1?"":"s")+" ago";
+  var d=Math.round(h/24);
+  return d+" day"+(d===1?"":"s")+" ago";
 }
-function subRow(s,showActions){
-  var late=s.next&&s.next<=today();
-  var soon=s.next&&daysBetween(today(),s.next)<=3;
-  var r=el("div","bar-row trio"+(showActions?"":" tap")),L=el("div");
-  L.appendChild(el("div","who",s.name));
-  var bits=[money(s.cents)+" "+(s.cycle||"monthly")];
-  if(s.next&&s.active!==false) bits.push((late?"due now":"next "+relDay(s.next)));
-  if(s.method) bits.push(s.method);
-  if(s.cat) bits.push(s.cat);
-  if(s.trial) bits.push("FREE TRIAL");
-  if(s.active===false&&s.cancelledOn) bits.push("cancelled "+pretty(s.cancelledOn));
-  L.appendChild(el("div","meta",bits.join(" · ")));
-  r.appendChild(L);
-  var a=el("div","amt out",money(perMonth(s))+"/mo");
-  a.style.fontSize="12.5px";
-  if(s.active===false){ a.className="amt"; a.textContent="—"; }
-  r.appendChild(a);
-  if(s.trial&&s.active!==false&&soon) r.appendChild(el("span","pill hot","cancel now"));
-  else if(late) r.appendChild(el("span","pill hot","due"));
-  else if(soon) r.appendChild(el("span","pill warm","soon"));
-  else r.appendChild(el("div"));
-  r.onclick=function(){subDialog(s);};
-  return r;
+function summarise(v){
+  if(!v||typeof v!=="object") return "";
+  var bits=[];
+  if(v.tasks) bits.push(v.tasks.length+" tasks");
+  if(v.events) bits.push(v.events.length+" events");
+  if(v.notes) bits.push(v.notes.length+" notes");
+  if(v.contacts) bits.push(v.contacts.length+" contacts");
+  if(v.subs) bits.push(v.subs.length+" subscriptions");
+  if(v.journal) bits.push(v.journal.length+" journal entries");
+  if(v.accounts) bits.push(v.accounts.length+" accounts");
+  if(v.txns) bits.push(v.txns.length+" entries");
+  if(v.tickets) bits.push(v.tickets.length+" tickets");
+  if(v.ct) bits.push("encrypted");
+  return bits.slice(0,4).join(" · ");
 }
-function pageRender(){
-  var changed=false;
-  (H.subs||[]).forEach(function(s){ if(s.active!==false&&rollForward(s)) changed=true; });
-  if(changed) save();
+async function load(){
+  VERS=[];
+  try{
+    var r=await fetch("/api/history/"+encodeURIComponent(which));
+    if(r.ok) VERS=(await r.json()).versions||[];
+  }catch(e){}
+  pageHead(); draw();
+}
+function draw(){
+  var host=$("#list"); host.innerHTML="";
+  var box=el("div","bar-list");
+  var now=el("div","vrow now");
+  now.appendChild(el("div","dot2"));
+  var L=el("div");
+  L.appendChild(el("div","when","Right now"));
+  L.appendChild(el("div","ago","this is what you're looking at in the app"));
+  now.appendChild(L); now.appendChild(el("span","pill","live"));
+  box.appendChild(now);
 
-  var a=active();
-  $("#mMonth").textContent=money(a.reduce(function(t,s){return t+perMonth(s);},0));
-  $("#mYear").textContent=money(a.reduce(function(t,s){return t+perYear(s);},0));
-  $("#m30").textContent=money(chargesIn(30).reduce(function(t,c){return t+c.sub.cents;},0));
-  $("#mSaved").textContent=money((H.subs||[]).filter(function(s){return s.active===false;})
-    .reduce(function(t,s){return t+perYear(s);},0))+"/yr";
-  $("#activeCount").textContent=a.length+" of them";
-
-  var soon=chargesIn(30),host=$("#soon"); host.innerHTML="";
-  if(!soon.length) host.appendChild(emptyBox("Nothing charging soon","Add a subscription and its next charge shows up here."));
-  else{
-    var box=el("div","bar-list");
-    soon.slice(0,12).forEach(function(c){
-      var r=el("div","bar-row trio"),L=el("div");
-      L.appendChild(el("div","who",c.sub.name));
-      L.appendChild(el("div","meta",relDay(c.date)+" · "+prettyFull(c.date)+(c.sub.method?" · "+c.sub.method:"")));
-      r.appendChild(L);
-      r.appendChild(el("div","amt out",money(c.sub.cents)));
-      r.appendChild(c.sub.trial?el("span","pill hot","trial"):el("div"));
-      box.appendChild(r);});
+  if(!VERS.length){
     host.appendChild(box);
+    host.appendChild(emptyBox("No older versions yet",
+      "Versions pile up as you use the app. Come back after you've changed a few things."));
+    return;
   }
-
-  var lh=$("#list"); lh.innerHTML="";
-  if(!a.length) lh.appendChild(emptyBox("Nothing tracked yet","Add what you pay for every month — streaming, phone, storage, anything."));
-  else{
-    var b2=el("div","bar-list");
-    a.slice().sort(function(x,y){return perYear(y)-perYear(x);}).forEach(function(s){b2.appendChild(subRow(s));});
-    lh.appendChild(b2);
-  }
-
-  var dead=(H.subs||[]).filter(function(s){return s.active===false;});
-  var dh=$("#dead"); dh.innerHTML="";
-  if(!dead.length) dh.appendChild(emptyBox("None cancelled","When you cancel something it moves here with what it was costing you."));
-  else{
-    var b3=el("div","bar-list");
-    dead.forEach(function(s){b3.appendChild(subRow(s));});
-    dh.appendChild(b3);
-  }
+  VERS.forEach(function(v){
+    var r=el("div","vrow");
+    r.appendChild(el("div","dot2"));
+    var L2=el("div");
+    var d=new Date(v.ts);
+    L2.appendChild(el("div","when",d.toLocaleString()));
+    L2.appendChild(el("div","ago",agoText(v.ts)+" · "+fileSize(v.size)));
+    r.appendChild(L2);
+    var b=el("button","btn ghost sm","Look");
+    b.onclick=function(){ peek(v); };
+    r.appendChild(b);
+    box.appendChild(r);});
+  host.appendChild(box);
 }
-function methodOpts(sel){
-  var ms=(L&&L.methods)?L.methods:["Cash","Cash App","Apple Pay","Debit card"];
-  return '<option value="">Not noted</option>'+ms.map(function(m){
-    return '<option value="'+esc(m)+'"'+(m===sel?" selected":"")+'>'+esc(m)+'</option>';}).join("");
-}
-function subDialog(s,isTrial){
-  var isNew=!s;
-  s=s||{name:"",cents:0,cycle:isTrial?"monthly":"monthly",next:"",method:"",cat:"",url:"",notes:"",
-        active:true,trial:!!isTrial};
-  openDlg(isNew?(isTrial?"Add a free trial":"Add a subscription"):s.name,
-    (isTrial?'<p class="warn">Put the date the trial ends as the next charge. It turns red three days before, so you get a chance to cancel first.</p>':'')+
-    '<label><span>What is it</span><input id="fN" value="'+esc(s.name)+'" placeholder="Spotify, phone, storage"></label>'+
-    '<div class="two">'+
-      '<label><span>How much</span><input type="number" step="0.01" min="0" id="fA" inputmode="decimal" value="'+(s.cents?(s.cents/100).toFixed(2):"")+'" placeholder="0.00"></label>'+
-      '<label><span>How often</span><select id="fC">'+
-        ["weekly","monthly","quarterly","yearly"].map(function(c){
-          return '<option value="'+c+'"'+(s.cycle===c?" selected":"")+'>'+c+'</option>';}).join("")+
-      '</select></label></div>'+
-    '<div class="two">'+
-      '<label><span>'+(s.trial?"Trial ends":"Next charge")+'</span><input type="date" id="fD" value="'+esc(s.next||"")+'"></label>'+
-      '<label><span>Paid with</span><select id="fM">'+methodOpts(s.method)+'</select></label></div>'+
-    '<div class="two">'+
-      '<label><span>Category</span><input id="fT" value="'+esc(s.cat||"")+'" placeholder="Music, phone, tools"></label>'+
-      '<label class="check" style="margin-top:18px"><input type="checkbox" id="fR"'+(s.trial?" checked":"")+'><span>This is a free trial</span></label></div>'+
-    '<label><span>Where to cancel it</span><input id="fU" value="'+esc(s.url||"")+'" placeholder="Website or phone number"></label>'+
-    '<label><span>Notes</span><input id="fO" value="'+esc(s.notes||"")+'" placeholder="Optional"></label>'+
-    '<div class="row-btns"><button class="btn" id="fS" style="flex:1">'+(isNew?"Add it":"Save")+'</button>'+
-    (isNew?'':(s.active===false
-      ? '<button class="btn ghost" id="fRe">Restart it</button>'
-      : '<button class="btn ghost" id="fX">Cancelled it</button>')+
-      '<button class="btn ghost sm" id="fDel">Delete</button>')+'</div>',
+async function peek(v){
+  var data=null;
+  try{
+    var r=await fetch("/api/history/"+encodeURIComponent(which)+"/"+v.ts);
+    if(r.ok) data=await r.json();
+  }catch(e){}
+  if(!data) return toast("Couldn't load that version");
+  var sum=summarise(data.value);
+  openDlg("Version from "+new Date(v.ts).toLocaleString(),
+    '<p class="warn">Restoring replaces what is in the app right now. Your current version gets saved to this list first, so this is reversible.</p>'+
+    (sum?'<div class="kv" style="margin-bottom:12px"><dt>Contains</dt><dd>'+esc(sum)+'</dd>'+
+      '<dt>Saved</dt><dd>'+esc(agoText(v.ts))+'</dd></div>':'')+
+    (which==="vault:v1"?'<p class="foot-note" style="margin-top:0">This is the password vault. Restoring an older version needs the master password that was in force back then.</p>':'')+
+    '<div class="row-btns"><button class="btn" id="fR" style="flex:1">Restore this version</button>'+
+    '<button class="btn ghost" id="fC">Cancel</button></div>',
     function(){
-      $("#fS").onclick=function(){
-        var n=$("#fN").value.trim();
-        if(!n){toast("What is it called?");return;}
-        s.name=n; s.cents=cents($("#fA").value); s.cycle=$("#fC").value;
-        s.next=$("#fD").value; s.method=$("#fM").value; s.cat=$("#fT").value.trim();
-        s.url=$("#fU").value.trim(); s.notes=$("#fO").value.trim(); s.trial=$("#fR").checked;
-        if(isNew){s.id=uid();s.active=true;s.created=today();H.subs.push(s);}
-        save();pageHead();pageRender();buildNav();dlg.close();toast(isNew?"Added":"Saved");};
-      if(!isNew&&s.active!==false) $("#fX").onclick=function(){
-        s.active=false; s.cancelledOn=today();
-        save();pageHead();pageRender();buildNav();dlg.close();
-        toast("Cancelled — that's "+money(perYear(s))+" a year back");};
-      if(!isNew&&s.active===false) $("#fRe").onclick=function(){
-        s.active=true; delete s.cancelledOn;
-        if(s.next&&s.next<today()) rollForward(s);
-        save();pageHead();pageRender();buildNav();dlg.close();toast("Back on the list");};
-      if(!isNew) $("#fDel").onclick=function(){
-        if(!confirm("Delete "+s.name+" completely? Use 'Cancelled it' instead if you want to keep the record.")) return;
-        H.subs=H.subs.filter(function(x){return x.id!==s.id;});
-        save();pageHead();pageRender();buildNav();dlg.close();};
+      $("#fC").onclick=function(){dlg.close();};
+      $("#fR").onclick=async function(){
+        $("#fR").disabled=true; $("#fR").textContent="Restoring…";
+        try{
+          var rr=await fetch("/api/history/"+encodeURIComponent(which)+"/"+v.ts,{method:"POST"});
+          if(!rr.ok) throw new Error();
+          dlg.close(); toast("Restored — reloading");
+          setTimeout(function(){window.location.reload();},800);
+        }catch(e){
+          $("#fR").disabled=false; $("#fR").textContent="Restore this version";
+          toast("Restore failed");}
+      };
     });
 }
-function pageAction(a){
-  if(a==="new") subDialog(null,false);
-  else if(a==="trial") subDialog(null,true);
+function pageRender(){ draw(); }
+function pageBoot(){
+  $("#which").querySelectorAll("button").forEach(function(b){
+    b.onclick=function(){
+      which=b.dataset.k;
+      $("#which").querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed",x===b);});
+      load();};});
+  load();
 }
-function pageBoot(){ if(qparam("new")) setTimeout(function(){subDialog(null,false);},120); }
 })();
 </script>

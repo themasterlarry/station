@@ -1,4 +1,4 @@
-<title>Subscriptions — Station</title>
+<title>Documents — Station</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -315,22 +315,14 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div id="pExtra"></div>
     </header>
     <section class="pane" id="pane">
-      <div class="tally">
-        <div><div class="lbl">Every month</div><div class="val amt out" id="mMonth">$0</div></div>
-        <div><div class="lbl">Every year</div><div class="val amt out" id="mYear">$0</div></div>
-        <div><div class="lbl">Next 30 days</div><div class="val amt out" id="m30">$0</div></div>
-        <div><div class="lbl">Cancelled so far</div><div class="val amt in" id="mSaved">$0</div></div>
+      <div class="drop" id="drop">
+        <b>Add a document</b>
+        Tap here, or drag files in. Photos, PDFs, scans — 25 MB each.
+        <input type="file" id="pick" multiple style="display:none" accept="image/*,application/pdf,.txt,.heic">
       </div>
-      <div class="row-btns" style="margin:14px 0">
-        <button class="btn" data-act="new">Add a subscription</button>
-        <button class="btn ghost sm" data-act="trial">Add a free trial</button>
-      </div>
-      <h2 class="sec">Coming up</h2>
-      <div id="soon"></div>
-      <h2 class="sec"><span>Active</span><span class="r" id="activeCount"></span></h2>
-      <div id="list"></div>
-      <h2 class="sec">Cancelled</h2>
-      <div id="dead"></div>
+      <label style="margin-bottom:12px"><span>Find a document</span><input id="q" placeholder="Name, label, tag…"></label>
+      <div class="grp" id="filters"></div>
+      <div id="grid"></div>
     </section>
   </div>
 </div>
@@ -344,7 +336,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 <script>
 (function(){
 "use strict";
-var PAGE="subs";
+var PAGE="docs";
 /* ============================================================
    STATION CORE — shared by every page.
    Storage goes through DB only. Swap DB to move to a server.
@@ -828,174 +820,132 @@ document.addEventListener("keydown",function(e){
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();
-function perYear(s){
-  var c=s.cents||0;
-  if(s.cycle==="weekly") return Math.round(c*52);
-  if(s.cycle==="monthly") return c*12;
-  if(s.cycle==="quarterly") return c*4;
-  return c;
-}
-function perMonth(s){ return Math.round(perYear(s)/12); }
-function advance(s,from){
-  if(s.cycle==="weekly") return addDays(from,7);
-  if(s.cycle==="monthly") return addMonth(from);
-  if(s.cycle==="quarterly") return addMonth(addMonth(addMonth(from)));
-  var d=parseD(from); d.setFullYear(d.getFullYear()+1); return ymd(d);
-}
-function rollForward(s){
-  // catch a next-charge date up to today, so nothing sits stale
-  var moved=false;
-  while(s.next&&s.next<today()){ s.next=advance(s,s.next); moved=true; }
-  return moved;
-}
-function active(){ return (H.subs||[]).filter(function(s){return s.active!==false;}); }
-
+var FILES=[], filter="all";
 function pageHead(){
-  var a=active();
-  var m=a.reduce(function(t,s){return t+perMonth(s);},0);
-  setHead("SB · subscriptions","Subscriptions",
-    a.length+" active  ·  "+money(m)+" a month  ·  "+money(a.reduce(function(t,s){return t+perYear(s);},0))+" a year");
+  var n=FILES.length, mb=FILES.reduce(function(t,f){return t+f.size;},0);
+  setHead("DC · documents","Documents",
+    n+" file"+(n===1?"":"s")+(n?"  ·  "+fileSize(mb)+" stored":"  ·  nothing yet"));
 }
-function chargesIn(days){
-  var out=[];
-  active().forEach(function(s){
-    if(!s.next) return;
-    var d=s.next;
-    while(daysBetween(today(),d)<=days){
-      if(d>=today()) out.push({sub:s,date:d});
-      d=advance(s,d);
-      if(out.length>60) break;
-    }
+function extOf(f){
+  var p=(f.name||"").split("."); 
+  return (p.length>1?p[p.length-1]:"?").toUpperCase().slice(0,4);
+}
+function linkLabel(f){
+  if(!f.linkKind) return "";
+  if(f.linkKind==="contact") return personName(f.linkId)||"a contact";
+  if(f.linkKind==="ticket") return "ticket "+f.linkId;
+  if(f.linkKind==="item") return "a lent item";
+  if(f.linkKind==="journal") return "journal "+f.linkId;
+  return f.linkKind;
+}
+async function reload(){
+  FILES=await fileList();
+  pageHead(); draw();
+}
+function draw(){
+  var q=($("#q").value||"").trim().toLowerCase();
+  var fl=$("#filters");
+  var kinds={all:FILES.length};
+  FILES.forEach(function(f){
+    var k=isImage(f)?"images":(/pdf/.test(f.type)?"pdfs":"other");
+    kinds[k]=(kinds[k]||0)+1;
+    if(f.linkKind) kinds.attached=(kinds.attached||0)+1;
   });
-  return out.sort(function(a,b){return a.date.localeCompare(b.date);});
-}
-function subRow(s,showActions){
-  var late=s.next&&s.next<=today();
-  var soon=s.next&&daysBetween(today(),s.next)<=3;
-  var r=el("div","bar-row trio"+(showActions?"":" tap")),L=el("div");
-  L.appendChild(el("div","who",s.name));
-  var bits=[money(s.cents)+" "+(s.cycle||"monthly")];
-  if(s.next&&s.active!==false) bits.push((late?"due now":"next "+relDay(s.next)));
-  if(s.method) bits.push(s.method);
-  if(s.cat) bits.push(s.cat);
-  if(s.trial) bits.push("FREE TRIAL");
-  if(s.active===false&&s.cancelledOn) bits.push("cancelled "+pretty(s.cancelledOn));
-  L.appendChild(el("div","meta",bits.join(" · ")));
-  r.appendChild(L);
-  var a=el("div","amt out",money(perMonth(s))+"/mo");
-  a.style.fontSize="12.5px";
-  if(s.active===false){ a.className="amt"; a.textContent="—"; }
-  r.appendChild(a);
-  if(s.trial&&s.active!==false&&soon) r.appendChild(el("span","pill hot","cancel now"));
-  else if(late) r.appendChild(el("span","pill hot","due"));
-  else if(soon) r.appendChild(el("span","pill warm","soon"));
-  else r.appendChild(el("div"));
-  r.onclick=function(){subDialog(s);};
-  return r;
-}
-function pageRender(){
-  var changed=false;
-  (H.subs||[]).forEach(function(s){ if(s.active!==false&&rollForward(s)) changed=true; });
-  if(changed) save();
+  fl.innerHTML=Object.keys(kinds).map(function(k){
+    return '<button data-f="'+k+'"'+(k===filter?' aria-pressed="true"':'')+'>'+k+' ('+kinds[k]+')</button>';}).join("");
+  fl.querySelectorAll("button").forEach(function(b){
+    b.onclick=function(){filter=b.dataset.f;draw();};});
 
-  var a=active();
-  $("#mMonth").textContent=money(a.reduce(function(t,s){return t+perMonth(s);},0));
-  $("#mYear").textContent=money(a.reduce(function(t,s){return t+perYear(s);},0));
-  $("#m30").textContent=money(chargesIn(30).reduce(function(t,c){return t+c.sub.cents;},0));
-  $("#mSaved").textContent=money((H.subs||[]).filter(function(s){return s.active===false;})
-    .reduce(function(t,s){return t+perYear(s);},0))+"/yr";
-  $("#activeCount").textContent=a.length+" of them";
+  var list=FILES.filter(function(f){
+    if(filter==="images"&&!isImage(f)) return false;
+    if(filter==="pdfs"&&!/pdf/.test(f.type)) return false;
+    if(filter==="other"&&(isImage(f)||/pdf/.test(f.type))) return false;
+    if(filter==="attached"&&!f.linkKind) return false;
+    if(!q) return true;
+    return [f.name,f.label,(f.tags||[]).join(" "),linkLabel(f)].join(" ").toLowerCase().indexOf(q)>=0;});
 
-  var soon=chargesIn(30),host=$("#soon"); host.innerHTML="";
-  if(!soon.length) host.appendChild(emptyBox("Nothing charging soon","Add a subscription and its next charge shows up here."));
-  else{
-    var box=el("div","bar-list");
-    soon.slice(0,12).forEach(function(c){
-      var r=el("div","bar-row trio"),L=el("div");
-      L.appendChild(el("div","who",c.sub.name));
-      L.appendChild(el("div","meta",relDay(c.date)+" · "+prettyFull(c.date)+(c.sub.method?" · "+c.sub.method:"")));
-      r.appendChild(L);
-      r.appendChild(el("div","amt out",money(c.sub.cents)));
-      r.appendChild(c.sub.trial?el("span","pill hot","trial"):el("div"));
-      box.appendChild(r);});
-    host.appendChild(box);
+  var host=$("#grid"); host.innerHTML="";
+  if(!list.length){
+    host.appendChild(emptyBox(q||filter!=="all"?"Nothing matches":"No documents yet",
+      q||filter!=="all"?"Try another word or filter.":"Photograph your lease, your ID, a receipt — anything you'd hate to lose."));
+    return;
   }
-
-  var lh=$("#list"); lh.innerHTML="";
-  if(!a.length) lh.appendChild(emptyBox("Nothing tracked yet","Add what you pay for every month — streaming, phone, storage, anything."));
-  else{
-    var b2=el("div","bar-list");
-    a.slice().sort(function(x,y){return perYear(y)-perYear(x);}).forEach(function(s){b2.appendChild(subRow(s));});
-    lh.appendChild(b2);
-  }
-
-  var dead=(H.subs||[]).filter(function(s){return s.active===false;});
-  var dh=$("#dead"); dh.innerHTML="";
-  if(!dead.length) dh.appendChild(emptyBox("None cancelled","When you cancel something it moves here with what it was costing you."));
-  else{
-    var b3=el("div","bar-list");
-    dead.forEach(function(s){b3.appendChild(subRow(s));});
-    dh.appendChild(b3);
-  }
+  var grid=el("div","docgrid");
+  list.forEach(function(f){
+    var d=el("div","doc");
+    var t=el("div","thumb");
+    if(isImage(f)){
+      var img=el("img"); img.src="/api/files/"+f.id; img.alt=f.label||f.name; img.loading="lazy";
+      t.appendChild(img);
+    } else t.appendChild(el("div","ext",extOf(f)));
+    d.appendChild(t);
+    var i=el("div","info");
+    i.appendChild(el("div","n",f.label||f.name));
+    var bits=[fileSize(f.size)];
+    if(f.linkKind) bits.push(linkLabel(f));
+    i.appendChild(el("div","m",bits.join(" · ")));
+    d.appendChild(i);
+    d.onclick=function(){docDialog(f);};
+    grid.appendChild(d);});
+  host.appendChild(grid);
 }
-function methodOpts(sel){
-  var ms=(L&&L.methods)?L.methods:["Cash","Cash App","Apple Pay","Debit card"];
-  return '<option value="">Not noted</option>'+ms.map(function(m){
-    return '<option value="'+esc(m)+'"'+(m===sel?" selected":"")+'>'+esc(m)+'</option>';}).join("");
-}
-function subDialog(s,isTrial){
-  var isNew=!s;
-  s=s||{name:"",cents:0,cycle:isTrial?"monthly":"monthly",next:"",method:"",cat:"",url:"",notes:"",
-        active:true,trial:!!isTrial};
-  openDlg(isNew?(isTrial?"Add a free trial":"Add a subscription"):s.name,
-    (isTrial?'<p class="warn">Put the date the trial ends as the next charge. It turns red three days before, so you get a chance to cancel first.</p>':'')+
-    '<label><span>What is it</span><input id="fN" value="'+esc(s.name)+'" placeholder="Spotify, phone, storage"></label>'+
-    '<div class="two">'+
-      '<label><span>How much</span><input type="number" step="0.01" min="0" id="fA" inputmode="decimal" value="'+(s.cents?(s.cents/100).toFixed(2):"")+'" placeholder="0.00"></label>'+
-      '<label><span>How often</span><select id="fC">'+
-        ["weekly","monthly","quarterly","yearly"].map(function(c){
-          return '<option value="'+c+'"'+(s.cycle===c?" selected":"")+'>'+c+'</option>';}).join("")+
-      '</select></label></div>'+
-    '<div class="two">'+
-      '<label><span>'+(s.trial?"Trial ends":"Next charge")+'</span><input type="date" id="fD" value="'+esc(s.next||"")+'"></label>'+
-      '<label><span>Paid with</span><select id="fM">'+methodOpts(s.method)+'</select></label></div>'+
-    '<div class="two">'+
-      '<label><span>Category</span><input id="fT" value="'+esc(s.cat||"")+'" placeholder="Music, phone, tools"></label>'+
-      '<label class="check" style="margin-top:18px"><input type="checkbox" id="fR"'+(s.trial?" checked":"")+'><span>This is a free trial</span></label></div>'+
-    '<label><span>Where to cancel it</span><input id="fU" value="'+esc(s.url||"")+'" placeholder="Website or phone number"></label>'+
-    '<label><span>Notes</span><input id="fO" value="'+esc(s.notes||"")+'" placeholder="Optional"></label>'+
-    '<div class="row-btns"><button class="btn" id="fS" style="flex:1">'+(isNew?"Add it":"Save")+'</button>'+
-    (isNew?'':(s.active===false
-      ? '<button class="btn ghost" id="fRe">Restart it</button>'
-      : '<button class="btn ghost" id="fX">Cancelled it</button>')+
-      '<button class="btn ghost sm" id="fDel">Delete</button>')+'</div>',
+function docDialog(f){
+  openDlg(f.label||f.name,
+    (isImage(f)?'<img class="preview" src="/api/files/'+f.id+'" alt="">':'')+
+    '<label><span>Label</span><input id="fL" value="'+esc(f.label||"")+'" placeholder="What is this"></label>'+
+    '<label><span>Tags</span><input id="fT" value="'+esc((f.tags||[]).join(", "))+'" placeholder="legal, receipts, ID"></label>'+
+    '<div class="kv" style="margin-bottom:12px">'+
+      '<dt>File</dt><dd>'+esc(f.name)+'</dd>'+
+      '<dt>Size</dt><dd>'+fileSize(f.size)+'</dd>'+
+      '<dt>Added</dt><dd>'+new Date(f.added).toLocaleDateString()+'</dd>'+
+      (f.linkKind?'<dt>Attached to</dt><dd>'+esc(linkLabel(f))+'</dd>':'')+
+    '</div>'+
+    '<div class="row-btns">'+
+      '<a class="btn ghost sm" href="/api/files/'+f.id+'" target="_blank">Open</a>'+
+      '<a class="btn ghost sm" href="/api/files/'+f.id+'?dl=1">Download</a>'+
+      '<button class="btn" id="fS" style="flex:1">Save</button>'+
+      '<button class="btn ghost sm" id="fX">Delete</button>'+
+    '</div>',
     function(){
-      $("#fS").onclick=function(){
-        var n=$("#fN").value.trim();
-        if(!n){toast("What is it called?");return;}
-        s.name=n; s.cents=cents($("#fA").value); s.cycle=$("#fC").value;
-        s.next=$("#fD").value; s.method=$("#fM").value; s.cat=$("#fT").value.trim();
-        s.url=$("#fU").value.trim(); s.notes=$("#fO").value.trim(); s.trial=$("#fR").checked;
-        if(isNew){s.id=uid();s.active=true;s.created=today();H.subs.push(s);}
-        save();pageHead();pageRender();buildNav();dlg.close();toast(isNew?"Added":"Saved");};
-      if(!isNew&&s.active!==false) $("#fX").onclick=function(){
-        s.active=false; s.cancelledOn=today();
-        save();pageHead();pageRender();buildNav();dlg.close();
-        toast("Cancelled — that's "+money(perYear(s))+" a year back");};
-      if(!isNew&&s.active===false) $("#fRe").onclick=function(){
-        s.active=true; delete s.cancelledOn;
-        if(s.next&&s.next<today()) rollForward(s);
-        save();pageHead();pageRender();buildNav();dlg.close();toast("Back on the list");};
-      if(!isNew) $("#fDel").onclick=function(){
-        if(!confirm("Delete "+s.name+" completely? Use 'Cancelled it' instead if you want to keep the record.")) return;
-        H.subs=H.subs.filter(function(x){return x.id!==s.id;});
-        save();pageHead();pageRender();buildNav();dlg.close();};
+      $("#fS").onclick=async function(){
+        await fileEdit(f.id,{label:$("#fL").value.trim(),
+          tags:$("#fT").value.split(",").map(function(s){return s.trim();}).filter(Boolean)});
+        dlg.close(); toast("Saved"); reload();};
+      $("#fX").onclick=async function(){
+        if(!confirm("Delete "+(f.label||f.name)+"? This cannot be undone.")) return;
+        await fileDelete(f.id); dlg.close(); toast("Deleted"); reload();};
     });
 }
-function pageAction(a){
-  if(a==="new") subDialog(null,false);
-  else if(a==="trial") subDialog(null,true);
+async function upload(files){
+  var d=$("#drop"), n=0;
+  for(var i=0;i<files.length;i++){
+    d.innerHTML="<b>Uploading</b>"+(i+1)+" of "+files.length+"…";
+    try{ await fileUpload(files[i],"","",""); n++; }
+    catch(e){ toast(e.message||"One file failed"); }
+  }
+  d.innerHTML='<b>Add a document</b>Tap here, or drag files in. Photos, PDFs, scans — 25 MB each.'+
+    '<input type="file" id="pick" multiple style="display:none" accept="image/*,application/pdf,.txt,.heic">';
+  wireDrop();
+  if(n) toast(n+" file"+(n===1?"":"s")+" added");
+  reload();
 }
-function pageBoot(){ if(qparam("new")) setTimeout(function(){subDialog(null,false);},120); }
+function wireDrop(){
+  var d=$("#drop"), p=$("#pick");
+  d.onclick=function(){p.click();};
+  p.onchange=function(){ if(p.files.length) upload(p.files); };
+  ["dragenter","dragover"].forEach(function(e){
+    d.addEventListener(e,function(ev){ev.preventDefault();d.classList.add("over");});});
+  ["dragleave","drop"].forEach(function(e){
+    d.addEventListener(e,function(ev){ev.preventDefault();d.classList.remove("over");});});
+  d.addEventListener("drop",function(ev){
+    if(ev.dataTransfer&&ev.dataTransfer.files.length) upload(ev.dataTransfer.files);});
+}
+function pageRender(){ draw(); }
+function pageAction(a){ if(a==="new") $("#pick").click(); }
+function pageBoot(){
+  $("#q").oninput=draw;
+  wireDrop();
+  reload();
+}
 })();
 </script>
