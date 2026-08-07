@@ -613,7 +613,8 @@ var MODULES=[
   {id:"subs",cd:"SB",label:"Subscriptions",file:"subs.html"},
   {id:"journal",cd:"JR",label:"Journal",file:"journal.html"},
   {id:"docs",cd:"DC",label:"Documents",file:"docs.html"},
-  {id:"history",cd:"HI",label:"History",file:"history.html"}
+  {id:"history",cd:"HI",label:"History",file:"history.html"},
+  {id:"talk",cd:"AI",label:"Talk",file:"talk.html"}
 ];
 function navCounts(){
   var c={},ts=today();
@@ -821,7 +822,7 @@ document.addEventListener("keydown",function(e){
   if(typeof pageBoot==="function") pageBoot();
   pageHead(); pageRender();
   if(!DB.ok){
-    var w=el("p","warn","Can't reach the server — nothing you type will be saved. Check that the station container is running.");
+    var w=el("p","warn","Can't reach the server — nothing you type will be saved.");
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();

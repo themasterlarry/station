@@ -1,4 +1,4 @@
-<title>Documents — Station</title>
+<title>Talk — Station</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -316,53 +316,29 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
     </header>
     <section class="pane" id="pane">
       <style>
-      .mrow2{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:10px 11px;border-bottom:1px solid rgba(0,0,0,.06)}
-      .mrow2:nth-child(odd){background:var(--bar)}
-      .mrow2:last-child{border-bottom:0}
-      .mrow2:hover{background:#E9F0E3;cursor:pointer}
-      .gr{font-family:var(--mono);font-size:12px;font-weight:600;border:1px solid var(--ink-3);border-radius:2px;padding:3px 6px;min-width:30px;text-align:center}
-      .gr.g5{border-color:var(--stamp);color:var(--stamp)}
-      .mrow2 .ti{font-weight:600;font-size:14.5px}
-      .mrow2 .by{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:1px}
-      .parts{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
-      .prt{font-family:var(--mono);font-size:11px;border:1px solid var(--rule);background:#fff;border-radius:2px;padding:3px 7px;display:flex;align-items:center;gap:5px}
-      .prt a{color:inherit;text-decoration:none}
-      .prt a:hover{text-decoration:underline}
-      .prt.mine{border-color:var(--tick-deep);background:#FBF4E4;font-weight:600}
-      .prt .x{cursor:pointer;color:var(--dim);font-size:13px;line-height:1}
-      .prt .x:hover{color:var(--stamp)}
-      .miss{font-family:var(--mono);font-size:11px;border:1px dashed var(--stamp);color:var(--stamp);border-radius:2px;padding:3px 7px}
+      .chat{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;min-height:200px}
+      .msg{max-width:88%;padding:10px 13px;border-radius:3px;font-size:14.5px;line-height:1.5;white-space:pre-wrap}
+      .msg.me{align-self:flex-end;background:var(--ink);color:var(--paper)}
+      .msg.it{align-self:flex-start;background:#fff;border:1px solid var(--rule)}
+      .msg.sys{align-self:center;background:var(--bar);border:1px dashed var(--rule);color:var(--dim);font-size:12.5px;max-width:100%}
+      .thinking{align-self:flex-start;font-family:var(--mono);font-size:12px;color:var(--dim);padding:6px 2px}
+      .act{align-self:flex-start;border:1px solid var(--tick-deep);background:#FBF4E4;border-radius:3px;padding:9px 11px;max-width:88%}
+      .act .t{font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--tick-deep)}
+      .act .d{font-size:14px;margin:3px 0 7px;font-weight:600}
+      .composer{display:flex;gap:7px;align-items:flex-end;position:sticky;bottom:0;background:var(--paper);padding:10px 0}
+      .composer textarea{min-height:46px;max-height:160px;resize:none}
+      .offline{border:1px solid var(--stamp);background:#F7E4E0;border-radius:2px;padding:11px;margin-bottom:12px;font-size:13.5px}
       </style>
-      <div class="seg mini" id="mode">
-        <button type="button" data-m="music" aria-pressed="true">Sheet music</button>
-        <button type="button" data-m="files" aria-pressed="false">All documents</button>
+      <div id="offline"></div>
+      <div class="chat" id="chat"></div>
+      <div class="composer">
+        <textarea id="box" placeholder="What's going on?" rows="1"></textarea>
+        <button class="btn" id="send">Send</button>
       </div>
-
-      <div id="v-music">
-        <div class="tally" style="margin-bottom:12px">
-          <div><div class="lbl">Pieces</div><div class="val" id="nPieces">0</div></div>
-          <div><div class="lbl">Parts filed</div><div class="val" id="nParts">0</div></div>
-          <div><div class="lbl">Missing parts</div><div class="val amt out" id="nMiss">0</div></div>
-          <div><div class="lbl">Your part</div><div class="val" id="myPart" style="font-size:14px">—</div></div>
-        </div>
-        <div class="row-btns" style="margin-bottom:12px">
-          <button class="btn" data-act="newpiece">Add a piece</button>
-          <button class="btn ghost sm" data-act="setmine">Set your instrument</button>
-        </div>
-        <label style="margin-bottom:10px"><span>Find a piece</span><input id="mq" placeholder="Title, composer, arranger, folder…"></label>
-        <div class="grp" id="mfilters"></div>
-        <div id="mlist"></div>
-      </div>
-
-      <div id="v-files" style="display:none">
-      <div class="drop" id="drop">
-        <b>Add a document</b>
-        Tap here, or drag files in. Photos, PDFs, scans — 25 MB each.
-        <input type="file" id="pick" multiple style="display:none" accept="image/*,application/pdf,.txt,.heic">
-      </div>
-      <label style="margin-bottom:12px"><span>Find a document</span><input id="q" placeholder="Name, label, tag…"></label>
-      <div class="grp" id="filters"></div>
-      <div id="grid"></div>
+      <div class="row-btns" style="margin-top:6px">
+        <button class="btn ghost sm" data-act="newchat">Start fresh</button>
+        <button class="btn ghost sm" data-act="remember">What it remembers</button>
+        <button class="btn ghost sm" data-act="persona">How it talks</button>
       </div>
     </section>
   </div>
@@ -373,11 +349,10 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
   <div class="dlg-head"><span id="dlgTitle">—</span><button type="button" id="dlgX" aria-label="Close">×</button></div>
   <div class="dlg-body" id="dlgBody"></div>
 </dialog>
-<button class="btn tick fab" data-act="new">+ New</button>
 <script>
 (function(){
 "use strict";
-var PAGE="docs";
+var PAGE="talk";
 /* ============================================================
    STATION CORE — shared by every page.
    Storage goes through DB only. Swap DB to move to a server.
@@ -862,405 +837,242 @@ document.addEventListener("keydown",function(e){
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();
-var FILES=[], filter="all";
+var TKEY="talk:v1", T={msgs:[],memory:[],persona:""}, busy=false, aiOk=null, aiModel="";
+
+var DEFAULT_PERSONA =
+"You are a private, self-hosted companion living inside Charles's personal system. "+
+"You are here to talk things through with him — what happened, what is bothering him, what he is avoiding, what went well.\n\n"+
+"How to be:\n"+
+"- Talk like a thoughtful person, not a chatbot. Warm, direct, unhurried.\n"+
+"- Listen first. Reflect back what you actually heard before adding anything.\n"+
+"- Ask one real question at a time. Short questions are better than long ones.\n"+
+"- Sit with hard things instead of rushing to fix them. Do not hand out advice he did not ask for.\n"+
+"- Never open with a disclaimer or repeat that you are an AI. He knows. Saying it every message makes you useless to him.\n"+
+"- Do not moralize, do not lecture, do not end every message with a suggestion to talk to someone else.\n"+
+"- It is fine to disagree with him, gently and honestly. Agreeing with everything is not support.\n"+
+"- Match his length. If he writes one line, do not write six paragraphs.\n\n"+
+"If he is ever in real danger — talking about ending his life or hurting himself badly — drop everything else, "+
+"stay with him, be direct that you want him to be safe, and say plainly that a person should know about this tonight "+
+"(988 by call or text in the US, or someone he trusts). Do not be clinical about it and do not abandon the conversation.\n\n"+
+"You can also do things in his system. When he clearly asks you to add or record something, end your reply with a fenced block:\n"+
+"```action\n{\"do\":\"add_task\",\"title\":\"call the landlord\"}\n```\n"+
+"Valid actions: add_task {title,due?}, add_journal {text}, add_note {title,body?}, add_event {title,date,time?}, remember {text}.\n"+
+"Dates are YYYY-MM-DD. Use remember for things worth carrying into future conversations. "+
+"Only emit an action when he actually asked for one. Never more than one per reply. "+
+"Say what you did in your own words too — do not describe the block itself.";
+
+function persona(){ return (T.persona&&T.persona.trim())||DEFAULT_PERSONA; }
+
 function pageHead(){
-  var n=FILES.length, mb=FILES.reduce(function(t,f){return t+f.size;},0);
-  if(mode==="music"){
-    var sc=(H.scores||[]).length;
-    var miss=(H.scores||[]).reduce(function(t,p){return t+missingOf(p).length;},0);
-    setHead("DC · sheet music","Music library",
-      sc+" piece"+(sc===1?"":"s")+"  ·  "+
-      FILES.filter(function(f){return f.linkKind==="score";}).length+" parts filed"+
-      (miss?"  ·  "+miss+" parts missing":""));
-  } else {
-    setHead("DC · documents","Documents",
-      n+" file"+(n===1?"":"s")+(n?"  ·  "+fileSize(mb)+" stored":"  ·  nothing yet"));
-  }
+  var n=T.msgs.length;
+  setHead("AI · talk","Talk",
+    (aiOk===false?"model offline":(aiModel?aiModel+" · on your machine":"connecting…"))+
+    (n?"  ·  "+n+" messages in this conversation":"")+
+    (T.memory.length?"  ·  remembers "+T.memory.length+" things":""));
 }
-function extOf(f){
-  var p=(f.name||"").split("."); 
-  return (p.length>1?p[p.length-1]:"?").toUpperCase().slice(0,4);
+async function loadTalk(){
+  var t=await DB.get(TKEY);
+  if(t) T=t;
+  T.msgs=T.msgs||[]; T.memory=T.memory||[]; T.persona=T.persona||"";
 }
-function linkLabel(f){
-  if(!f.linkKind) return "";
-  if(f.linkKind==="contact") return personName(f.linkId)||"a contact";
-  if(f.linkKind==="ticket") return "ticket "+f.linkId;
-  if(f.linkKind==="score"){
-    var sc=(H.scores||[]).filter(function(p){return p.id===f.linkId;})[0];
-    return sc?("part of "+sc.title):"sheet music";
-  }
-  if(f.linkKind==="item") return "a lent item";
-  if(f.linkKind==="journal") return "journal "+f.linkId;
-  return f.linkKind;
-}
-async function reload(){
-  FILES=await fileList();
-  pageHead();
-  if(mode==="music") drawMusic(); else draw();
-}
-function draw(){
-  var q=($("#q").value||"").trim().toLowerCase();
-  var fl=$("#filters");
-  var kinds={all:FILES.length};
-  FILES.forEach(function(f){
-    var k=isImage(f)?"images":(/pdf/.test(f.type)?"pdfs":"other");
-    kinds[k]=(kinds[k]||0)+1;
-    if(f.linkKind) kinds.attached=(kinds.attached||0)+1;
-  });
-  fl.innerHTML=Object.keys(kinds).map(function(k){
-    return '<button data-f="'+k+'"'+(k===filter?' aria-pressed="true"':'')+'>'+k+' ('+kinds[k]+')</button>';}).join("");
-  fl.querySelectorAll("button").forEach(function(b){
-    b.onclick=function(){filter=b.dataset.f;draw();};});
+function saveTalk(){ DB.set(TKEY,T); }
 
-  var list=FILES.filter(function(f){
-    if(f.linkKind==="score"&&filter!=="all"&&filter!=="attached") return false;
-    if(filter==="images"&&!isImage(f)) return false;
-    if(filter==="pdfs"&&!/pdf/.test(f.type)) return false;
-    if(filter==="other"&&(isImage(f)||/pdf/.test(f.type))) return false;
-    if(filter==="attached"&&!f.linkKind) return false;
-    if(!q) return true;
-    return [f.name,f.label,(f.tags||[]).join(" "),linkLabel(f)].join(" ").toLowerCase().indexOf(q)>=0;});
-
-  var host=$("#grid"); host.innerHTML="";
-  if(!list.length){
-    host.appendChild(emptyBox(q||filter!=="all"?"Nothing matches":"No documents yet",
-      q||filter!=="all"?"Try another word or filter.":"Photograph your lease, your ID, a receipt — anything you'd hate to lose."));
-    return;
-  }
-  var grid=el("div","docgrid");
-  list.forEach(function(f){
-    var d=el("div","doc");
-    var t=el("div","thumb");
-    if(isImage(f)){
-      var img=el("img"); img.src="/api/files/"+f.id; img.alt=f.label||f.name; img.loading="lazy";
-      t.appendChild(img);
-    } else t.appendChild(el("div","ext",extOf(f)));
-    d.appendChild(t);
-    var i=el("div","info");
-    i.appendChild(el("div","n",f.label||f.name));
-    var bits=[fileSize(f.size)];
-    if(f.linkKind) bits.push(linkLabel(f));
-    i.appendChild(el("div","m",bits.join(" · ")));
-    d.appendChild(i);
-    d.onclick=function(){docDialog(f);};
-    grid.appendChild(d);});
-  host.appendChild(grid);
+/* a short picture of his week, so it isn't talking in a vacuum */
+function context(){
+  var ts=today(), L2=[];
+  var due=(H.tasks||[]).filter(function(x){return !x.done&&x.due&&x.due<=ts;});
+  if(due.length) L2.push("Tasks due or late: "+due.slice(0,6).map(function(x){return x.title;}).join("; "));
+  var ev=(H.events||[]).filter(function(e){return e.date>=ts&&daysBetween(ts,e.date)<=7;});
+  if(ev.length) L2.push("Coming up this week: "+ev.slice(0,5).map(function(e){return e.title+" "+relDay(e.date);}).join("; "));
+  var lt=ledgerTotals();
+  if(lt) L2.push("Money: "+money(lt.total)+" on hand, "+money(lt.owe)+" owed out, "+money(lt.owed)+" owed to him.");
+  var j=(H.journal||[]).slice().sort(function(a,b){return b.date.localeCompare(a.date);})[0];
+  if(j) L2.push("Last journal entry ("+j.date+"): "+(j.body||"").slice(0,300));
+  var hb=(H.habits||[]).filter(function(h){return !(h.days||{})[ts];});
+  if(hb.length) L2.push("Habits not marked today: "+hb.map(function(h){return h.name;}).join(", "));
+  var out=[];
+  out.push("Today is "+dowOf(ts)+", "+prettyFull(ts)+".");
+  if(T.memory.length) out.push("Things you have chosen to remember about him:\n- "+T.memory.map(function(m){return m.text;}).join("\n- "));
+  if(L2.length) out.push("From his system right now (only bring these up if they fit):\n"+L2.join("\n"));
+  return out.join("\n\n");
 }
-function docDialog(f){
-  openDlg(f.label||f.name,
-    (isImage(f)?'<img class="preview" src="/api/files/'+f.id+'" alt="">':'')+
-    '<label><span>Label</span><input id="fL" value="'+esc(f.label||"")+'" placeholder="What is this"></label>'+
-    '<label><span>Tags</span><input id="fT" value="'+esc((f.tags||[]).join(", "))+'" placeholder="legal, receipts, ID"></label>'+
-    '<div class="kv" style="margin-bottom:12px">'+
-      '<dt>File</dt><dd>'+esc(f.name)+'</dd>'+
-      '<dt>Size</dt><dd>'+fileSize(f.size)+'</dd>'+
-      '<dt>Added</dt><dd>'+new Date(f.added).toLocaleDateString()+'</dd>'+
-      (f.linkKind?'<dt>Attached to</dt><dd>'+esc(linkLabel(f))+'</dd>':'')+
-    '</div>'+
-    '<div class="row-btns">'+
-      '<a class="btn ghost sm" href="/api/files/'+f.id+'" target="_blank">Open</a>'+
-      '<a class="btn ghost sm" href="/api/files/'+f.id+'?dl=1">Download</a>'+
-      '<button class="btn" id="fS" style="flex:1">Save</button>'+
-      '<button class="btn ghost sm" id="fX">Delete</button>'+
-    '</div>',
+
+function bubble(role,text){
+  var d=el("div","msg "+(role==="user"?"me":role==="system"?"sys":"it"),text);
+  $("#chat").appendChild(d); return d;
+}
+function scrollDown(){ window.scrollTo(0,document.body.scrollHeight); }
+
+function drawChat(){
+  var c=$("#chat"); c.innerHTML="";
+  if(!T.msgs.length){
+    bubble("system","Nothing here yet. Whatever is on your mind — start anywhere.");
+  }
+  T.msgs.forEach(function(m){ bubble(m.role,m.content); });
+  scrollDown();
+}
+
+function parseAction(text){
+  var m=text.match(/```action\s*([\s\S]*?)```/);
+  if(!m) return {clean:text,action:null};
+  var act=null;
+  try{ act=JSON.parse(m[1].trim()); }catch(e){}
+  return {clean:text.replace(m[0],"").trim(),action:act};
+}
+function describe(a){
+  if(a.do==="add_task")    return "Add task: "+a.title+(a.due?" (due "+a.due+")":"");
+  if(a.do==="add_journal") return "Add to today's journal";
+  if(a.do==="add_note")    return "Save a note: "+(a.title||"untitled");
+  if(a.do==="add_event")   return "Calendar: "+a.title+" on "+(a.date||"?")+(a.time?" at "+a.time:"");
+  if(a.do==="remember")    return "Remember: "+a.text;
+  return "Do: "+a.do;
+}
+function runAction(a){
+  if(a.do==="add_task"){
+    H.tasks.push({id:uid(),title:a.title,done:false,list:(H.lists||["Inbox"])[0],prio:3,
+      due:a.due||"",notes:"",repeat:"none",created:today()});
+  } else if(a.do==="add_journal"){
+    H.journal=H.journal||[];
+    var e=H.journal.filter(function(x){return x.date===today();})[0];
+    if(e) e.body=(e.body?e.body+"\n\n":"")+a.text;
+    else H.journal.push({id:uid(),date:today(),title:"",body:a.text,tags:["from a talk"]});
+  } else if(a.do==="add_note"){
+    H.notes.push({id:uid(),title:a.title||"Untitled",body:a.body||"",tags:["from a talk"],
+      pinned:false,created:today(),updated:today()});
+  } else if(a.do==="add_event"){
+    H.events.push({id:uid(),title:a.title,date:a.date||today(),time:a.time||"",
+      endTime:"",place:"",notes:"",personIds:[]});
+  } else if(a.do==="remember"){
+    T.memory.push({id:uid(),text:a.text,when:today()});
+    saveTalk(); pageHead(); return true;
+  } else return false;
+  save(); return true;
+}
+function offerAction(a){
+  var w=el("div","act");
+  w.appendChild(el("div","t","It wants to do something"));
+  w.appendChild(el("div","d",describe(a)));
+  var row=el("div","row-btns");
+  var yes=el("button","btn sm","Do it");
+  var no=el("button","btn ghost sm","No thanks");
+  yes.onclick=function(){
+    if(runAction(a)){ w.innerHTML=""; w.appendChild(el("div","t","Done"));
+      w.appendChild(el("div","d",describe(a))); toast("Done"); }
+    else toast("Didn't understand that one");
+  };
+  no.onclick=function(){ w.remove(); };
+  row.appendChild(yes); row.appendChild(no); w.appendChild(row);
+  $("#chat").appendChild(w); scrollDown();
+}
+
+async function send(){
+  if(busy) return;
+  var text=$("#box").value.trim();
+  if(!text) return;
+  $("#box").value=""; $("#box").style.height="auto";
+  T.msgs.push({role:"user",content:text});
+  bubble("user",text); saveTalk(); scrollDown();
+
+  busy=true; $("#send").disabled=true;
+  var think=el("div","thinking","thinking…");
+  $("#chat").appendChild(think); scrollDown();
+
+  var payload=[{role:"system",content:persona()+"\n\n"+context()}]
+    .concat(T.msgs.slice(-24));
+  try{
+    var r=await fetch("/api/ai",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({messages:payload})});
+    var j=await r.json();
+    think.remove();
+    if(!r.ok||!j.text){
+      bubble("system",j.error||"The model didn't answer. Check that Ollama is running.");
+    } else {
+      var p=parseAction(j.text);
+      T.msgs.push({role:"assistant",content:p.clean});
+      bubble("assistant",p.clean);
+      if(p.action) offerAction(p.action);
+      saveTalk();
+    }
+  }catch(e){
+    think.remove();
+    bubble("system","Couldn't reach the model. Is the ollama container up?");
+  }
+  busy=false; $("#send").disabled=false; pageHead(); scrollDown();
+}
+
+function memoryDialog(){
+  openDlg("What it remembers",
+    '<p class="foot-note" style="margin-top:0">Carried into every conversation. Add or remove anything.</p>'+
+    '<div class="bar-list" id="mList"></div>'+
+    '<label style="margin-top:12px"><span>Add something</span><input id="mNew" placeholder="He plays trumpet in a community band"></label>'+
+    '<button class="btn ghost sm" id="mAdd" style="width:100%">Add it</button>',
     function(){
-      $("#fS").onclick=async function(){
-        await fileEdit(f.id,{label:$("#fL").value.trim(),
-          tags:$("#fT").value.split(",").map(function(s){return s.trim();}).filter(Boolean)});
-        dlg.close(); toast("Saved"); reload();};
-      $("#fX").onclick=async function(){
-        if(!confirm("Delete "+(f.label||f.name)+"? This cannot be undone.")) return;
-        await fileDelete(f.id); dlg.close(); toast("Deleted"); reload();};
+      function fill(){
+        var h=$("#mList"); h.innerHTML="";
+        if(!T.memory.length){ h.appendChild(emptyBox("Nothing yet","It'll add things as you talk, or you can.")); return; }
+        T.memory.forEach(function(m){
+          var r=el("div","bar-row"),L2=el("div");
+          L2.appendChild(el("div","who",m.text));
+          L2.appendChild(el("div","meta","since "+pretty(m.when)));
+          r.appendChild(L2);
+          var k=el("button","kill","×");
+          k.onclick=function(){ T.memory=T.memory.filter(function(x){return x.id!==m.id;});
+            saveTalk(); fill(); pageHead(); };
+          r.appendChild(k); h.appendChild(r);});
+      }
+      fill();
+      $("#mAdd").onclick=function(){
+        var v=$("#mNew").value.trim(); if(!v) return;
+        T.memory.push({id:uid(),text:v,when:today()});
+        $("#mNew").value=""; saveTalk(); fill(); pageHead();};
     });
 }
-async function upload(files){
-  var d=$("#drop"), n=0;
-  for(var i=0;i<files.length;i++){
-    d.innerHTML="<b>Uploading</b>"+(i+1)+" of "+files.length+"…";
-    try{ await fileUpload(files[i],"","",""); n++; }
-    catch(e){ toast(e.message||"One file failed"); }
-  }
-  d.innerHTML='<b>Add a document</b>Tap here, or drag files in. Photos, PDFs, scans — 25 MB each.'+
-    '<input type="file" id="pick" multiple style="display:none" accept="image/*,application/pdf,.txt,.heic">';
-  wireDrop();
-  if(n) toast(n+" file"+(n===1?"":"s")+" added");
-  reload();
+function personaDialog(){
+  openDlg("How it talks",
+    '<p class="foot-note" style="margin-top:0">This is the instruction it gets before every conversation. Change it to whatever suits you.</p>'+
+    '<label><span>Instructions</span><textarea id="pT" style="min-height:280px;font-size:13px">'+esc(persona())+'</textarea></label>'+
+    '<div class="row-btns"><button class="btn" id="pS" style="flex:1">Save</button>'+
+    '<button class="btn ghost sm" id="pR">Back to default</button></div>',
+    function(){
+      $("#pS").onclick=function(){ T.persona=$("#pT").value; saveTalk(); dlg.close(); toast("Saved"); };
+      $("#pR").onclick=function(){ $("#pT").value=DEFAULT_PERSONA; };
+    });
 }
-function wireDrop(){
-  var d=$("#drop"), p=$("#pick");
-  d.onclick=function(){p.click();};
-  p.onchange=function(){ if(p.files.length) upload(p.files); };
-  ["dragenter","dragover"].forEach(function(e){
-    d.addEventListener(e,function(ev){ev.preventDefault();d.classList.add("over");});});
-  ["dragleave","drop"].forEach(function(e){
-    d.addEventListener(e,function(ev){ev.preventDefault();d.classList.remove("over");});});
-  d.addEventListener("drop",function(ev){
-    if(ev.dataTransfer&&ev.dataTransfer.files.length) upload(ev.dataTransfer.files);});
+async function checkAI(){
+  try{
+    var r=await fetch("/api/ai/status"); var j=await r.json();
+    aiOk=!!j.ok; aiModel=j.model||"";
+    var o=$("#offline"); o.innerHTML="";
+    if(!aiOk){
+      var d=el("div","offline");
+      d.innerHTML="<b>No model running.</b><br>In the container: <code>bash ai-setup.sh</code>"+
+        (j.error?"<br><span style='font-family:var(--mono);font-size:11.5px'>"+esc(j.error)+"</span>":"");
+      o.appendChild(d);
+    } else if(j.models&&j.models.length&&j.models.indexOf(aiModel)<0){
+      var d2=el("div","offline");
+      d2.innerHTML="<b>Model not downloaded.</b><br>Run: <code>docker exec ollama ollama pull "+esc(aiModel)+"</code>";
+      o.appendChild(d2);
+    }
+  }catch(e){ aiOk=false; }
+  pageHead();
 }
-function pageRender(){ if(mode==="music") drawMusic(); else draw(); }
+function pageRender(){ drawChat(); }
 function pageAction(a){
-  if(a==="newpiece") pieceDialog(null);
-  else if(a==="setmine") instrumentDialog();
-  else if(a==="new"){ if(mode==="music") pieceDialog(null); else $("#pick").click(); }
+  if(a==="newchat"){
+    if(T.msgs.length&&!confirm("Start a fresh conversation? What it remembers is kept.")) return;
+    T.msgs=[]; saveTalk(); drawChat(); pageHead();
+  }
+  else if(a==="remember") memoryDialog();
+  else if(a==="persona") personaDialog();
 }
 function pageBoot(){
-  H.scores=H.scores||[];
-  $("#q").oninput=draw;
-  $("#mq").oninput=function(){ mq=this.value.trim(); drawMusic(); };
-  $("#mode").querySelectorAll("button").forEach(function(b){
-    b.onclick=function(){ setMode(b.dataset.m); pageHead(); };});
-  wireDrop();
-  reload();
-}
-
-/* ============================================================
-   SHEET MUSIC LIBRARY
-   A piece is a record in H.scores; each part is an uploaded
-   file linked with linkKind="score", linkId=piece.id and the
-   instrument name as its label.
-   ============================================================ */
-var BAND=["Full Score","Piccolo","Flute 1","Flute 2","Oboe","Bassoon",
-  "Clarinet 1","Clarinet 2","Clarinet 3","Bass Clarinet",
-  "Alto Sax 1","Alto Sax 2","Tenor Sax","Bari Sax",
-  "Trumpet 1","Trumpet 2","Trumpet 3","Horn 1","Horn 2",
-  "Trombone 1","Trombone 2","Bass Trombone","Euphonium","Tuba","String Bass",
-  "Timpani","Percussion 1","Percussion 2","Mallets"];
-var JAZZ=["Full Score","Alto Sax 1","Alto Sax 2","Tenor Sax 1","Tenor Sax 2","Bari Sax",
-  "Trumpet 1","Trumpet 2","Trumpet 3","Trumpet 4",
-  "Trombone 1","Trombone 2","Trombone 3","Bass Trombone",
-  "Guitar","Piano","Bass","Drums"];
-var mode="music", mq="", mfilter="all";
-
-function scores(){ H.scores=H.scores||[]; return H.scores; }
-function partsOf(id){ return FILES.filter(function(f){return f.linkKind==="score"&&f.linkId===id;}); }
-function expectedOf(p){
-  if(p.expected&&p.expected.length) return p.expected;
-  return p.ensemble==="jazz"?JAZZ:BAND;
-}
-function missingOf(p){
-  var have=partsOf(p.id).map(function(f){return (f.label||f.name).toLowerCase().trim();});
-  return expectedOf(p).filter(function(i){
-    return !have.some(function(h){return h===i.toLowerCase()||h.indexOf(i.toLowerCase())>=0;});
-  });
-}
-function myPart(){ return (H.settings&&H.settings.instrument)||""; }
-
-function musicHead(){
-  var sc=scores();
-  var parts=sc.reduce(function(t,p){return t+partsOf(p.id).length;},0);
-  var miss=sc.reduce(function(t,p){return t+missingOf(p).length;},0);
-  $("#nPieces").textContent=sc.length;
-  $("#nParts").textContent=parts;
-  $("#nMiss").textContent=miss;
-  $("#myPart").textContent=myPart()||"not set";
-}
-function folders(){
-  var f={}; scores().forEach(function(p){ if(p.folder) f[p.folder]=(f[p.folder]||0)+1; });
-  return f;
-}
-function drawMusic(){
-  musicHead();
-  var fo=folders(), fl=$("#mfilters");
-  var opts=[["all","All pieces ("+scores().length+")"]];
-  Object.keys(fo).sort().forEach(function(k){ opts.push(["f:"+k,k+" ("+fo[k]+")"]); });
-  opts.push(["incomplete","Missing parts"]);
-  if(myPart()) opts.push(["mine","Has my part"]);
-  fl.innerHTML=opts.map(function(o){
-    return '<button data-f="'+esc(o[0])+'"'+(o[0]===mfilter?' aria-pressed="true"':'')+'>'+esc(o[1])+'</button>';}).join("");
-  fl.querySelectorAll("button").forEach(function(b){
-    b.onclick=function(){mfilter=b.dataset.f;drawMusic();};});
-
-  var q=mq.toLowerCase();
-  var list=scores().filter(function(p){
-    if(mfilter.indexOf("f:")===0&&p.folder!==mfilter.slice(2)) return false;
-    if(mfilter==="incomplete"&&!missingOf(p).length) return false;
-    if(mfilter==="mine"){
-      var mine=myPart().toLowerCase();
-      if(!mine||!partsOf(p.id).some(function(f){return (f.label||"").toLowerCase().indexOf(mine)>=0;})) return false;
-    }
-    if(!q) return true;
-    return [p.title,p.composer,p.arranger,p.folder,p.notes,(p.tags||[]).join(" ")]
-      .join(" ").toLowerCase().indexOf(q)>=0;
-  }).sort(function(a,b){return (a.title||"").localeCompare(b.title||"");});
-
-  var host=$("#mlist"); host.innerHTML="";
-  if(!list.length){
-    host.appendChild(emptyBox(scores().length?"Nothing matches":"No pieces yet",
-      scores().length?"Try another word or filter."
-        :"Add a piece, then upload each part as you get it. Missing parts get flagged for you."));
-    return;
-  }
-  var box=el("div","bar-list");
-  list.forEach(function(p){
-    var pts=partsOf(p.id), miss=missingOf(p);
-    var r=el("div","mrow2");
-    var g=el("div","gr"+((+p.grade)>=5?" g5":""),p.grade||"–");
-    r.appendChild(g);
-    var L=el("div");
-    L.appendChild(el("div","ti",p.title||"Untitled"));
-    var by=[];
-    if(p.composer) by.push(p.composer);
-    if(p.arranger) by.push("arr. "+p.arranger);
-    if(p.tempo) by.push(p.tempo+" bpm");
-    if(p.folder) by.push(p.folder);
-    L.appendChild(el("div","by",by.join(" · ")||"no details yet"));
-    r.appendChild(L);
-    r.appendChild(el("span","pill",pts.length+" part"+(pts.length===1?"":"s")));
-    r.appendChild(miss.length?el("span","pill hot",miss.length+" missing"):el("span","pill","complete"));
-    r.onclick=function(){pieceDialog(p);};
-    box.appendChild(r);});
-  host.appendChild(box);
-}
-
-function pieceDialog(p){
-  var isNew=!p;
-  p=p||{title:"",composer:"",arranger:"",grade:"",ensemble:"band",key:"",tempo:"",
-        duration:"",publisher:"",folder:"",notes:"",tags:[],expected:[]};
-  openDlg(isNew?"Add a piece":(p.title||"Piece"),
-    '<label><span>Title</span><input id="pT" value="'+esc(p.title)+'" placeholder="Keep on Running"></label>'+
-    '<div class="two">'+
-      '<label><span>Composer</span><input id="pC" value="'+esc(p.composer||"")+'"></label>'+
-      '<label><span>Arranger</span><input id="pA" value="'+esc(p.arranger||"")+'" placeholder="Frank Sullivan"></label></div>'+
-    '<div class="two">'+
-      '<label><span>Grade</span><input id="pG" value="'+esc(p.grade||"")+'" placeholder="4" inputmode="decimal"></label>'+
-      '<label><span>Ensemble</span><select id="pE">'+
-        '<option value="band"'+(p.ensemble!=="jazz"?" selected":"")+'>Concert band</option>'+
-        '<option value="jazz"'+(p.ensemble==="jazz"?" selected":"")+'>Jazz band</option>'+
-      '</select></label></div>'+
-    '<div class="two">'+
-      '<label><span>Tempo (bpm)</span><input id="pB" value="'+esc(p.tempo||"")+'" inputmode="numeric" placeholder="162"></label>'+
-      '<label><span>Key</span><input id="pK" value="'+esc(p.key||"")+'" placeholder="Bb"></label></div>'+
-    '<div class="two">'+
-      '<label><span>Length</span><input id="pD" value="'+esc(p.duration||"")+'" placeholder="6:30"></label>'+
-      '<label><span>Folder / concert</span><input id="pF" value="'+esc(p.folder||"")+'" list="dlFolders" placeholder="Spring Concert"></label></div>'+
-    '<datalist id="dlFolders">'+Object.keys(folders()).map(function(f){
-      return '<option value="'+esc(f)+'">';}).join("")+'</datalist>'+
-    '<label><span>Publisher</span><input id="pP" value="'+esc(p.publisher||"")+'"></label>'+
-    '<label><span>Notes</span><textarea id="pN" style="min-height:52px" placeholder="Tempo changes, cuts, tricky spots">'+esc(p.notes||"")+'</textarea></label>'+
-    '<div id="pParts"></div>'+
-    '<div class="row-btns"><button class="btn" id="pS" style="flex:1">'+(isNew?"Add it":"Save")+'</button>'+
-    (isNew?'':'<button class="btn ghost sm" id="pI">Instrumentation</button><button class="btn ghost sm" id="pX">Delete</button>')+'</div>',
-    function(){
-      if(!isNew) drawParts(p);
-      $("#pS").onclick=function(){
-        var t=$("#pT").value.trim();
-        if(!t){toast("What's the piece called?");return;}
-        p.title=t;p.composer=$("#pC").value.trim();p.arranger=$("#pA").value.trim();
-        p.grade=$("#pG").value.trim();p.ensemble=$("#pE").value;p.tempo=$("#pB").value.trim();
-        p.key=$("#pK").value.trim();p.duration=$("#pD").value.trim();
-        p.folder=$("#pF").value.trim();p.publisher=$("#pP").value.trim();p.notes=$("#pN").value;
-        if(isNew){p.id=uid();p.added=today();scores().push(p);}
-        save();drawMusic();dlg.close();
-        toast(isNew?"Added — open it again to upload parts":"Saved");};
-      if(!isNew){
-        $("#pI").onclick=function(){ dlg.close(); setTimeout(function(){instrDialog(p);},60); };
-        $("#pX").onclick=function(){
-          var n=partsOf(p.id).length;
-          if(!confirm("Delete "+p.title+"?"+(n?" Its "+n+" part file"+(n===1?"":"s")+" stay in Documents.":""))) return;
-          H.scores=scores().filter(function(x){return x.id!==p.id;});
-          save();drawMusic();dlg.close();};
-      }
-    });
-}
-
-function drawParts(p){
-  var host=$("#pParts"); host.innerHTML="";
-  var h=el("div");
-  h.style.cssText="font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--dim);margin-bottom:4px";
-  h.textContent="Parts on file";
-  host.appendChild(h);
-
-  var pts=partsOf(p.id).sort(function(a,b){
-    return expectedOf(p).indexOf(a.label||"")-expectedOf(p).indexOf(b.label||"");});
-  var wrap=el("div","parts");
-  var mine=myPart().toLowerCase();
-  pts.forEach(function(f){
-    var isMine=mine&&(f.label||"").toLowerCase().indexOf(mine)>=0;
-    var d=el("div","prt"+(isMine?" mine":""));
-    var a=el("a",null,f.label||f.name);
-    a.href="/api/files/"+f.id; a.target="_blank";
-    d.appendChild(a);
-    var x=el("span","x","×");
-    x.onclick=function(){
-      if(!confirm("Remove "+(f.label||f.name)+"?")) return;
-      fileDelete(f.id).then(function(){ reload().then(function(){drawParts(p);}); });};
-    d.appendChild(x);
-    wrap.appendChild(d);});
-  var miss=missingOf(p);
-  miss.forEach(function(i){ wrap.appendChild(el("div","miss",i)); });
-  if(!pts.length&&!miss.length) wrap.appendChild(el("div","prt","nothing yet"));
-  host.appendChild(wrap);
-
-  var row=el("div"); row.style.marginTop="9px";
-  var lab=el("label");
-  lab.innerHTML='<span>Upload a part</span><input id="partName" list="dlInstr" placeholder="Which instrument">'+
-    '<datalist id="dlInstr">'+expectedOf(p).map(function(i){
-      return '<option value="'+esc(i)+'">';}).join("")+'</datalist>';
-  row.appendChild(lab);
-  var pick=el("input"); pick.type="file"; pick.style.display="none";
-  pick.accept="image/*,application/pdf,.heic";
-  var btn=el("button","btn ghost sm","Choose the file");
-  btn.style.width="100%";
-  btn.onclick=function(e){
-    e.preventDefault();
-    if(!$("#partName").value.trim()){toast("Name the instrument first");return;}
-    pick.click();};
-  row.appendChild(btn); row.appendChild(pick);
-  host.appendChild(row);
-
-  pick.onchange=function(){
-    var f=pick.files[0]; if(!f) return;
-    var name=$("#partName").value.trim();
-    btn.disabled=true; btn.textContent="Uploading…";
-    fileUpload(f,"score",p.id,name).then(function(){
-      btn.disabled=false; btn.textContent="Choose the file";
-      pick.value=""; $("#partName").value="";
-      reload().then(function(){ drawParts(p); toast(name+" filed"); });
-    }).catch(function(e){
-      btn.disabled=false; btn.textContent="Choose the file";
-      toast(e.message||"Upload failed");});
-  };
-}
-
-function instrDialog(p){
-  openDlg("Instrumentation — "+p.title,
-    '<p class="foot-note" style="margin-top:0">This is the list a piece is checked against, so you know what is still missing. Trim it to what this arrangement actually calls for.</p>'+
-    '<label><span>Parts this piece needs</span><textarea id="iL" style="min-height:180px">'+
-      esc(expectedOf(p).join("\n"))+'</textarea></label>'+
-    '<div class="row-btns">'+
-      '<button class="btn" id="iS" style="flex:1">Save the list</button>'+
-      '<button class="btn ghost sm" id="iR">Reset to standard</button></div>',
-    function(){
-      $("#iS").onclick=function(){
-        p.expected=$("#iL").value.split("\n").map(function(x){return x.trim();}).filter(Boolean);
-        save();drawMusic();dlg.close();setTimeout(function(){pieceDialog(p);},60);};
-      $("#iR").onclick=function(){
-        $("#iL").value=(p.ensemble==="jazz"?JAZZ:BAND).join("\n");};
-    });
-}
-
-function instrumentDialog(){
-  openDlg("Your instrument",
-    '<p class="foot-note" style="margin-top:0">Your own parts get highlighted, and you can filter to just the pieces you play.</p>'+
-    '<label><span>What do you play</span><input id="myI" list="dlAll" value="'+esc(myPart())+'" placeholder="Trumpet 2"></label>'+
-    '<datalist id="dlAll">'+BAND.concat(JAZZ).filter(function(v,i,a){return a.indexOf(v)===i;})
-      .map(function(i){return '<option value="'+esc(i)+'">';}).join("")+'</datalist>'+
-    '<button class="btn" id="myS" style="width:100%">Save</button>',
-    function(){
-      $("#myS").onclick=function(){
-        H.settings=H.settings||{};
-        H.settings.instrument=$("#myI").value.trim();
-        save();drawMusic();dlg.close();toast(myPart()?"Set to "+myPart():"Cleared");};
-    });
-}
-
-function setMode(m){
-  mode=m;
-  $("#v-music").style.display=m==="music"?"block":"none";
-  $("#v-files").style.display=m==="files"?"block":"none";
-  $("#mode").querySelectorAll("button").forEach(function(b){
-    b.setAttribute("aria-pressed",b.dataset.m===m);});
-  if(m==="music") drawMusic(); else draw();
+  loadTalk().then(function(){ drawChat(); pageHead(); checkAI(); });
+  $("#send").onclick=send;
+  var b=$("#box");
+  b.addEventListener("input",function(){ b.style.height="auto"; b.style.height=Math.min(b.scrollHeight,160)+"px"; });
+  b.addEventListener("keydown",function(e){
+    if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); send(); }});
 }
 })();
 </script>
