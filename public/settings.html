@@ -1,4 +1,4 @@
-<title>Lent out — Station</title>
+<title>Settings — Station</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -337,15 +337,18 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div id="pExtra"></div>
     </header>
     <section class="pane" id="pane">
-      <div class="row-btns" style="margin-bottom:14px">
-        <button class="btn" data-act="new">Log an item</button>
+      <div class="seg mini" id="stabs">
+        <button type="button" data-t="look" aria-pressed="true">Appearance</button>
+        <button type="button" data-t="you" aria-pressed="false">You</button>
+        <button type="button" data-t="mods" aria-pressed="false">Modules</button>
+        <button type="button" data-t="data" aria-pressed="false">Data</button>
+        <button type="button" data-t="log" aria-pressed="false">What's new</button>
       </div>
-      <h2 class="sec">Out with someone</h2>
-      <div id="out"></div>
-      <h2 class="sec">Borrowed from someone</h2>
-      <div id="in"></div>
-      <h2 class="sec">Back home</h2>
-      <div id="done"></div>
+      <div id="v-look"></div>
+      <div id="v-you" style="display:none"></div>
+      <div id="v-mods" style="display:none"></div>
+      <div id="v-data" style="display:none"></div>
+      <div id="v-log" style="display:none"></div>
     </section>
   </div>
 </div>
@@ -355,11 +358,10 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
   <div class="dlg-head"><span id="dlgTitle">—</span><button type="button" id="dlgX" aria-label="Close">×</button></div>
   <div class="dlg-body" id="dlgBody"></div>
 </dialog>
-<button class="btn tick fab" data-act="new">+ New</button>
 <script>
 (function(){
 "use strict";
-var PAGE="items";
+var PAGE="settings";
 /* ============================================================
    STATION CORE — shared by every page.
    Storage goes through DB only. Swap DB to move to a server.
@@ -1106,102 +1108,262 @@ document.addEventListener("keydown",function(e){
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();
+var stab="look";
+function S(){ H.settings=H.settings||{}; return H.settings; }
+
 function pageHead(){
-  var out=H.things.filter(function(t){return !t.back&&t.dir==="lent";}).length;
-  var inn=H.things.filter(function(t){return !t.back&&t.dir==="borrowed";}).length;
-  var late=H.things.filter(function(t){return !t.back&&t.due&&t.due<today();}).length;
-  setHead("TH · lent and borrowed","Lent out",
-    out+" of yours out  ·  "+inn+" of theirs here"+(late?"  ·  "+late+" overdue":""));
+  var n=unseenCount();
+  setHead("SE · settings","Settings",
+    "Version "+APP_VERSION+(n?"  ·  "+n+" update"+(n===1?"":"s")+" you haven't read":"  ·  up to date"));
 }
-function itemDialog(t){
-  openDlg(t.name,
-    '<div class="kv" style="margin-bottom:12px">'+
-      '<dt>Who has it</dt><dd>'+esc(personName(t.personId)||t.who||"someone")+'</dd>'+
-      '<dt>Direction</dt><dd>'+(t.dir==="lent"?"You lent it out":"You borrowed it")+'</dd>'+
-      '<dt>Since</dt><dd>'+esc(prettyFull(t.date))+'</dd>'+
-      (t.due?'<dt>Back by</dt><dd>'+esc(prettyFull(t.due))+'</dd>':'')+
-      (t.notes?'<dt>Notes</dt><dd>'+esc(t.notes)+'</dd>':'')+
-    '</div>'+
-    '<div id="attachHost"></div>'+
-    '<button class="btn ghost sm" id="fC" style="width:100%">Close</button>',
-    function(){
-      attachBar($("#attachHost"),"item",t.id,"Photos of it");
-      $("#fC").onclick=function(){dlg.close();};
-    });
+function sec(host,title){ host.appendChild(el("h2","sec",title)); }
+function line(host,label,control,note){
+  var l=el("label");
+  l.appendChild(el("span",null,label));
+  l.appendChild(control);
+  if(note) l.appendChild(el("div","foot-note",note));
+  host.appendChild(l);
+  return control;
 }
-function thingRow(t){
-  var who=personName(t.personId)||t.who||"someone";
-  var r=el("div","bar-row trio"),Ld=el("div");
-  Ld.appendChild(el("div","who",t.name));
-  var bits=[(t.dir==="lent"?"with ":"from ")+who];
-  if(t.date) bits.push("since "+pretty(t.date));
-  if(t.due&&!t.back) bits.push(t.due<today()?"overdue since "+pretty(t.due):"back by "+pretty(t.due));
-  if(t.back) bits.push("returned "+pretty(t.backOn||t.date));
-  if(t.notes) bits.push(t.notes);
-  Ld.appendChild(el("div","meta",bits.join(" · ")));
-  Ld.style.cursor="pointer";
-  Ld.onclick=function(){itemDialog(t);};
-  r.appendChild(Ld);
-  if(!t.back){
-    var b=el("button","btn ghost sm",t.dir==="lent"?"Got it back":"Gave it back");
-    b.onclick=function(){t.back=true;t.backOn=today();save();pageHead();pageRender();buildNav();toast("Marked returned");};
-    r.appendChild(b);
-  } else {
-    var u=el("button","btn ghost sm","Reopen");
-    u.onclick=function(){t.back=false;delete t.backOn;save();pageHead();pageRender();buildNav();};
-    r.appendChild(u);
+function selectOf(opts,val){
+  var s=el("select");
+  opts.forEach(function(o){
+    var op=el("option",null,o[1]); op.value=o[0];
+    if(o[0]===val) op.selected=true;
+    s.appendChild(op);});
+  return s;
+}
+function saveBtn(host,fn,label){
+  var b=el("button","btn",label||"Save");
+  b.style.width="100%"; b.onclick=fn; host.appendChild(b); return b;
+}
+
+/* ---------- appearance ---------- */
+function drawLook(){
+  var h=$("#v-look"); h.innerHTML="";
+  sec(h,"Colour");
+  var t=line(h,"Theme",selectOf([["auto","Follow my phone"],["light","Always light"],["dark","Always dark"]],
+    S().theme||"auto"),"Auto switches with your device, so it goes dark at night on its own.");
+  t.onchange=function(){ S().theme=t.value; save(); applyTheme(); toast("Theme: "+t.value); };
+
+  sec(h,"Density");
+  var d=line(h,"Text size",selectOf([["normal","Normal"],["large","Larger"],["xl","Largest"]],
+    S().textSize||"normal"),"Bumps everything up if the phone screen is hard to read.");
+  d.onchange=function(){ S().textSize=d.value; save(); applyTextSize(); };
+
+  sec(h,"Start page");
+  var sp=line(h,"Open Station on",selectOf(MODULES.map(function(m){return [m.file,m.label];}),
+    S().home||"index.html"),"Which page the Station logo takes you to.");
+  sp.onchange=function(){ S().home=sp.value; save(); toast("Saved"); };
+
+  sec(h,"Preview");
+  var prev=el("div"); prev.style.cssText="border:1px solid var(--rule);border-radius:2px;padding:12px;background:var(--card)";
+  prev.appendChild(el("div","who","This is a row of text"));
+  prev.appendChild(el("div","meta","and this is the small print under it"));
+  var pr=el("div","row-btns"); pr.style.marginTop="8px";
+  pr.appendChild(el("span","pill","tag"));
+  pr.appendChild(el("span","pill hot","overdue"));
+  pr.appendChild(el("span","pill warm","soon"));
+  prev.appendChild(pr);
+  h.appendChild(prev);
+}
+function applyTextSize(){
+  var m={normal:"15px",large:"16.5px",xl:"18px"};
+  document.body.style.fontSize=m[S().textSize||"normal"];
+}
+
+/* ---------- you ---------- */
+function drawYou(){
+  var h=$("#v-you"); h.innerHTML="";
+  sec(h,"About you");
+  var nm=line(h,"Your name",el("input"),"Used when the AI talks to you.");
+  nm.value=S().name||"";
+  var ins=el("input"); ins.setAttribute("list","dlIns");
+  var inst=line(h,"Instrument you play",ins,"Highlights your own parts in the music library.");
+  inst.value=S().instrument||"";
+  var dl=el("datalist"); dl.id="dlIns";
+  ["Full Score","Flute 1","Clarinet 1","Alto Sax 1","Trumpet 1","Trumpet 2","Trumpet 3",
+   "Horn 1","Trombone 1","Euphonium","Tuba","Percussion 1","Mallets"].forEach(function(i){
+    var o=el("option"); o.value=i; dl.appendChild(o);});
+  h.appendChild(dl);
+  saveBtn(h,function(){
+    S().name=nm.value.trim(); S().instrument=inst.value.trim();
+    save(); toast("Saved");});
+
+  sec(h,"The AI");
+  var ai=el("div");
+  ai.innerHTML='<p class="foot-note" style="margin-top:0" id="aiState">checking…</p>';
+  h.appendChild(ai);
+  fetch("/api/ai/status").then(function(r){return r.json();}).then(function(j){
+    $("#aiState").textContent=j.ok
+      ? "Running "+j.model+" on your own machine."
+      : "No model running. In the container: bash ai-setup.sh";
+  }).catch(function(){ $("#aiState").textContent="Couldn't check."; });
+  var row=el("div","row-btns");
+  var a1=el("a","btn ghost sm","How it talks"); a1.href="talk.html"; row.appendChild(a1);
+  var a2=el("a","btn ghost sm","Its memory"); a2.href="talk.html"; row.appendChild(a2);
+  h.appendChild(row);
+
+  sec(h,"Capture from your phone");
+  var cap=el("div"); cap.id="capHost";
+  cap.appendChild(el("p","foot-note","Point a phone shortcut here to add things without opening the app."));
+  h.appendChild(cap);
+  fetch("/api/token").then(function(r){return r.json();}).then(function(j){
+    var url=window.location.origin+"/api/capture?token="+j.token+"&text=YOUR+TEXT";
+    var pre=el("div");
+    pre.style.cssText="font-family:var(--mono);font-size:11px;background:var(--bar);border:1px solid var(--rule);border-radius:2px;padding:8px;word-break:break-all;margin-bottom:8px";
+    pre.textContent=url;
+    cap.appendChild(pre);
+    var b=el("button","btn ghost sm","Copy it");
+    b.onclick=function(){ if(navigator.clipboard) navigator.clipboard.writeText(url).then(function(){toast("Copied");}); };
+    cap.appendChild(b);
+    cap.appendChild(el("p","foot-note","Add &kind=note or &kind=journal to change where it lands. Keep it private."));
+  }).catch(function(){});
+}
+
+/* ---------- modules ---------- */
+function listEditor(host,title,getArr,setArr,placeholder,note){
+  sec(host,title);
+  if(note) host.appendChild(el("p","foot-note",note));
+  var box=el("div","bar-list"); host.appendChild(box);
+  function fill(){
+    box.innerHTML="";
+    var arr=getArr();
+    if(!arr.length){ box.appendChild(emptyBox("Empty","Add one below.")); return; }
+    arr.forEach(function(v){
+      var r=el("div","bar-row"); r.appendChild(el("div","who",v));
+      var k=el("button","kill","×");
+      k.onclick=function(){ setArr(getArr().filter(function(x){return x!==v;})); fill(); };
+      r.appendChild(k); box.appendChild(r);});
   }
-  var k=el("button","kill","×");
-  k.onclick=function(){
-    if(!confirm("Delete this record?")) return;
-    trashIt("item",t.name,t);
-    H.things=H.things.filter(function(x){return x.id!==t.id;});
-    save();pageHead();pageRender();buildNav();};
-  r.appendChild(k);
-  return r;
+  fill();
+  var inp=el("input"); inp.placeholder=placeholder;
+  var l=el("label"); l.style.marginTop="10px";
+  l.appendChild(el("span",null,"Add one")); l.appendChild(inp);
+  host.appendChild(l);
+  var b=el("button","btn ghost sm","Add"); b.style.width="100%";
+  b.onclick=function(){
+    var v=inp.value.trim(); if(!v) return;
+    var arr=getArr(); if(arr.indexOf(v)<0) arr.push(v);
+    setArr(arr); inp.value=""; fill();};
+  host.appendChild(b);
 }
-function pageRender(){
-  function fill(host,list,eT,eB){
-    host.innerHTML="";
-    if(!list.length){host.appendChild(emptyBox(eT,eB));return;}
-    list.sort(function(a,b){return (a.due||"9999").localeCompare(b.due||"9999");});
-    var box=el("div","bar-list");
-    list.forEach(function(t){box.appendChild(thingRow(t));});
-    host.appendChild(box);}
-  fill($("#out"),H.things.filter(function(t){return !t.back&&t.dir==="lent";}),
-    "Nothing lent out","Log something when you hand it to somebody.");
-  fill($("#in"),H.things.filter(function(t){return !t.back&&t.dir==="borrowed";}),
-    "Nothing borrowed","Log what you're holding for somebody so it gets back to them.");
-  fill($("#done"),H.things.filter(function(t){return t.back;}),
-    "Nothing closed out","Returned items land here.");
+function drawMods(){
+  var h=$("#v-mods"); h.innerHTML="";
+  listEditor(h,"Task lists",function(){return H.lists||[];},
+    function(a){H.lists=a;save();},"Bills, Car, Job hunt","The lists tasks can be filed under.");
+  if(L){
+    listEditor(h,"Spending categories",function(){return L.categories||[];},
+      function(a){L.categories=a;saveL();},"Laundry, haircuts, tools",null);
+    listEditor(h,"Payment methods",function(){return L.methods||[];},
+      function(a){L.methods=a;saveL();},"Chime, money order",
+      "How money moves in and out — used on entries, tickets and subscriptions.");
+  }
+  sec(h,"Modules in the menu");
+  h.appendChild(el("p","foot-note","Hide the ones you don't use. They keep their data and can come back any time."));
+  var hidden=S().hidden||[];
+  var box=el("div","bar-list");
+  MODULES.forEach(function(m){
+    if(m.id==="index"||m.id==="settings") return;
+    var r=el("div","bar-row trio");
+    var L2=el("div");
+    L2.appendChild(el("div","who",m.label));
+    L2.appendChild(el("div","meta",m.cd+" · "+m.file));
+    r.appendChild(L2);
+    var on=hidden.indexOf(m.id)<0;
+    var b=el("button","btn "+(on?"ghost ":"")+"sm",on?"Showing":"Hidden");
+    b.onclick=function(){
+      hidden=S().hidden||[];
+      if(hidden.indexOf(m.id)<0) hidden.push(m.id);
+      else hidden=hidden.filter(function(x){return x!==m.id;});
+      S().hidden=hidden; save(); drawMods(); buildNav();};
+    r.appendChild(b); r.appendChild(el("div"));
+    box.appendChild(r);});
+  h.appendChild(box);
 }
-function thingDialog(){
-  var dir="lent";
-  openDlg("Log an item",
-    '<div class="seg"><button type="button" id="sL" aria-pressed="true">I lent it out</button>'+
-    '<button type="button" id="sB" aria-pressed="false">I borrowed it</button></div>'+
-    '<label><span>What is it</span><input id="fT" placeholder="Drill, phone charger, jumper cables"></label>'+
-    '<label><span>Who has it</span><input id="fW" list="dlPeople" placeholder="Name"></label>'+peopleDatalist()+
-    '<div class="two">'+
-      '<label><span>Since</span><input type="date" id="fD" value="'+today()+'"></label>'+
-      '<label><span>Back by</span><input type="date" id="fB2"></label></div>'+
-    '<label><span>Notes</span><input id="fN" placeholder="Optional"></label>'+
-    '<div id="attachHost"></div>'+
-    '<button class="btn" id="fS" style="width:100%">Log it</button>',
-    function(){
-      $("#sL").onclick=function(){dir="lent";$("#sL").setAttribute("aria-pressed",true);$("#sB").setAttribute("aria-pressed",false);};
-      $("#sB").onclick=function(){dir="borrowed";$("#sL").setAttribute("aria-pressed",false);$("#sB").setAttribute("aria-pressed",true);};
-      $("#fS").onclick=function(){
-        var t=$("#fT").value.trim(),w=$("#fW").value.trim();
-        if(!t){toast("What is the item?");return;}
-        if(!w){toast("Who has it?");return;}
-        var c=ensureContact(w);
-        H.things.push({id:uid(),name:t,dir:dir,personId:c?c.id:null,who:w,
-          date:$("#fD").value||today(),due:$("#fB2").value,notes:$("#fN").value.trim(),back:false});
-        save();pageHead();pageRender();buildNav();dlg.close();toast("Logged");};
-    });
+
+/* ---------- data ---------- */
+function drawData(){
+  var h=$("#v-data"); h.innerHTML="";
+  sec(h,"Everything you have");
+  var counts=[["Tasks",(H.tasks||[]).length],["Events",(H.events||[]).length],
+    ["Contacts",allPeople().length],["Notes",(H.notes||[]).length],
+    ["Habits",(H.habits||[]).length],["Items out",(H.things||[]).filter(function(t){return !t.back;}).length],
+    ["Subscriptions",(H.subs||[]).filter(function(s){return s.active!==false;}).length],
+    ["Journal entries",(H.journal||[]).length],["Pieces of music",(H.scores||[]).length],
+    ["In the trash",(H.trash||[]).length]];
+  var box=el("div","bar-list");
+  counts.forEach(function(c){
+    var r=el("div","bar-row");
+    r.appendChild(el("div","who",c[0]));
+    r.appendChild(el("div","amt",String(c[1])));
+    box.appendChild(r);});
+  h.appendChild(box);
+
+  sec(h,"Tools");
+  var row=el("div","row-btns");
+  [["Backup and restore",backupDialog],["Trash",trashDialog]].forEach(function(x){
+    var b=el("button","btn ghost sm",x[0]); b.onclick=x[1]; row.appendChild(b);});
+  var a=el("a","btn ghost sm","Version history"); a.href="history.html"; row.appendChild(a);
+  h.appendChild(row);
+
+  sec(h,"Danger");
+  h.appendChild(el("p","foot-note","Empties the trash for good. Everything still in use is untouched."));
+  var d=el("button","btn ghost sm","Empty the trash"); d.style.width="100%";
+  d.onclick=function(){
+    var n=(H.trash||[]).length;
+    if(!n) return toast("Trash is already empty");
+    if(!confirm("Throw away "+n+" item"+(n===1?"":"s")+" for good?")) return;
+    H.trash=[]; save(); drawData(); toast("Emptied");};
+  h.appendChild(d);
 }
-function pageAction(a){ if(a==="new") thingDialog(); }
-function pageBoot(){ if(qparam("new")) setTimeout(thingDialog,120); }
+
+/* ---------- changelog ---------- */
+function drawLog(){
+  var h=$("#v-log"); h.innerHTML="";
+  var last=S().seenVersion||"0";
+  h.appendChild(el("p","foot-note","Everything that has changed, newest first."));
+  CHANGELOG.forEach(function(c){
+    var isNew=c.v>last;
+    var box=el("div","sheet");
+    var hd=el("div","hd");
+    hd.appendChild(el("div","t",c.t));
+    hd.appendChild(el("div","c",(isNew?"NEW · ":"")+"v"+c.v+" · "+prettyFull(c.d)));
+    box.appendChild(hd);
+    var bd=el("div","bd");
+    c.items.forEach(function(it){
+      var r=el("div","line-item");
+      r.appendChild(el("div","cd",isNew?"NEW":"·"));
+      r.appendChild(el("div","tx",it));
+      r.appendChild(el("div"));
+      bd.appendChild(r);});
+    box.appendChild(bd);
+    h.appendChild(box);});
+  if(unseenCount()){
+    var b=el("button","btn","Mark all as read"); b.style.width="100%";
+    b.onclick=function(){ S().seenVersion=CHANGELOG[0].v; save(); pageHead(); drawLog(); buildNav(); toast("Caught up"); };
+    h.appendChild(b);
+  }
+}
+
+function setTab(t){
+  stab=t;
+  ["look","you","mods","data","log"].forEach(function(x){
+    $("#v-"+x).style.display=x===t?"block":"none";});
+  $("#stabs").querySelectorAll("button").forEach(function(b){
+    b.setAttribute("aria-pressed",b.dataset.t===t);});
+  if(t==="look") drawLook();
+  else if(t==="you") drawYou();
+  else if(t==="mods") drawMods();
+  else if(t==="data") drawData();
+  else drawLog();
+}
+function pageRender(){ setTab(stab); }
+function pageBoot(){
+  applyTextSize();
+  $("#stabs").querySelectorAll("button").forEach(function(b){
+    b.onclick=function(){ setTab(b.dataset.t); };});
+  if(qparam("tab")) stab=qparam("tab");
+}
 })();
 </script>
