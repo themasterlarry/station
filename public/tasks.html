@@ -337,10 +337,22 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div id="pExtra"></div>
     </header>
     <section class="pane" id="pane">
+      <style>
+      .steps{margin-top:6px;display:flex;flex-direction:column;gap:3px}
+      .step{display:flex;gap:7px;align-items:flex-start;font-size:13px}
+      .step .sb{width:14px;height:14px;border:2px solid var(--ink-3);border-radius:2px;background:var(--card);cursor:pointer;flex:0 0 auto;margin-top:2px;padding:0;position:relative}
+      .step .sb[aria-pressed=true]{background:var(--ink-3)}
+      .step .sb[aria-pressed=true]::after{content:"";position:absolute;left:3px;top:0;width:3.5px;height:7px;border:solid var(--on-ink);border-width:0 2px 2px 0;transform:rotate(42deg)}
+      .step.done span{text-decoration:line-through;color:var(--dim)}
+      .prog2{height:4px;background:var(--bar);border-radius:2px;overflow:hidden;margin-top:5px}
+      .prog2 i{display:block;height:100%;background:var(--pos)}
+      .blk{font-family:var(--mono);font-size:10px;border:1px solid var(--tick-deep);color:var(--tick-deep);border-radius:2px;padding:1px 5px}
+      </style>
       <div class="grp" id="grp"></div>
       <div class="row-btns" style="margin-bottom:14px">
         <button class="btn" data-act="new">Add a task</button>
         <button class="btn ghost sm" data-act="lists">Lists</button>
+        <button class="btn ghost sm" data-act="templates">Templates</button>
         <button class="btn ghost sm" data-act="clear">Clear finished</button>
       </div>
       <div id="wrap"></div>
@@ -384,8 +396,16 @@ var DB={
   }
 };
 
-var APP_VERSION="1.7";
+var APP_VERSION="1.8";
 var CHANGELOG=[
+ {v:"1.8",d:"2026-08-08",t:"Tasks and calendar",
+  items:["Steps inside a task, with a progress bar on the row",
+         "Someday — park a task without it cluttering your open list",
+         "Block out time for a task; it shows on the calendar that day",
+         "Templates — save a set of tasks like a gig day and create them all at once, dated around the day you pick",
+         "Week view on the calendar",
+         "Travel time on an event, with the leave-by time worked out for you",
+         "Import a calendar from a .ics file"]},
  {v:"1.7",d:"2026-08-08",t:"Music gets its own page",
   items:["Sheet music moved out of Documents onto its own Music page",
          "Practice log — minutes per session, which pieces, a seven day chart, streak and time on each piece",
@@ -447,7 +467,7 @@ function migrateH(){
   H.tasks=H.tasks||[];H.events=H.events||[];H.notes=H.notes||[];
   H.habits=H.habits||[];H.things=H.things||[];H.contacts=H.contacts||[];
   H.subs=H.subs||[];H.journal=H.journal||[];H.scores=H.scores||[];
-  H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];
+  H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];H.templates=H.templates||[];
   H.lists=(H.lists&&H.lists.length)?H.lists:DEF_LISTS.slice();
   H.version=H.version||1;
 }
@@ -1115,10 +1135,13 @@ document.addEventListener("keydown",function(e){
 })();
 var filter="open";
 function pageHead(){
-  var open=H.tasks.filter(function(t){return !t.done;}).length;
+  var open=H.tasks.filter(function(t){return !t.done&&!t.someday;}).length;
   var late=H.tasks.filter(function(t){return !t.done&&t.due&&t.due<today();}).length;
+  var some=H.tasks.filter(function(t){return !t.done&&t.someday;}).length;
   setHead("TK · task list","Tasks",
-    open+" open  ·  "+late+" late  ·  "+H.tasks.filter(function(t){return t.done;}).length+" finished");
+    open+" open"+(late?"  ·  "+late+" late":"")+
+    (some?"  ·  "+some+" someday":"")+"  ·  "+
+    H.tasks.filter(function(t){return t.done;}).length+" finished");
 }
 function toggleTask(id){
   var t=H.tasks.filter(function(x){return x.id===id;})[0]; if(!t) return;
@@ -1149,8 +1172,29 @@ function taskRow(t){
       (late?"late · ":"")+relDay(t.due)));
   }
   if(t.repeat&&t.repeat!=="none") mt.appendChild(el("span","pill","repeats "+t.repeat));
+  if(t.someday) mt.appendChild(el("span","pill","someday"));
+  if(t.blockDate&&!t.done) mt.appendChild(el("span","blk",
+    relDay(t.blockDate)+(t.blockTime?" "+ampm(t.blockTime):"")+(t.blockMins?" · "+t.blockMins+"m":"")));
+  if((t.personIds||[]).length) mt.appendChild(el("span","pill",
+    t.personIds.map(personName).filter(Boolean).join(", ")));
   if(t.notes) mt.appendChild(el("span",null,t.notes.slice(0,44)));
   if(mt.children.length) mid.appendChild(mt);
+  var st=t.steps||[];
+  if(st.length&&!t.done){
+    var doneN=st.filter(function(x){return x.done;}).length;
+    var sw=el("div","steps");
+    st.slice(0,6).forEach(function(x){
+      var row=el("div","step"+(x.done?" done":""));
+      var sb=el("button","sb"); sb.setAttribute("aria-pressed",!!x.done);
+      sb.onclick=function(e){e.stopPropagation();x.done=!x.done;save();pageRender();};
+      row.appendChild(sb); row.appendChild(el("span",null,x.text));
+      sw.appendChild(row);});
+    if(st.length>6) sw.appendChild(el("div","step","+ "+(st.length-6)+" more"));
+    mid.appendChild(sw);
+    var pr=el("div","prog2"),f=el("i");
+    f.style.width=Math.round(doneN/st.length*100)+"%";
+    pr.appendChild(f); mid.appendChild(pr);
+  }
   mid.style.cursor="pointer";
   mid.onclick=function(){taskDialog(t);};
   r.appendChild(b); r.appendChild(mid);
@@ -1165,7 +1209,8 @@ function taskRow(t){
 }
 function pageRender(){
   var g=$("#grp");
-  var opts=[["open","Open"],["today","Today"],["late","Late"],["done","Finished"]]
+  var opts=[["open","Open"],["today","Today"],["late","Late"],["blocked","Scheduled"],
+    ["someday","Someday"],["done","Finished"]]
     .concat(H.lists.map(function(l){return ["list:"+l,l];}));
   g.innerHTML=opts.map(function(o){
     return '<button data-f="'+esc(o[0])+'"'+(o[0]===filter?' aria-pressed="true"':'')+'>'+esc(o[1])+'</button>';}).join("");
@@ -1173,9 +1218,11 @@ function pageRender(){
     b.onclick=function(){filter=b.dataset.f;pageRender();};});
   var ts=today();
   var list=H.tasks.filter(function(t){
-    if(filter==="open") return !t.done;
-    if(filter==="today") return !t.done&&t.due===ts;
+    if(filter==="open") return !t.done&&!t.someday;
+    if(filter==="today") return !t.done&&(t.due===ts||t.blockDate===ts);
     if(filter==="late") return !t.done&&t.due&&t.due<ts;
+    if(filter==="blocked") return !t.done&&t.blockDate;
+    if(filter==="someday") return !t.done&&t.someday;
     if(filter==="done") return t.done;
     if(filter.indexOf("list:")===0) return !t.done&&t.list===filter.slice(5);
     return true;});
@@ -1218,12 +1265,24 @@ function taskDialog(t){
     '<label><span>Who it involves</span><input id="fW" list="dlPeople" value="'+
       esc((t.personIds||[]).map(personName).filter(Boolean).join(", "))+'" placeholder="Optional"></label>'+peopleDatalist()+
     '<label><span>Notes</span><textarea id="fN" style="min-height:60px">'+esc(t.notes||"")+'</textarea></label>'+
+    '<label class="check"><input type="checkbox" id="fSd"'+(t.someday?" checked":"")+
+      '><span>Someday — keep it out of my open list until I want it</span></label>'+
+    '<h2 class="sec">Block out time</h2>'+
+    '<div class="two">'+
+      '<label><span>Day</span><input type="date" id="fBD" value="'+esc(t.blockDate||"")+'"></label>'+
+      '<label><span>Start</span><input type="time" id="fBT" value="'+esc(t.blockTime||"")+'"></label></div>'+
+    '<label><span>How long (minutes)</span><input type="number" id="fBM" inputmode="numeric" value="'+(t.blockMins||"")+'" placeholder="30"></label>'+
+    '<div id="stepBox"></div>'+
     '<div class="row-btns"><button class="btn" id="fS" style="flex:1">'+(isNew?"Add it":"Save")+'</button>'+
     (isNew?'':'<button class="btn ghost" id="fX">Delete</button>')+'</div>',
     function(){
+      drawSteps(t);
       $("#fS").onclick=function(){
         var v=$("#fT").value.trim();
         if(!v){toast("Give it a name");return;}
+        t.someday=$("#fSd").checked;
+        t.blockDate=$("#fBD").value; t.blockTime=$("#fBT").value;
+        t.blockMins=$("#fBM").value?+$("#fBM").value:0;
         t.title=v;t.list=$("#fL").value;t.due=$("#fD").value;
         t.prio=+$("#fP").value;t.repeat=$("#fR").value;t.notes=$("#fN").value.trim();
         t.personIds=$("#fW").value.split(",").map(function(x){return x.trim();}).filter(Boolean)
@@ -1260,6 +1319,7 @@ function listDialog(){
 function pageAction(a){
   if(a==="new") taskDialog(null);
   else if(a==="lists") listDialog();
+  else if(a==="templates") templatesDialog();
   else if(a==="clear"){
     var n=H.tasks.filter(function(t){return t.done;}).length;
     if(!n){toast("Nothing finished yet");return;}
@@ -1268,6 +1328,138 @@ function pageAction(a){
     H.tasks=H.tasks.filter(function(t){return !t.done;});
     save();pageHead();pageRender();toast("Cleared — they are in Trash");}
 }
-function pageBoot(){ if(qparam("new")) setTimeout(function(){taskDialog(null);},120); }
+function pageBoot(){
+  if(qparam("f")) filter=qparam("f");
+  if(qparam("new")) setTimeout(function(){taskDialog(null);},120);
+}
+
+/* ---------- subtasks ---------- */
+function drawSteps(t){
+  var host=$("#stepBox"); if(!host) return;
+  host.innerHTML="";
+  host.appendChild(el("h2","sec","Steps"));
+  t.steps=t.steps||[];
+  if(!t.steps.length) host.appendChild(el("p","foot-note","Break it down if it needs it."));
+  var box=el("div");
+  t.steps.forEach(function(s){
+    var row=el("div","step"+(s.done?" done":""));
+    row.style.padding="4px 0";
+    var sb=el("button","sb"); sb.setAttribute("aria-pressed",!!s.done);
+    sb.onclick=function(e){e.preventDefault();s.done=!s.done;save();drawSteps(t);};
+    row.appendChild(sb);
+    row.appendChild(el("span",null,s.text));
+    var k=el("button","kill","×"); k.style.marginLeft="auto";
+    k.onclick=function(e){e.preventDefault();
+      t.steps=t.steps.filter(function(x){return x.id!==s.id;});save();drawSteps(t);};
+    row.appendChild(k);
+    box.appendChild(row);});
+  host.appendChild(box);
+  var lab=el("label"); lab.style.marginTop="8px";
+  lab.innerHTML='<span>Add a step</span><input id="stNew" placeholder="One small piece of it">';
+  host.appendChild(lab);
+  var b=el("button","btn ghost sm","Add the step"); b.style.width="100%";
+  b.onclick=function(e){
+    e.preventDefault();
+    var v=$("#stNew").value.trim(); if(!v) return;
+    t.steps.push({id:uid(),text:v,done:false});
+    if(!t.id){ /* new task: steps ride along when it saves */ }
+    save(); $("#stNew").value=""; drawSteps(t);};
+  host.appendChild(b);
+}
+
+/* ---------- templates ---------- */
+function templates(){ H.templates=H.templates||[]; return H.templates; }
+function templatesDialog(){
+  openDlg("Task templates",
+    '<p class="foot-note" style="margin-top:0">A set of tasks you make over and over. Run one and it creates them all, dated from whichever day you pick.</p>'+
+    '<div id="tplList"></div>'+
+    '<button class="btn ghost sm" id="tplNew" style="width:100%;margin-top:12px">Make a template</button>',
+    function(){
+      function fill(){
+        var h=$("#tplList"); h.innerHTML="";
+        if(!templates().length){ h.appendChild(emptyBox("None yet",
+          "Good for things like a gig day, moving house, or the start of a month.")); return; }
+        var box=el("div","bar-list");
+        templates().forEach(function(tp){
+          var r=el("div","bar-row trio"),L2=el("div");
+          L2.appendChild(el("div","who",tp.name));
+          L2.appendChild(el("div","meta",tp.items.length+" task"+(tp.items.length===1?"":"s")));
+          r.appendChild(L2);
+          var run=el("button","btn sm","Run");
+          run.onclick=function(){ runTemplate(tp); };
+          r.appendChild(run);
+          var k=el("button","kill","×");
+          k.onclick=function(){
+            if(!confirm("Delete the "+tp.name+" template?")) return;
+            H.templates=templates().filter(function(x){return x.id!==tp.id;});
+            save(); fill();};
+          r.appendChild(k); box.appendChild(r);});
+        h.appendChild(box);
+      }
+      fill();
+      $("#tplNew").onclick=function(){ dlg.close(); setTimeout(editTemplate,60); };
+    });
+}
+function editTemplate(tp){
+  var isNew=!tp;
+  tp=tp||{name:"",items:[]};
+  openDlg(isNew?"New template":tp.name,
+    '<label><span>What is it called</span><input id="tN" value="'+esc(tp.name)+'" placeholder="Gig day"></label>'+
+    '<label><span>The tasks, one per line</span>'+
+      '<textarea id="tI" style="min-height:200px" placeholder="Pack the stand&#10;Charge the tuner&#10;Leave the house -1&#10;Load the car">'+
+      esc((tp.items||[]).map(function(i){return i.title+(i.offset?" "+(i.offset>0?"+":"")+i.offset:"");}).join("\n"))+
+      '</textarea></label>'+
+    '<p class="foot-note" style="margin-top:0">Put +1 or -2 at the end of a line to push that task a day later or earlier than the day you pick.</p>'+
+    '<button class="btn" id="tS" style="width:100%">Save the template</button>',
+    function(){
+      $("#tS").onclick=function(){
+        var n=$("#tN").value.trim();
+        if(!n) return toast("Give it a name");
+        tp.name=n;
+        tp.items=$("#tI").value.split("\n").map(function(l){return l.trim();}).filter(Boolean)
+          .map(function(l){
+            var m=l.match(/\s([+-]\d+)$/);
+            return {title:m?l.slice(0,m.index).trim():l,offset:m?+m[1]:0};});
+        if(!tp.items.length) return toast("Add at least one task");
+        if(isNew){ tp.id=uid(); templates().push(tp); }
+        save(); dlg.close(); toast("Saved"); setTimeout(templatesDialog,80);};
+    });
+}
+function runTemplate(tp){
+  dlg.close();
+  setTimeout(function(){
+    openDlg("Run "+tp.name,
+      '<label><span>Day zero</span><input type="date" id="rD" value="'+today()+'"></label>'+
+      '<label><span>Put them in</span><select id="rL">'+
+        H.lists.map(function(l){return '<option value="'+esc(l)+'">'+esc(l)+'</option>';}).join("")+
+      '</select></label>'+
+      '<div id="rPrev"></div>'+
+      '<button class="btn" id="rGo" style="width:100%">Create '+tp.items.length+' task'+(tp.items.length===1?"":"s")+'</button>',
+      function(){
+        function prev(){
+          var d=$("#rD").value||today(), h=$("#rPrev"); h.innerHTML="";
+          h.appendChild(el("h2","sec","What you'll get"));
+          var box=el("div","bar-list");
+          tp.items.forEach(function(i){
+            var due=i.offset?addDays(d,i.offset):d;
+            var r=el("div","bar-row"),L2=el("div");
+            L2.appendChild(el("div","who",i.title));
+            L2.appendChild(el("div","meta","due "+prettyFull(due)));
+            r.appendChild(L2); r.appendChild(el("span","pill",relDay(due)));
+            box.appendChild(r);});
+          h.appendChild(box);
+        }
+        $("#rD").onchange=prev; prev();
+        $("#rGo").onclick=function(){
+          var d=$("#rD").value||today(), lst=$("#rL").value;
+          tp.items.forEach(function(i){
+            H.tasks.push({id:uid(),title:i.title,done:false,list:lst,prio:3,
+              due:i.offset?addDays(d,i.offset):d,notes:"",repeat:"none",
+              steps:[],created:today()});});
+          save(); pageHead(); pageRender(); buildNav(); dlg.close();
+          toast(tp.items.length+" tasks created");};
+      });
+  },60);
+}
 })();
 </script>

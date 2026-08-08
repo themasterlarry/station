@@ -452,8 +452,16 @@ var DB={
   }
 };
 
-var APP_VERSION="1.7";
+var APP_VERSION="1.8";
 var CHANGELOG=[
+ {v:"1.8",d:"2026-08-08",t:"Tasks and calendar",
+  items:["Steps inside a task, with a progress bar on the row",
+         "Someday — park a task without it cluttering your open list",
+         "Block out time for a task; it shows on the calendar that day",
+         "Templates — save a set of tasks like a gig day and create them all at once, dated around the day you pick",
+         "Week view on the calendar",
+         "Travel time on an event, with the leave-by time worked out for you",
+         "Import a calendar from a .ics file"]},
  {v:"1.7",d:"2026-08-08",t:"Music gets its own page",
   items:["Sheet music moved out of Documents onto its own Music page",
          "Practice log — minutes per session, which pieces, a seven day chart, streak and time on each piece",
@@ -515,7 +523,7 @@ function migrateH(){
   H.tasks=H.tasks||[];H.events=H.events||[];H.notes=H.notes||[];
   H.habits=H.habits||[];H.things=H.things||[];H.contacts=H.contacts||[];
   H.subs=H.subs||[];H.journal=H.journal||[];H.scores=H.scores||[];
-  H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];
+  H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];H.templates=H.templates||[];
   H.lists=(H.lists&&H.lists.length)?H.lists:DEF_LISTS.slice();
   H.version=H.version||1;
 }

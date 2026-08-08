@@ -337,6 +337,25 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div id="pExtra"></div>
     </header>
     <section class="pane" id="pane">
+      <style>
+      .wk{display:grid;grid-template-columns:1fr;gap:8px}
+      .wkday{border:1px solid var(--rule);border-radius:2px;background:var(--card);overflow:hidden}
+      .wkday.today{border-color:var(--ink)}
+      .wkday .h{background:var(--bar);padding:6px 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;cursor:pointer}
+      .wkday .h .d{font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:700}
+      .wkday .h .n{font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+      .wkday .b{padding:4px 0}
+      .wkitem{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:baseline;padding:6px 10px;font-size:13.5px}
+      .wkitem .tm{font-family:var(--mono);font-size:11px;color:var(--dim);min-width:52px}
+      .wkitem.blockd .tm{color:var(--tick-deep)}
+      .wkday .none{padding:8px 10px;color:var(--dim);font-size:12.5px}
+      .leaveby{font-family:var(--mono);font-size:11px;color:var(--stamp)}
+      @media(min-width:700px){.wk{grid-template-columns:repeat(2,1fr)}}
+      </style>
+      <div class="seg mini" id="cview">
+        <button type="button" data-v="month" aria-pressed="true">Month</button>
+        <button type="button" data-v="week" aria-pressed="false">Week</button>
+      </div>
       <div class="calhd">
         <button id="calPrev" aria-label="Previous month">‹</button>
         <div class="mo" id="calMo">—</div>
@@ -344,6 +363,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       </div>
       <div class="dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
       <div class="grid" id="calGrid"></div>
+      <div id="weekWrap" style="display:none"></div>
       <div class="row-btns" style="margin:12px 0">
         <button class="btn" data-act="new">Add an event</button>
         <button class="btn ghost sm" data-act="today">Jump to today</button>
@@ -390,8 +410,16 @@ var DB={
   }
 };
 
-var APP_VERSION="1.7";
+var APP_VERSION="1.8";
 var CHANGELOG=[
+ {v:"1.8",d:"2026-08-08",t:"Tasks and calendar",
+  items:["Steps inside a task, with a progress bar on the row",
+         "Someday — park a task without it cluttering your open list",
+         "Block out time for a task; it shows on the calendar that day",
+         "Templates — save a set of tasks like a gig day and create them all at once, dated around the day you pick",
+         "Week view on the calendar",
+         "Travel time on an event, with the leave-by time worked out for you",
+         "Import a calendar from a .ics file"]},
  {v:"1.7",d:"2026-08-08",t:"Music gets its own page",
   items:["Sheet music moved out of Documents onto its own Music page",
          "Practice log — minutes per session, which pieces, a seven day chart, streak and time on each piece",
@@ -453,7 +481,7 @@ function migrateH(){
   H.tasks=H.tasks||[];H.events=H.events||[];H.notes=H.notes||[];
   H.habits=H.habits||[];H.things=H.things||[];H.contacts=H.contacts||[];
   H.subs=H.subs||[];H.journal=H.journal||[];H.scores=H.scores||[];
-  H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];
+  H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];H.templates=H.templates||[];
   H.lists=(H.lists&&H.lists.length)?H.lists:DEF_LISTS.slice();
   H.version=H.version||1;
 }
@@ -1119,7 +1147,7 @@ document.addEventListener("keydown",function(e){
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();
-var cursor=new Date(), selDay=today();
+var cursor=new Date(), selDay=today(), cview="month";
 function pageHead(){
   var appts=H.events.filter(function(e){return e.kind==="appointment";});
   var owed=appts.filter(function(e){return e.date<today()&&!e.outcome;}).length;
@@ -1133,13 +1161,80 @@ function marksFor(d,people){
   var m={ev:0,task:0,due:0,bday:0};
   H.events.forEach(function(e){if(e.date===d)m.ev++;if(e.followUp===d&&!e.followDone)m.due++;});
   (H.practice||[]).forEach(function(p){if(p.date===d)m.task++;});
+  H.tasks.forEach(function(t){if(!t.done&&t.blockDate===d)m.task++;});
   H.tasks.forEach(function(t){if(!t.done&&t.due===d)m.task++;});
   if(L) L.tickets.forEach(function(t){if(t.status==="open"&&t.due===d)m.due++;});
   H.things.forEach(function(t){if(!t.back&&t.due===d)m.due++;});
   people.forEach(function(p){if(p.bday&&p.bday.slice(5)===d.slice(5))m.bday++;});
   return m;
 }
+function itemsFor(d){
+  var out=[];
+  H.events.filter(function(e){return e.date===d;}).forEach(function(e){
+    out.push({t:e.time||"",label:e.title,kind:e.kind==="appointment"?"appt":(e.kind==="practice"?"MU":"CL"),
+      sub:[e.place,e.travel?("leave "+leaveBy(e)):""].filter(Boolean).join(" · "),ev:e});});
+  H.tasks.filter(function(t){return !t.done&&t.blockDate===d;}).forEach(function(t){
+    out.push({t:t.blockTime||"",label:t.title,kind:"TK",block:true,
+      sub:(t.blockMins?t.blockMins+" min":"")});});
+  H.tasks.filter(function(t){return !t.done&&t.due===d&&t.blockDate!==d;}).forEach(function(t){
+    out.push({t:"",label:t.title,kind:"TK",sub:"due"});});
+  (H.practice||[]).filter(function(p){return p.date===d;}).forEach(function(p){
+    out.push({t:"",label:"Practised "+p.minutes+" min",kind:"MU",sub:p.what||""});});
+  return out.sort(function(a,b){
+    if(!a.t&&!b.t) return 0;
+    if(!a.t) return 1; if(!b.t) return -1;
+    return a.t.localeCompare(b.t);});
+}
+function leaveBy(e){
+  if(!e.time||!e.travel) return "";
+  var p=e.time.split(":"), m=(+p[0])*60+(+p[1])-(+e.travel);
+  if(m<0) m+=1440;
+  return ampm(String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"));
+}
+function renderWeek(){
+  var start=parseD(selDay);
+  start.setDate(start.getDate()-start.getDay());
+  var host=$("#weekWrap"); host.innerHTML="";
+  var wrap=el("div","wk");
+  for(var i=0;i<7;i++){
+    var d=new Date(start); d.setDate(start.getDate()+i);
+    var ds=ymd(d);
+    var box=el("div","wkday"+(ds===today()?" today":""));
+    var h=el("div","h");
+    h.appendChild(el("div","d",DOWL[d.getDay()].slice(0,3)+" "+d.getDate()));
+    var items=itemsFor(ds);
+    h.appendChild(el("div","n",items.length?items.length+" thing"+(items.length===1?"":"s"):"clear"));
+    (function(x){h.onclick=function(){selDay=x;cview="month";setView("month");};})(ds);
+    box.appendChild(h);
+    var b=el("div","b");
+    if(!items.length) b.appendChild(el("div","none","—"));
+    items.forEach(function(it){
+      var r=el("div","wkitem"+(it.block?" blockd":""));
+      r.appendChild(el("div","tm",it.t?ampm(it.t):(it.block?"block":"")));
+      var L2=el("div");
+      L2.appendChild(el("div",null,it.label));
+      if(it.sub) L2.appendChild(el("div","meta",it.sub));
+      r.appendChild(L2);
+      r.appendChild(el("span","pill",it.kind));
+      if(it.ev) r.onclick=function(){eventDialog(it.ev);};
+      r.style.cursor="pointer";
+      b.appendChild(r);});
+    box.appendChild(b);
+    wrap.appendChild(box);
+  }
+  host.appendChild(wrap);
+}
+function setView(v){
+  cview=v;
+  $("#calGrid").style.display=v==="month"?"grid":"none";
+  document.querySelector(".dow").style.display=v==="month"?"grid":"none";
+  $("#weekWrap").style.display=v==="week"?"block":"none";
+  $("#cview").querySelectorAll("button").forEach(function(b){
+    b.setAttribute("aria-pressed",b.dataset.v===v);});
+  pageRender();
+}
 function pageRender(){
+  if(cview==="week"){ renderWeek(); $("#calMo").textContent=MONL[parseD(selDay).getMonth()]+" "+selDay.slice(0,4); }
   var y=cursor.getFullYear(),mo=cursor.getMonth();
   $("#calMo").textContent=MONL[mo]+" "+y;
   var first=new Date(y,mo,1),start=new Date(y,mo,1-first.getDay());
@@ -1171,6 +1266,7 @@ function pageRender(){
       if(e.outcome) bits.push("written up");
       if(e.followUp) bits.push("follow up "+relDay(e.followUp));
       if(e.place) bits.push(e.place);
+      if(e.travel&&e.time) bits.push("leave by "+leaveBy(e));
       if(e.personIds&&e.personIds.length) bits.push(e.personIds.map(personName).filter(Boolean).join(", "));
       if(e.notes) bits.push(e.notes);
       Ld.appendChild(el("div","meta",bits.join(" · ")));
@@ -1194,7 +1290,15 @@ function pageRender(){
     r.appendChild(el("div"));
     r.onclick=function(){eventDialog(e);};
     rows.push(r);});
-  H.tasks.filter(function(t){return !t.done&&t.due===selDay;}).forEach(function(t){
+  H.tasks.filter(function(t){return !t.done&&t.blockDate===selDay;}).forEach(function(t){
+    var r=el("div","bar-row trio"),Ld=el("div");
+    Ld.appendChild(el("div","who",t.title));
+    Ld.appendChild(el("div","meta","blocked out"+(t.blockTime?" at "+ampm(t.blockTime):"")+
+      (t.blockMins?" · "+t.blockMins+" min":"")));
+    r.appendChild(Ld); r.appendChild(el("span","pill warm","TK"));
+    var a6=el("a","pill","open"); a6.href="tasks.html?f=blocked"; r.appendChild(a6);
+    rows.push(r);});
+  H.tasks.filter(function(t){return !t.done&&t.due===selDay&&t.blockDate!==selDay;}).forEach(function(t){
     var r=el("div","bar-row trio"),Ld=el("div");
     Ld.appendChild(el("div","who",t.title));
     Ld.appendChild(el("div","meta","task due"+(t.list?" · "+t.list:"")));
@@ -1251,6 +1355,9 @@ function eventDialog(e){
       '<label><span>Date</span><input type="date" id="fD" value="'+esc(e.date)+'"></label>'+
       '<label><span>Where</span><input id="fPl" value="'+esc(e.place||"")+'" placeholder="Optional"></label></div>'+
     '<div class="two">'+
+      '<label><span>Travel time (minutes)</span><input type="number" id="fTr" inputmode="numeric" value="'+(e.travel||"")+'" placeholder="20"></label>'+
+      '<label><span>Leave by</span><input id="fLb" value="'+esc(leaveBy(e)||"")+'" disabled></label></div>'+
+    '<div class="two">'+
       '<label><span>Starts</span><input type="time" id="fTm" value="'+esc(e.time||"")+'"></label>'+
       '<label><span>Ends</span><input type="time" id="fTe" value="'+esc(e.endTime||"")+'"></label></div>'+
     '<label><span>Who is coming</span><input id="fW" list="dlPeople" value="'+esc(who)+'" placeholder="Names, comma separated"></label>'+peopleDatalist()+
@@ -1272,6 +1379,12 @@ function eventDialog(e){
       $("#kE").onclick=function(){setKind("event");};
       $("#kA").onclick=function(){setKind("appointment");};
       if(!isNew&&e.id) attachBar($("#attachHost"),"event",e.id,"Paperwork");
+      function upLeave(){
+        var tmp={time:$("#fTm").value,travel:+$("#fTr").value||0};
+        $("#fLb").value=leaveBy(tmp)||"—";
+      }
+      $("#fTm").addEventListener("input",upLeave);
+      $("#fTr").addEventListener("input",upLeave);
       $("#fS").onclick=function(){
         var v=$("#fT").value.trim();
         if(!v){toast("Give it a name");return;}
@@ -1280,6 +1393,7 @@ function eventDialog(e){
         e.followUp=$("#fF")?$("#fF").value:"";
         e.title=v;e.date=$("#fD").value||today();e.time=$("#fTm").value;e.endTime=$("#fTe").value;
         e.place=$("#fPl").value.trim();e.notes=$("#fN").value.trim();
+        e.travel=$("#fTr").value?+$("#fTr").value:0;
         e.personIds=$("#fW").value.split(",").map(function(s){return s.trim();}).filter(Boolean)
           .map(function(n){var c=ensureContact(n);return c?c.id:null;}).filter(Boolean);
         if(isNew){e.id=uid();H.events.push(e);}
@@ -1295,10 +1409,58 @@ function eventDialog(e){
 function pageAction(a){
   if(a==="new") eventDialog(null);
   else if(a==="today"){cursor=new Date();selDay=today();pageRender();}
+  else if(a==="ics") icsDialog();
+}
+function icsDialog(){
+  openDlg("Import a calendar",
+    '<p class="foot-note" style="margin-top:0">Paste the contents of a .ics file. Repeating events come in as their first occurrence only.</p>'+
+    '<label><span>Paste it here</span><textarea id="iT" style="min-height:200px" placeholder="BEGIN:VCALENDAR ..."></textarea></label>'+
+    '<button class="btn" id="iS" style="width:100%">Import</button>',
+    function(){
+      $("#iS").onclick=function(){
+        var raw=$("#iT").value;
+        if(!/BEGIN:VEVENT/i.test(raw)) return toast("That doesn't look like a calendar file");
+        var added=0,skipped=0;
+        raw.replace(/\r\n[ \t]/g,"").split(/BEGIN:VEVENT/i).slice(1).forEach(function(blk){
+          function f(k){
+            var m=blk.match(new RegExp("\\n"+k+"[^:\\n]*:(.+)","i"));
+            return m?m[1].trim().replace(/\\,/g,",").replace(/\\n/gi," "):"";}
+          var title=f("SUMMARY"); if(!title) return;
+          var ds=f("DTSTART"); if(!ds) return;
+          var date="",time="";
+          var m1=ds.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?/);
+          if(!m1){ skipped++; return; }
+          date=m1[1]+"-"+m1[2]+"-"+m1[3];
+          if(m1[4]){
+            if(/Z$/.test(ds)){
+              var utc=new Date(Date.UTC(+m1[1],+m1[2]-1,+m1[3],+m1[4],+m1[5]));
+              date=ymd(utc);
+              time=String(utc.getHours()).padStart(2,"0")+":"+String(utc.getMinutes()).padStart(2,"0");
+            } else time=m1[4]+":"+m1[5];
+          }
+          var de=f("DTEND"), endTime="";
+          var m2=de&&de.match(/T(\d{2})(\d{2})/);
+          if(m2) endTime=m2[1]+":"+m2[2];
+          if(H.events.some(function(x){return x.title===title&&x.date===date&&x.time===time;})){ skipped++; return; }
+          H.events.push({id:uid(),title:title,date:date,time:time,endTime:endTime,
+            place:f("LOCATION"),notes:f("DESCRIPTION").slice(0,300),personIds:[],kind:"event"});
+          added++;});
+        save(); pageHead(); pageRender(); buildNav(); dlg.close();
+        toast(added+" imported"+(skipped?", "+skipped+" skipped":""));};
+    });
 }
 function pageBoot(){
-  $("#calPrev").onclick=function(){cursor.setMonth(cursor.getMonth()-1);pageRender();};
-  $("#calNext").onclick=function(){cursor.setMonth(cursor.getMonth()+1);pageRender();};
+  $("#cview").querySelectorAll("button").forEach(function(b){
+    b.onclick=function(){ setView(b.dataset.v); };});
+  $("#calPrev").onclick=function(){
+    if(cview==="week"){ selDay=addDays(selDay,-7); cursor=parseD(selDay); }
+    else cursor.setMonth(cursor.getMonth()-1);
+    pageRender();};
+  $("#calNext").onclick=function(){
+    if(cview==="week"){ selDay=addDays(selDay,7); cursor=parseD(selDay); }
+    else cursor.setMonth(cursor.getMonth()+1);
+    pageRender();};
+  if(qparam("view")==="week") setTimeout(function(){setView("week");},0);
   var d=qparam("d");
   if(d&&/^\d{4}-\d{2}-\d{2}$/.test(d)){selDay=d;cursor=parseD(d);}
   if(qparam("new")) setTimeout(function(){eventDialog(null);},120);
