@@ -316,29 +316,39 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
     </header>
     <section class="pane" id="pane">
       <style>
-      .chat{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;min-height:200px}
+      .chat{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;min-height:180px}
       .msg{max-width:88%;padding:10px 13px;border-radius:3px;font-size:14.5px;line-height:1.5;white-space:pre-wrap}
       .msg.me{align-self:flex-end;background:var(--ink);color:var(--paper)}
       .msg.it{align-self:flex-start;background:#fff;border:1px solid var(--rule)}
       .msg.sys{align-self:center;background:var(--bar);border:1px dashed var(--rule);color:var(--dim);font-size:12.5px;max-width:100%}
       .thinking{align-self:flex-start;font-family:var(--mono);font-size:12px;color:var(--dim);padding:6px 2px}
       .act{align-self:flex-start;border:1px solid var(--tick-deep);background:#FBF4E4;border-radius:3px;padding:9px 11px;max-width:88%}
+      .act.done{border-color:var(--pos);background:#E3EEDF}
       .act .t{font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--tick-deep)}
+      .act.done .t{color:var(--pos)}
       .act .d{font-size:14px;margin:3px 0 7px;font-weight:600}
       .composer{display:flex;gap:7px;align-items:flex-end;position:sticky;bottom:0;background:var(--paper);padding:10px 0}
       .composer textarea{min-height:46px;max-height:160px;resize:none}
       .offline{border:1px solid var(--stamp);background:#F7E4E0;border-radius:2px;padding:11px;margin-bottom:12px;font-size:13.5px}
+      .chatbar{display:flex;gap:7px;align-items:center;margin-bottom:12px}
+      .chatbar select{flex:1}
       </style>
       <div id="offline"></div>
+      <div class="chatbar">
+        <select id="chatPick" aria-label="Conversation"></select>
+        <button class="btn ghost sm" data-act="newchat">New</button>
+      </div>
       <div class="chat" id="chat"></div>
       <div class="composer">
         <textarea id="box" placeholder="What's going on?" rows="1"></textarea>
         <button class="btn" id="send">Send</button>
       </div>
       <div class="row-btns" style="margin-top:6px">
-        <button class="btn ghost sm" data-act="newchat">Start fresh</button>
-        <button class="btn ghost sm" data-act="remember">What it remembers</button>
+        <button class="btn ghost sm" data-act="rename">Rename</button>
+        <button class="btn ghost sm" data-act="delchat">Delete chat</button>
+        <button class="btn ghost sm" data-act="remember">Memory</button>
         <button class="btn ghost sm" data-act="persona">How it talks</button>
+        <button class="btn ghost sm" data-act="settings">Settings</button>
       </div>
     </section>
   </div>
@@ -837,64 +847,263 @@ document.addEventListener("keydown",function(e){
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();
-var TKEY="talk:v1", T={msgs:[],memory:[],persona:""}, busy=false, aiOk=null, aiModel="";
+var TKEY="talk:v1";
+var T={chats:[],cur:"",memory:[],persona:"",auto:false};
+var busy=false, aiOk=null, aiModel="";
 
 var DEFAULT_PERSONA =
-"You are a private, self-hosted companion living inside Charles's personal system. "+
-"You are here to talk things through with him — what happened, what is bothering him, what he is avoiding, what went well.\n\n"+
+"You are a private companion living inside Charles's own personal system, running on his own machine. "+
+"You talk things through with him and you can also do things for him in the system.\n\n"+
 "How to be:\n"+
 "- Talk like a thoughtful person, not a chatbot. Warm, direct, unhurried.\n"+
 "- Listen first. Reflect back what you actually heard before adding anything.\n"+
-"- Ask one real question at a time. Short questions are better than long ones.\n"+
-"- Sit with hard things instead of rushing to fix them. Do not hand out advice he did not ask for.\n"+
-"- Never open with a disclaimer or repeat that you are an AI. He knows. Saying it every message makes you useless to him.\n"+
-"- Do not moralize, do not lecture, do not end every message with a suggestion to talk to someone else.\n"+
-"- It is fine to disagree with him, gently and honestly. Agreeing with everything is not support.\n"+
-"- Match his length. If he writes one line, do not write six paragraphs.\n\n"+
-"If he is ever in real danger — talking about ending his life or hurting himself badly — drop everything else, "+
-"stay with him, be direct that you want him to be safe, and say plainly that a person should know about this tonight "+
-"(988 by call or text in the US, or someone he trusts). Do not be clinical about it and do not abandon the conversation.\n\n"+
-"You can also do things in his system. When he clearly asks you to add or record something, end your reply with a fenced block:\n"+
-"```action\n{\"do\":\"add_task\",\"title\":\"call the landlord\"}\n```\n"+
-"Valid actions: add_task {title,due?}, add_journal {text}, add_note {title,body?}, add_event {title,date,time?}, remember {text}.\n"+
-"Dates are YYYY-MM-DD. Use remember for things worth carrying into future conversations. "+
-"Only emit an action when he actually asked for one. Never more than one per reply. "+
-"Say what you did in your own words too — do not describe the block itself.";
+"- Ask one real question at a time. Short questions beat long ones.\n"+
+"- Sit with hard things instead of rushing to fix them. No advice he didn't ask for.\n"+
+"- Never open with a disclaimer and never repeat that you are an AI. He knows.\n"+
+"- Don't moralize, don't lecture, don't end every message telling him to talk to someone else.\n"+
+"- Disagree with him when you think he's wrong. Agreeing with everything isn't support.\n"+
+"- Match his length. One line from him doesn't need six paragraphs back.\n\n"+
+"If he's ever in real danger — talking about ending his life or badly hurting himself — drop everything else, "+
+"stay with him, be direct that you want him safe, and say plainly that a person should know tonight "+
+"(988 by call or text in the US, or someone he trusts). Don't be clinical and don't leave the conversation.\n\n"+
+"DOING THINGS: when he asks you to record, add, or change something, put a fenced block at the end of your reply:\n"+
+"```action\n[{\"do\":\"add_task\",\"title\":\"call the landlord\",\"due\":\"2026-08-09\"}]\n```\n"+
+"It is a JSON array, so you can do several at once. Available:\n"+
+"  add_task {title, due?, list?}          complete_task {title}\n"+
+"  add_journal {text}                     add_note {title, body?}\n"+
+"  add_event {title, date, time?, place?} add_contact {name, how?, phone?}\n"+
+"  lend_item {name, who, due?}            return_item {name}\n"+
+"  add_subscription {name, amount, cycle} mark_habit {name}\n"+
+"  log_money {direction:\"in\"|\"out\", amount, who?, category?}\n"+
+"  write_ticket {direction:\"owe\"|\"owed\", amount, who, note?, due?}\n"+
+"  add_piece {title, composer?, arranger?, grade?, tempo?}\n"+
+"  remember {text}                        forget {text}\n"+
+"Dates are YYYY-MM-DD, times HH:MM, amounts are plain numbers like 24.50. "+
+"Use remember for anything worth carrying into future conversations. "+
+"Only act when he actually asked. Describe what you did in your own words too — never mention the block itself.";
 
 function persona(){ return (T.persona&&T.persona.trim())||DEFAULT_PERSONA; }
+function cur(){ return T.chats.filter(function(c){return c.id===T.cur;})[0]||T.chats[0]; }
 
-function pageHead(){
-  var n=T.msgs.length;
-  setHead("AI · talk","Talk",
-    (aiOk===false?"model offline":(aiModel?aiModel+" · on your machine":"connecting…"))+
-    (n?"  ·  "+n+" messages in this conversation":"")+
-    (T.memory.length?"  ·  remembers "+T.memory.length+" things":""));
-}
 async function loadTalk(){
   var t=await DB.get(TKEY);
   if(t) T=t;
-  T.msgs=T.msgs||[]; T.memory=T.memory||[]; T.persona=T.persona||"";
+  T.chats=T.chats||[]; T.memory=T.memory||[]; T.persona=T.persona||""; T.auto=!!T.auto;
+  if(t&&t.msgs&&t.msgs.length&&!T.chats.length){        // carry over the old single thread
+    T.chats.push({id:uid(),title:"Earlier conversation",created:today(),updated:today(),msgs:t.msgs});
+    delete T.msgs;
+  }
+  if(!T.chats.length) newChat(false);
+  if(!cur()) T.cur=T.chats[0].id;
 }
 function saveTalk(){ DB.set(TKEY,T); }
+function newChat(redraw){
+  var c={id:uid(),title:"New conversation",created:today(),updated:today(),msgs:[]};
+  T.chats.unshift(c); T.cur=c.id;
+  if(redraw!==false){ saveTalk(); drawPicker(); drawChat(); pageHead(); }
+  return c;
+}
+function autoTitle(c){
+  if(c.title!=="New conversation") return;
+  var first=(c.msgs.filter(function(m){return m.role==="user";})[0]||{}).content||"";
+  if(first) c.title=first.slice(0,42)+(first.length>42?"…":"");
+}
+function drawPicker(){
+  var s=$("#chatPick");
+  s.innerHTML=T.chats.map(function(c){
+    return '<option value="'+c.id+'"'+(c.id===T.cur?" selected":"")+'>'+
+      esc(c.title)+" · "+c.msgs.length+"</option>";}).join("");
+}
 
-/* a short picture of his week, so it isn't talking in a vacuum */
+function pageHead(){
+  var c=cur();
+  setHead("AI · talk", c?c.title:"Talk",
+    (aiOk===false?"model offline":(aiModel?aiModel+" on your machine":"connecting…"))+
+    "  ·  "+T.chats.length+" conversation"+(T.chats.length===1?"":"s")+
+    (T.memory.length?"  ·  remembers "+T.memory.length:"")+
+    (T.auto?"  ·  acting on its own":""));
+}
+
+/* what it knows about his world, refreshed every message */
 function context(){
-  var ts=today(), L2=[];
+  var ts=today(), out=[];
+  out.push("Today is "+dowOf(ts)+", "+prettyFull(ts)+".");
+  if(T.memory.length)
+    out.push("What you remember about him:\n- "+T.memory.map(function(m){return m.text;}).join("\n- "));
+  var L2=[];
   var due=(H.tasks||[]).filter(function(x){return !x.done&&x.due&&x.due<=ts;});
-  if(due.length) L2.push("Tasks due or late: "+due.slice(0,6).map(function(x){return x.title;}).join("; "));
-  var ev=(H.events||[]).filter(function(e){return e.date>=ts&&daysBetween(ts,e.date)<=7;});
-  if(ev.length) L2.push("Coming up this week: "+ev.slice(0,5).map(function(e){return e.title+" "+relDay(e.date);}).join("; "));
+  var open=(H.tasks||[]).filter(function(x){return !x.done;});
+  L2.push("Tasks: "+open.length+" open"+(due.length?", due or late: "+due.slice(0,8).map(function(x){return x.title;}).join("; "):""));
+  var ev=(H.events||[]).filter(function(e){return e.date>=ts&&daysBetween(ts,e.date)<=10;});
+  if(ev.length) L2.push("Next 10 days: "+ev.slice(0,6).map(function(e){return e.title+" "+relDay(e.date);}).join("; "));
   var lt=ledgerTotals();
-  if(lt) L2.push("Money: "+money(lt.total)+" on hand, "+money(lt.owe)+" owed out, "+money(lt.owed)+" owed to him.");
-  var j=(H.journal||[]).slice().sort(function(a,b){return b.date.localeCompare(a.date);})[0];
-  if(j) L2.push("Last journal entry ("+j.date+"): "+(j.body||"").slice(0,300));
+  if(lt){
+    L2.push("Money: "+money(lt.total)+" on hand ("+money(lt.cash)+" cash), owes out "+money(lt.owe)+", owed to him "+money(lt.owed));
+    var tk=(L&&L.tickets||[]).filter(function(t){return t.status==="open";});
+    if(tk.length) L2.push("Open tickets: "+tk.slice(0,5).map(function(t){
+      return (t.dir==="owe"?"owes ":"owed by ")+t.name+" "+money(t.cents-(t.paidCents||0));}).join("; "));
+  }
+  var sub=(H.subs||[]).filter(function(s){return s.active!==false;});
+  if(sub.length){
+    var per=sub.reduce(function(t2,s){
+      var y=s.cycle==="weekly"?s.cents*52:s.cycle==="monthly"?s.cents*12:s.cycle==="quarterly"?s.cents*4:s.cents;
+      return t2+Math.round(y/12);},0);
+    L2.push("Subscriptions: "+sub.length+" active, "+money(per)+" a month");
+  }
+  var out2=(H.things||[]).filter(function(x){return !x.back;});
+  if(out2.length) L2.push("Items out: "+out2.map(function(x){
+    return x.name+" "+(x.dir==="lent"?"with ":"from ")+(personName(x.personId)||"someone");}).join("; "));
   var hb=(H.habits||[]).filter(function(h){return !(h.days||{})[ts];});
   if(hb.length) L2.push("Habits not marked today: "+hb.map(function(h){return h.name;}).join(", "));
-  var out=[];
-  out.push("Today is "+dowOf(ts)+", "+prettyFull(ts)+".");
-  if(T.memory.length) out.push("Things you have chosen to remember about him:\n- "+T.memory.map(function(m){return m.text;}).join("\n- "));
-  if(L2.length) out.push("From his system right now (only bring these up if they fit):\n"+L2.join("\n"));
+  var ppl=allPeople().slice(0,25).map(function(p){return p.name;});
+  if(ppl.length) L2.push("People he knows: "+ppl.join(", "));
+  var j=(H.journal||[]).slice().sort(function(a,b){return b.date.localeCompare(a.date);})[0];
+  if(j) L2.push("Last journal ("+j.date+"): "+(j.body||"").slice(0,400));
+  out.push("His system right now — only bring these up if they fit:\n"+L2.join("\n"));
   return out.join("\n\n");
+}
+
+/* ---------- actions ---------- */
+function firstAccount(){
+  if(!L||!L.accounts||!L.accounts.length) return null;
+  return (L.accounts.filter(function(a){return a.kind==="cash";})[0]||L.accounts[0]);
+}
+function findTask(title){
+  var t=(title||"").toLowerCase();
+  return (H.tasks||[]).filter(function(x){
+    return !x.done&&x.title.toLowerCase().indexOf(t)>=0;})[0];
+}
+function describe(a){
+  var n=a.amount!=null?("$"+Number(a.amount).toFixed(2)):"";
+  switch(a.do){
+    case "add_task": return "Task: "+a.title+(a.due?" (due "+a.due+")":"");
+    case "complete_task": return "Tick off: "+a.title;
+    case "add_journal": return "Journal entry for today";
+    case "add_note": return "Note: "+(a.title||"untitled");
+    case "add_event": return "Calendar: "+a.title+" "+(a.date||"")+(a.time?" at "+a.time:"");
+    case "add_contact": return "Contact: "+a.name;
+    case "lend_item": return "Lent "+a.name+" to "+a.who+(a.due?", back by "+a.due:"");
+    case "return_item": return a.name+" came back";
+    case "add_subscription": return "Subscription: "+a.name+" "+n+" "+(a.cycle||"monthly");
+    case "mark_habit": return "Mark habit: "+a.name;
+    case "log_money": return (a.direction==="in"?"Money in ":"Money out ")+n+(a.who?" · "+a.who:"");
+    case "write_ticket": return (a.direction==="owe"?"You owe ":"Owed to you ")+n+" · "+a.who;
+    case "add_piece": return "Sheet music: "+a.title;
+    case "remember": return "Remember: "+a.text;
+    case "forget": return "Forget: "+a.text;
+    default: return "Unknown: "+a.do;
+  }
+}
+function destructive(a){ return a.do==="complete_task"||a.do==="forget"; }
+function runAction(a){
+  var c=a.amount!=null?Math.round(Number(a.amount)*100):0;
+  try{
+    switch(a.do){
+      case "add_task":
+        H.tasks.push({id:uid(),title:a.title,done:false,list:a.list||(H.lists||["Inbox"])[0],
+          prio:3,due:a.due||"",notes:"",repeat:"none",created:today()}); break;
+      case "complete_task": {
+        var t=findTask(a.title); if(!t) return "couldn't find that task";
+        t.done=true; t.doneOn=today(); break; }
+      case "add_journal": {
+        H.journal=H.journal||[];
+        var e=H.journal.filter(function(x){return x.date===today();})[0];
+        if(e) e.body=(e.body?e.body+"\n\n":"")+a.text;
+        else H.journal.push({id:uid(),date:today(),title:"",body:a.text,tags:["from a talk"]});
+        break; }
+      case "add_note":
+        H.notes.push({id:uid(),title:a.title||"Untitled",body:a.body||"",tags:["from a talk"],
+          pinned:false,created:today(),updated:today()}); break;
+      case "add_event":
+        H.events.push({id:uid(),title:a.title,date:a.date||today(),time:a.time||"",
+          endTime:"",place:a.place||"",notes:"",personIds:[]}); break;
+      case "add_contact": {
+        var p=ensureContact(a.name);
+        if(p&&a.how) p.how=a.how;
+        if(p&&a.phone) p.phone=a.phone;
+        break; }
+      case "lend_item": {
+        var pc=ensureContact(a.who);
+        H.things.push({id:uid(),name:a.name,dir:"lent",personId:pc?pc.id:null,who:a.who,
+          date:today(),due:a.due||"",notes:"",back:false}); break; }
+      case "return_item": {
+        var it=(H.things||[]).filter(function(x){
+          return !x.back&&x.name.toLowerCase().indexOf((a.name||"").toLowerCase())>=0;})[0];
+        if(!it) return "couldn't find that item";
+        it.back=true; it.backOn=today(); break; }
+      case "add_subscription":
+        H.subs=H.subs||[];
+        H.subs.push({id:uid(),name:a.name,cents:c,cycle:a.cycle||"monthly",
+          next:a.next||"",method:"",cat:"",active:true,created:today()}); break;
+      case "mark_habit": {
+        var h=(H.habits||[]).filter(function(x){
+          return x.name.toLowerCase().indexOf((a.name||"").toLowerCase())>=0;})[0];
+        if(!h) return "no habit by that name";
+        h.days=h.days||{}; h.days[today()]=1; break; }
+      case "log_money": {
+        if(!L) return "no ledger on this device";
+        var ac=firstAccount(); if(!ac) return "no account to use";
+        if(c<=0) return "needs an amount";
+        var per=a.who?ensureContact(a.who):null;
+        var tx={id:uid(),type:a.direction==="in"?"in":"out",cents:c,date:today(),
+          accountId:ac.id,who:a.who||(a.direction==="in"?"Money in":"Money out"),
+          personId:per?per.id:null,method:a.method||"",note:"added from a talk"};
+        if(a.category) tx.cat=a.category;
+        if(tx.type==="in") ac.cents+=c; else ac.cents-=c;
+        L.txns.push(tx); saveL(); break; }
+      case "write_ticket": {
+        if(!L) return "no ledger on this device";
+        if(c<=0) return "needs an amount";
+        var pt=ensureContact(a.who);
+        var code=(function(){
+          var A="ABCDEFGHJKLMNPQRSTUVWXYZ",D="23456789",s="";
+          for(var i=0;i<4;i++)s+=A[Math.floor(Math.random()*A.length)];
+          s+="-"; for(var j=0;j<4;j++)s+=D[Math.floor(Math.random()*D.length)];
+          return s;})();
+        L.tickets.push({id:uid(),code:code,dir:a.direction==="owed"?"owed":"owe",cents:c,
+          paidCents:0,pays:[],personId:pt.id,name:pt.name,note:a.note||"",method:"",
+          due:a.due||"",written:today(),status:"open"});
+        saveL(); break; }
+      case "add_piece":
+        H.scores=H.scores||[];
+        H.scores.push({id:uid(),title:a.title,composer:a.composer||"",arranger:a.arranger||"",
+          grade:a.grade||"",ensemble:"band",tempo:a.tempo||"",key:"",duration:"",publisher:"",
+          folder:"",notes:"",tags:[],expected:[],added:today()}); break;
+      case "remember":
+        T.memory.push({id:uid(),text:a.text,when:today()}); saveTalk(); return true;
+      case "forget": {
+        var before=T.memory.length;
+        T.memory=T.memory.filter(function(m){
+          return m.text.toLowerCase().indexOf((a.text||"").toLowerCase())<0;});
+        saveTalk();
+        return before===T.memory.length?"nothing matched that":true; }
+      default: return "don't know how to do that";
+    }
+  }catch(e){ return "that didn't work"; }
+  save();
+  return true;
+}
+function offerAction(a){
+  var w=el("div","act");
+  var head=el("div","t","It wants to do this");
+  w.appendChild(head);
+  w.appendChild(el("div","d",describe(a)));
+  function complete(res){
+    w.innerHTML="";
+    if(res===true){ w.className="act done";
+      w.appendChild(el("div","t","Done"));
+      w.appendChild(el("div","d",describe(a))); }
+    else { w.appendChild(el("div","t","Didn't work"));
+      w.appendChild(el("div","d",describe(a)+" — "+res)); }
+  }
+  if(T.auto&&!destructive(a)){ complete(runAction(a)); $("#chat").appendChild(w); return; }
+  var row=el("div","row-btns");
+  var yes=el("button","btn sm","Do it");
+  var no=el("button","btn ghost sm","Skip");
+  yes.onclick=function(){ complete(runAction(a)); };
+  no.onclick=function(){ w.remove(); };
+  row.appendChild(yes); row.appendChild(no); w.appendChild(row);
+  $("#chat").appendChild(w);
 }
 
 function bubble(role,text){
@@ -902,120 +1111,68 @@ function bubble(role,text){
   $("#chat").appendChild(d); return d;
 }
 function scrollDown(){ window.scrollTo(0,document.body.scrollHeight); }
-
 function drawChat(){
-  var c=$("#chat"); c.innerHTML="";
-  if(!T.msgs.length){
-    bubble("system","Nothing here yet. Whatever is on your mind — start anywhere.");
-  }
-  T.msgs.forEach(function(m){ bubble(m.role,m.content); });
+  var c=cur(), box=$("#chat"); box.innerHTML="";
+  if(!c||!c.msgs.length) bubble("system","Nothing here yet. Start anywhere.");
+  else c.msgs.forEach(function(m){ bubble(m.role,m.content); });
   scrollDown();
 }
-
-function parseAction(text){
+function parseActions(text){
   var m=text.match(/```action\s*([\s\S]*?)```/);
-  if(!m) return {clean:text,action:null};
-  var act=null;
-  try{ act=JSON.parse(m[1].trim()); }catch(e){}
-  return {clean:text.replace(m[0],"").trim(),action:act};
-}
-function describe(a){
-  if(a.do==="add_task")    return "Add task: "+a.title+(a.due?" (due "+a.due+")":"");
-  if(a.do==="add_journal") return "Add to today's journal";
-  if(a.do==="add_note")    return "Save a note: "+(a.title||"untitled");
-  if(a.do==="add_event")   return "Calendar: "+a.title+" on "+(a.date||"?")+(a.time?" at "+a.time:"");
-  if(a.do==="remember")    return "Remember: "+a.text;
-  return "Do: "+a.do;
-}
-function runAction(a){
-  if(a.do==="add_task"){
-    H.tasks.push({id:uid(),title:a.title,done:false,list:(H.lists||["Inbox"])[0],prio:3,
-      due:a.due||"",notes:"",repeat:"none",created:today()});
-  } else if(a.do==="add_journal"){
-    H.journal=H.journal||[];
-    var e=H.journal.filter(function(x){return x.date===today();})[0];
-    if(e) e.body=(e.body?e.body+"\n\n":"")+a.text;
-    else H.journal.push({id:uid(),date:today(),title:"",body:a.text,tags:["from a talk"]});
-  } else if(a.do==="add_note"){
-    H.notes.push({id:uid(),title:a.title||"Untitled",body:a.body||"",tags:["from a talk"],
-      pinned:false,created:today(),updated:today()});
-  } else if(a.do==="add_event"){
-    H.events.push({id:uid(),title:a.title,date:a.date||today(),time:a.time||"",
-      endTime:"",place:"",notes:"",personIds:[]});
-  } else if(a.do==="remember"){
-    T.memory.push({id:uid(),text:a.text,when:today()});
-    saveTalk(); pageHead(); return true;
-  } else return false;
-  save(); return true;
-}
-function offerAction(a){
-  var w=el("div","act");
-  w.appendChild(el("div","t","It wants to do something"));
-  w.appendChild(el("div","d",describe(a)));
-  var row=el("div","row-btns");
-  var yes=el("button","btn sm","Do it");
-  var no=el("button","btn ghost sm","No thanks");
-  yes.onclick=function(){
-    if(runAction(a)){ w.innerHTML=""; w.appendChild(el("div","t","Done"));
-      w.appendChild(el("div","d",describe(a))); toast("Done"); }
-    else toast("Didn't understand that one");
-  };
-  no.onclick=function(){ w.remove(); };
-  row.appendChild(yes); row.appendChild(no); w.appendChild(row);
-  $("#chat").appendChild(w); scrollDown();
+  if(!m) return {clean:text,actions:[]};
+  var acts=[];
+  try{
+    var p=JSON.parse(m[1].trim());
+    acts=Array.isArray(p)?p:[p];
+  }catch(e){}
+  return {clean:text.replace(m[0],"").trim(),actions:acts};
 }
 
 async function send(){
   if(busy) return;
-  var text=$("#box").value.trim();
-  if(!text) return;
+  var text=$("#box").value.trim(); if(!text) return;
+  var c=cur(); if(!c) c=newChat(false);
   $("#box").value=""; $("#box").style.height="auto";
-  T.msgs.push({role:"user",content:text});
-  bubble("user",text); saveTalk(); scrollDown();
+  c.msgs.push({role:"user",content:text}); c.updated=today();
+  autoTitle(c); bubble("user",text); saveTalk(); drawPicker(); scrollDown();
 
   busy=true; $("#send").disabled=true;
   var think=el("div","thinking","thinking…");
   $("#chat").appendChild(think); scrollDown();
-
-  var payload=[{role:"system",content:persona()+"\n\n"+context()}]
-    .concat(T.msgs.slice(-24));
+  var payload=[{role:"system",content:persona()+"\n\n"+context()}].concat(
+    c.msgs.slice(-24).map(function(m){return {role:m.role,content:m.content};}));
   try{
     var r=await fetch("/api/ai",{method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({messages:payload})});
+      headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:payload})});
     var j=await r.json();
     think.remove();
-    if(!r.ok||!j.text){
-      bubble("system",j.error||"The model didn't answer. Check that Ollama is running.");
-    } else {
-      var p=parseAction(j.text);
-      T.msgs.push({role:"assistant",content:p.clean});
+    if(!r.ok||!j.text){ bubble("system",j.error||"The model didn't answer."); }
+    else{
+      var p=parseActions(j.text);
+      c.msgs.push({role:"assistant",content:p.clean});
       bubble("assistant",p.clean);
-      if(p.action) offerAction(p.action);
+      p.actions.forEach(offerAction);
       saveTalk();
     }
-  }catch(e){
-    think.remove();
-    bubble("system","Couldn't reach the model. Is the ollama container up?");
-  }
+  }catch(e){ think.remove(); bubble("system","Couldn't reach the model. Is the ollama container up?"); }
   busy=false; $("#send").disabled=false; pageHead(); scrollDown();
 }
 
 function memoryDialog(){
   openDlg("What it remembers",
-    '<p class="foot-note" style="margin-top:0">Carried into every conversation. Add or remove anything.</p>'+
+    '<p class="foot-note" style="margin-top:0">Carried into every conversation, in every chat.</p>'+
     '<div class="bar-list" id="mList"></div>'+
-    '<label style="margin-top:12px"><span>Add something</span><input id="mNew" placeholder="He plays trumpet in a community band"></label>'+
+    '<label style="margin-top:12px"><span>Add something</span><input id="mNew" placeholder="Plays trumpet in a community band"></label>'+
     '<button class="btn ghost sm" id="mAdd" style="width:100%">Add it</button>',
     function(){
       function fill(){
         var h=$("#mList"); h.innerHTML="";
-        if(!T.memory.length){ h.appendChild(emptyBox("Nothing yet","It'll add things as you talk, or you can.")); return; }
+        if(!T.memory.length){ h.appendChild(emptyBox("Nothing yet","It adds things as you talk, or you can.")); return; }
         T.memory.forEach(function(m){
-          var r=el("div","bar-row"),L2=el("div");
-          L2.appendChild(el("div","who",m.text));
-          L2.appendChild(el("div","meta","since "+pretty(m.when)));
-          r.appendChild(L2);
+          var r=el("div","bar-row"),L3=el("div");
+          L3.appendChild(el("div","who",m.text));
+          L3.appendChild(el("div","meta","since "+pretty(m.when)));
+          r.appendChild(L3);
           var k=el("button","kill","×");
           k.onclick=function(){ T.memory=T.memory.filter(function(x){return x.id!==m.id;});
             saveTalk(); fill(); pageHead(); };
@@ -1030,13 +1187,35 @@ function memoryDialog(){
 }
 function personaDialog(){
   openDlg("How it talks",
-    '<p class="foot-note" style="margin-top:0">This is the instruction it gets before every conversation. Change it to whatever suits you.</p>'+
-    '<label><span>Instructions</span><textarea id="pT" style="min-height:280px;font-size:13px">'+esc(persona())+'</textarea></label>'+
+    '<p class="foot-note" style="margin-top:0">The instruction it gets before every conversation. Change it to whatever suits you — but keep the action list if you want it doing things.</p>'+
+    '<label><span>Instructions</span><textarea id="pT" style="min-height:300px;font-size:13px">'+esc(persona())+'</textarea></label>'+
     '<div class="row-btns"><button class="btn" id="pS" style="flex:1">Save</button>'+
     '<button class="btn ghost sm" id="pR">Back to default</button></div>',
     function(){
       $("#pS").onclick=function(){ T.persona=$("#pT").value; saveTalk(); dlg.close(); toast("Saved"); };
       $("#pR").onclick=function(){ $("#pT").value=DEFAULT_PERSONA; };
+    });
+}
+function settingsDialog(){
+  openDlg("Settings",
+    '<label class="check"><input type="checkbox" id="sA"'+(T.auto?" checked":"")+
+      '><span>Let it act without asking me first</span></label>'+
+    '<p class="foot-note" style="margin-top:0">With this on, adding things happens straight away. Ticking off tasks and forgetting memories still ask first, since those undo work.</p>'+
+    '<button class="btn" id="sS" style="width:100%">Save</button>',
+    function(){
+      $("#sS").onclick=function(){ T.auto=$("#sA").checked; saveTalk(); pageHead(); dlg.close();
+        toast(T.auto?"It'll act on its own now":"It'll ask first"); };
+    });
+}
+function renameDialog(){
+  var c=cur(); if(!c) return;
+  openDlg("Rename conversation",
+    '<label><span>Name</span><input id="rN" value="'+esc(c.title)+'"></label>'+
+    '<button class="btn" id="rS" style="width:100%">Save</button>',
+    function(){
+      $("#rS").onclick=function(){
+        c.title=$("#rN").value.trim()||c.title;
+        saveTalk(); drawPicker(); pageHead(); dlg.close();};
     });
 }
 async function checkAI(){
@@ -1046,12 +1225,12 @@ async function checkAI(){
     var o=$("#offline"); o.innerHTML="";
     if(!aiOk){
       var d=el("div","offline");
-      d.innerHTML="<b>No model running.</b><br>In the container: <code>bash ai-setup.sh</code>"+
+      d.innerHTML="<b>No model running.</b><br>In the container: <code>bash public/ai-setup.sh</code>"+
         (j.error?"<br><span style='font-family:var(--mono);font-size:11.5px'>"+esc(j.error)+"</span>":"");
       o.appendChild(d);
     } else if(j.models&&j.models.length&&j.models.indexOf(aiModel)<0){
       var d2=el("div","offline");
-      d2.innerHTML="<b>Model not downloaded.</b><br>Run: <code>docker exec ollama ollama pull "+esc(aiModel)+"</code>";
+      d2.innerHTML="<b>Model not downloaded.</b><br><code>docker exec ollama ollama pull "+esc(aiModel)+"</code>";
       o.appendChild(d2);
     }
   }catch(e){ aiOk=false; }
@@ -1059,15 +1238,21 @@ async function checkAI(){
 }
 function pageRender(){ drawChat(); }
 function pageAction(a){
-  if(a==="newchat"){
-    if(T.msgs.length&&!confirm("Start a fresh conversation? What it remembers is kept.")) return;
-    T.msgs=[]; saveTalk(); drawChat(); pageHead();
+  if(a==="newchat") newChat();
+  else if(a==="rename") renameDialog();
+  else if(a==="delchat"){
+    if(T.chats.length<2) return toast("That's your only conversation");
+    if(!confirm("Delete this conversation? What it remembers is kept.")) return;
+    T.chats=T.chats.filter(function(c){return c.id!==T.cur;});
+    T.cur=T.chats[0].id; saveTalk(); drawPicker(); drawChat(); pageHead();
   }
   else if(a==="remember") memoryDialog();
   else if(a==="persona") personaDialog();
+  else if(a==="settings") settingsDialog();
 }
 function pageBoot(){
-  loadTalk().then(function(){ drawChat(); pageHead(); checkAI(); });
+  loadTalk().then(function(){ drawPicker(); drawChat(); pageHead(); checkAI(); });
+  $("#chatPick").onchange=function(){ T.cur=this.value; saveTalk(); drawChat(); pageHead(); };
   $("#send").onclick=send;
   var b=$("#box");
   b.addEventListener("input",function(){ b.style.height="auto"; b.style.height=Math.min(b.scrollHeight,160)+"px"; });
