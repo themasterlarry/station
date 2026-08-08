@@ -386,8 +386,20 @@ var DB={
   }
 };
 
-var APP_VERSION="1.9";
+var APP_VERSION="2.0";
 var CHANGELOG=[
+ {v:"2.0",d:"2026-08-08",t:"Invoices, and it can start the conversation",
+  items:["A new Invoices page — line items with quantity and rate, discount and tax, numbering that carries on by itself",
+         "Print a proper invoice, or send it as text; paid ones get a PAID stamp",
+         "Mark one paid and the money goes into your ledger without typing it twice",
+         "Your own name, address and payment terms sit at the top of every one",
+         "The AI now opens a conversation itself when you go to Talk and it has a reason — something overdue, a trial about to bill, nothing written down in a while, or just to ask how you are",
+         "Only between 8am and 10pm, no more often than you set, and you can turn it off"]},
+ {v:"2.0",d:"2026-08-08",t:"It can start the conversation",
+  items:["The AI opens a conversation itself when you go to Talk and it has a reason — things gone past due, a trial about to bill, nothing written down in a while, or just to ask how you are",
+         "Only between 8am and 10pm, and no more often than you set",
+         "A 'Check in on me' button for when you want it to start",
+         "Turn the whole thing off in Talk's settings"]},
  {v:"1.9",d:"2026-08-08",t:"Money trends and a sharper AI",
   items:["Trends tab in Money — twelve months of in and out, and this month's spending against last month by category",
          "A thirty day forecast: what's already scheduled to leave and arrive, and the lowest your balance would get",
@@ -464,7 +476,8 @@ function migrateH(){
   H.tasks=H.tasks||[];H.events=H.events||[];H.notes=H.notes||[];
   H.habits=H.habits||[];H.things=H.things||[];H.contacts=H.contacts||[];
   H.subs=H.subs||[];H.journal=H.journal||[];H.scores=H.scores||[];
-  H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];H.templates=H.templates||[];
+  H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];
+  H.templates=H.templates||[];H.invoices=H.invoices||[];
   H.lists=(H.lists&&H.lists.length)?H.lists:DEF_LISTS.slice();
   H.version=H.version||1;
 }
@@ -762,6 +775,7 @@ var MODULES=[
   {id:"habits",cd:"HB",label:"Habits",file:"habits.html"},
   {id:"items",cd:"TH",label:"Lent out",file:"items.html"},
   {id:"money",cd:"$$",label:"Money",file:"money.html"},
+  {id:"invoices",cd:"IV",label:"Invoices",file:"invoices.html"},
   {id:"vault",cd:"PW",label:"Passwords",file:"vault.html"},
   {id:"subs",cd:"SB",label:"Subscriptions",file:"subs.html"},
   {id:"journal",cd:"JR",label:"Journal",file:"journal.html"},
@@ -779,6 +793,8 @@ function navCounts(){
   c.habits=H.habits.filter(function(h){return !(h.days||{})[ts];}).length;
   var lt=ledgerTotals(); c.money=lt?lt.late.length:0;
   c.settings=unseenCount();
+  c.invoices=(H.invoices||[]).filter(function(i){
+    return i.status!=="paid"&&i.status!=="draft"&&i.due&&i.due<ts;}).length;
   c.music=(H.scores||[]).reduce(function(t,p){
     return t+((p.spots||[]).filter(function(x){return !x.fixed;}).length?1:0);},0);
   c.subs=(H.subs||[]).filter(function(x){return x.active!==false&&x.next&&daysBetween(ts,x.next)<=3;}).length;
@@ -927,6 +943,10 @@ function commandBar(){
           (H.subs||[]).forEach(function(x){
             if(x.name.toLowerCase().indexOf(q)>=0)
               out.push({cd:"SB",t:x.name,s:"subscription",go:"subs.html"});});
+          (H.invoices||[]).forEach(function(i){
+            if(((i.number||"")+" "+(i.name||"")+" "+(i.forWhat||"")).toLowerCase().indexOf(q)>=0)
+              out.push({cd:"IV",t:i.number+" · "+(i.name||""),
+                s:(i.status||"")+(i.due?" · due "+pretty(i.due):""),go:"invoices.html"});});
           if(L) (L.tickets||[]).forEach(function(t){
             if((t.name+" "+t.code).toLowerCase().indexOf(q)>=0)
               out.push({cd:"$$",t:(t.dir==="owe"?"You owe ":"Owed by ")+t.name,
@@ -984,6 +1004,7 @@ function backupDialog(){
       '<button class="btn ghost sm" data-csv="journal">Journal</button>'+
       '<button class="btn ghost sm" data-csv="things">Lent items</button>'+
       '<button class="btn ghost sm" data-csv="scores">Sheet music</button>'+
+      '<button class="btn ghost sm" data-csv="invoices">Invoices</button>'+
     '</div>'+
     '<h2 class="sec">Capture from your phone</h2>'+
     '<p class="foot-note" style="margin-top:0">Send yourself a task, note or journal line without opening anything. Point a phone shortcut at this address:</p>'+
@@ -1041,7 +1062,7 @@ function backupDialog(){
 function exportModule(kind){
   var cols,rows=[];
   var src={tasks:H.tasks,events:H.events,contacts:allPeople(),notes:H.notes,
-    subs:H.subs,journal:H.journal,things:H.things,scores:H.scores}[kind]||[];
+    subs:H.subs,journal:H.journal,things:H.things,scores:H.scores,invoices:H.invoices}[kind]||[];
   if(!src.length) return toast("Nothing to export there");
   if(kind==="tasks") cols=["title","list","due","priority","repeat","done","finished","notes"];
   else if(kind==="events") cols=["title","date","time","end","place","people","notes"];
@@ -1050,6 +1071,7 @@ function exportModule(kind){
   else if(kind==="subs") cols=["name","amount","cycle","next","method","category","active","notes"];
   else if(kind==="journal") cols=["date","title","body","tags"];
   else if(kind==="things") cols=["item","direction","who","since","due","returned","notes"];
+  else if(kind==="invoices") cols=["number","billed to","for","issued","due","status","paid on","total"];
   else cols=["title","composer","arranger","grade","ensemble","tempo","key","length","folder","publisher","notes"];
   src.forEach(function(x){
     if(kind==="tasks") rows.push([x.title,x.list,x.due,x.prio,x.repeat,x.done?"yes":"no",x.doneOn||"",x.notes]);
@@ -1063,6 +1085,11 @@ function exportModule(kind){
     else if(kind==="journal") rows.push([x.date,x.title,x.body,(x.tags||[]).join("; ")]);
     else if(kind==="things") rows.push([x.name,x.dir,personName(x.personId)||x.who,x.date,x.due,
       x.back?(x.backOn||"yes"):"no",x.notes]);
+    else if(kind==="invoices"){
+      var sub=(x.items||[]).reduce(function(t,l){return t+Math.round((+l.qty||0)*Math.round((+l.rate||0)*100));},0);
+      var afterD=sub-(x.discount?Math.round(sub*(+x.discount)/100):0);
+      var tot=afterD+(x.taxPct?Math.round(afterD*(+x.taxPct)/100):0);
+      rows.push([x.number,x.name,x.forWhat,x.issued,x.due,x.status,x.paidOn||"",(tot/100).toFixed(2)]);}
     else rows.push([x.title,x.composer,x.arranger,x.grade,x.ensemble,x.tempo,x.key,x.duration,
       x.folder,x.publisher,x.notes]);
   });

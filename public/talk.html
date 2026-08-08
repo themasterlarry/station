@@ -371,6 +371,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
         <button class="btn ghost sm" data-act="remember">Memory</button>
         <button class="btn ghost sm" data-act="chatpersona">This chat's style</button>
         <button class="btn ghost sm" data-act="persona">How it talks</button>
+        <button class="btn ghost sm" data-act="checkin">Check in on me</button>
         <button class="btn ghost sm" data-act="settings">Settings</button>
       </div>
     </section>
@@ -412,8 +413,20 @@ var DB={
   }
 };
 
-var APP_VERSION="1.9";
+var APP_VERSION="2.0";
 var CHANGELOG=[
+ {v:"2.0",d:"2026-08-08",t:"Invoices, and it can start the conversation",
+  items:["A new Invoices page — line items with quantity and rate, discount and tax, numbering that carries on by itself",
+         "Print a proper invoice, or send it as text; paid ones get a PAID stamp",
+         "Mark one paid and the money goes into your ledger without typing it twice",
+         "Your own name, address and payment terms sit at the top of every one",
+         "The AI now opens a conversation itself when you go to Talk and it has a reason — something overdue, a trial about to bill, nothing written down in a while, or just to ask how you are",
+         "Only between 8am and 10pm, no more often than you set, and you can turn it off"]},
+ {v:"2.0",d:"2026-08-08",t:"It can start the conversation",
+  items:["The AI opens a conversation itself when you go to Talk and it has a reason — things gone past due, a trial about to bill, nothing written down in a while, or just to ask how you are",
+         "Only between 8am and 10pm, and no more often than you set",
+         "A 'Check in on me' button for when you want it to start",
+         "Turn the whole thing off in Talk's settings"]},
  {v:"1.9",d:"2026-08-08",t:"Money trends and a sharper AI",
   items:["Trends tab in Money — twelve months of in and out, and this month's spending against last month by category",
          "A thirty day forecast: what's already scheduled to leave and arrive, and the lowest your balance would get",
@@ -490,7 +503,8 @@ function migrateH(){
   H.tasks=H.tasks||[];H.events=H.events||[];H.notes=H.notes||[];
   H.habits=H.habits||[];H.things=H.things||[];H.contacts=H.contacts||[];
   H.subs=H.subs||[];H.journal=H.journal||[];H.scores=H.scores||[];
-  H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];H.templates=H.templates||[];
+  H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];
+  H.templates=H.templates||[];H.invoices=H.invoices||[];
   H.lists=(H.lists&&H.lists.length)?H.lists:DEF_LISTS.slice();
   H.version=H.version||1;
 }
@@ -788,6 +802,7 @@ var MODULES=[
   {id:"habits",cd:"HB",label:"Habits",file:"habits.html"},
   {id:"items",cd:"TH",label:"Lent out",file:"items.html"},
   {id:"money",cd:"$$",label:"Money",file:"money.html"},
+  {id:"invoices",cd:"IV",label:"Invoices",file:"invoices.html"},
   {id:"vault",cd:"PW",label:"Passwords",file:"vault.html"},
   {id:"subs",cd:"SB",label:"Subscriptions",file:"subs.html"},
   {id:"journal",cd:"JR",label:"Journal",file:"journal.html"},
@@ -805,6 +820,8 @@ function navCounts(){
   c.habits=H.habits.filter(function(h){return !(h.days||{})[ts];}).length;
   var lt=ledgerTotals(); c.money=lt?lt.late.length:0;
   c.settings=unseenCount();
+  c.invoices=(H.invoices||[]).filter(function(i){
+    return i.status!=="paid"&&i.status!=="draft"&&i.due&&i.due<ts;}).length;
   c.music=(H.scores||[]).reduce(function(t,p){
     return t+((p.spots||[]).filter(function(x){return !x.fixed;}).length?1:0);},0);
   c.subs=(H.subs||[]).filter(function(x){return x.active!==false&&x.next&&daysBetween(ts,x.next)<=3;}).length;
@@ -953,6 +970,10 @@ function commandBar(){
           (H.subs||[]).forEach(function(x){
             if(x.name.toLowerCase().indexOf(q)>=0)
               out.push({cd:"SB",t:x.name,s:"subscription",go:"subs.html"});});
+          (H.invoices||[]).forEach(function(i){
+            if(((i.number||"")+" "+(i.name||"")+" "+(i.forWhat||"")).toLowerCase().indexOf(q)>=0)
+              out.push({cd:"IV",t:i.number+" · "+(i.name||""),
+                s:(i.status||"")+(i.due?" · due "+pretty(i.due):""),go:"invoices.html"});});
           if(L) (L.tickets||[]).forEach(function(t){
             if((t.name+" "+t.code).toLowerCase().indexOf(q)>=0)
               out.push({cd:"$$",t:(t.dir==="owe"?"You owe ":"Owed by ")+t.name,
@@ -1010,6 +1031,7 @@ function backupDialog(){
       '<button class="btn ghost sm" data-csv="journal">Journal</button>'+
       '<button class="btn ghost sm" data-csv="things">Lent items</button>'+
       '<button class="btn ghost sm" data-csv="scores">Sheet music</button>'+
+      '<button class="btn ghost sm" data-csv="invoices">Invoices</button>'+
     '</div>'+
     '<h2 class="sec">Capture from your phone</h2>'+
     '<p class="foot-note" style="margin-top:0">Send yourself a task, note or journal line without opening anything. Point a phone shortcut at this address:</p>'+
@@ -1067,7 +1089,7 @@ function backupDialog(){
 function exportModule(kind){
   var cols,rows=[];
   var src={tasks:H.tasks,events:H.events,contacts:allPeople(),notes:H.notes,
-    subs:H.subs,journal:H.journal,things:H.things,scores:H.scores}[kind]||[];
+    subs:H.subs,journal:H.journal,things:H.things,scores:H.scores,invoices:H.invoices}[kind]||[];
   if(!src.length) return toast("Nothing to export there");
   if(kind==="tasks") cols=["title","list","due","priority","repeat","done","finished","notes"];
   else if(kind==="events") cols=["title","date","time","end","place","people","notes"];
@@ -1076,6 +1098,7 @@ function exportModule(kind){
   else if(kind==="subs") cols=["name","amount","cycle","next","method","category","active","notes"];
   else if(kind==="journal") cols=["date","title","body","tags"];
   else if(kind==="things") cols=["item","direction","who","since","due","returned","notes"];
+  else if(kind==="invoices") cols=["number","billed to","for","issued","due","status","paid on","total"];
   else cols=["title","composer","arranger","grade","ensemble","tempo","key","length","folder","publisher","notes"];
   src.forEach(function(x){
     if(kind==="tasks") rows.push([x.title,x.list,x.due,x.prio,x.repeat,x.done?"yes":"no",x.doneOn||"",x.notes]);
@@ -1089,6 +1112,11 @@ function exportModule(kind){
     else if(kind==="journal") rows.push([x.date,x.title,x.body,(x.tags||[]).join("; ")]);
     else if(kind==="things") rows.push([x.name,x.dir,personName(x.personId)||x.who,x.date,x.due,
       x.back?(x.backOn||"yes"):"no",x.notes]);
+    else if(kind==="invoices"){
+      var sub=(x.items||[]).reduce(function(t,l){return t+Math.round((+l.qty||0)*Math.round((+l.rate||0)*100));},0);
+      var afterD=sub-(x.discount?Math.round(sub*(+x.discount)/100):0);
+      var tot=afterD+(x.taxPct?Math.round(afterD*(+x.taxPct)/100):0);
+      rows.push([x.number,x.name,x.forWhat,x.issued,x.due,x.status,x.paidOn||"",(tot/100).toFixed(2)]);}
     else rows.push([x.title,x.composer,x.arranger,x.grade,x.ensemble,x.tempo,x.key,x.duration,
       x.folder,x.publisher,x.notes]);
   });
@@ -1157,7 +1185,7 @@ document.addEventListener("keydown",function(e){
   }
 })();
 var TKEY="talk:v1";
-var T={chats:[],cur:"",memory:[],persona:"",auto:false};
+var T={chats:[],cur:"",memory:[],persona:"",auto:false,checkin:{on:true,everyHours:20,lastAt:0}};
 var busy=false, aiOk=null, aiModel="";
 
 var DEFAULT_PERSONA =
@@ -1187,6 +1215,7 @@ var DEFAULT_PERSONA =
 "  write_ticket {direction:\"owe\"|\"owed\", amount, who, note?, due?}\n"+
 "  add_piece {title, composer?, arranger?, grade?, tempo?}\n"+
 "  remember {text}                        forget {text}\n"+
+"  draft_invoice {who, amount, for?, due?}\n"+
 "Dates are YYYY-MM-DD, times HH:MM, amounts are plain numbers like 24.50.\n"+
 "If you are not certain of a date, an amount or a name, DO NOT invent one. Either ask him, "+
 "or put \"unsure\":true on the action so it gets flagged before it runs.\n"+
@@ -1208,6 +1237,7 @@ async function loadTalk(){
   var t=await DB.get(TKEY);
   if(t) T=t;
   T.chats=T.chats||[]; T.memory=T.memory||[]; T.persona=T.persona||""; T.auto=!!T.auto;
+  T.checkin=T.checkin||{on:true,everyHours:20,lastAt:0};
   if(t&&t.msgs&&t.msgs.length&&!T.chats.length){        // carry over the old single thread
     T.chats.push({id:uid(),title:"Earlier conversation",created:today(),updated:today(),msgs:t.msgs});
     delete T.msgs;
@@ -1240,7 +1270,7 @@ function pageHead(){
     (aiOk===false?"model offline":(aiModel?aiModel+" on your machine":"connecting…"))+
     "  ·  "+T.chats.length+" conversation"+(T.chats.length===1?"":"s")+
     (T.memory.length?"  ·  remembers "+T.memory.length:"")+
-    (T.auto?"  ·  acting on its own":""));
+    (T.auto?"  ·  acting on its own":"")+(T.checkin.on?"":"  ·  check-ins off"));
 }
 
 /* what it knows about his world, refreshed every message */
@@ -1269,6 +1299,9 @@ function context(){
       return t2+Math.round(y/12);},0);
     L2.push("Subscriptions: "+sub.length+" active, "+money(per)+" a month");
   }
+  var inv=(H.invoices||[]).filter(function(i){return i.status!=="paid"&&i.status!=="draft";});
+  if(inv.length) L2.push("Invoices out: "+inv.map(function(i){
+    return i.number+" to "+i.name+(i.due?" due "+i.due:"");}).join("; "));
   var out2=(H.things||[]).filter(function(x){return !x.back;});
   if(out2.length) L2.push("Items out: "+out2.map(function(x){
     return x.name+" "+(x.dir==="lent"?"with ":"from ")+(personName(x.personId)||"someone");}).join("; "));
@@ -1280,6 +1313,67 @@ function context(){
   if(j) L2.push("Last journal ("+j.date+"): "+(j.body||"").slice(0,400));
   out.push("His system right now — only bring these up if they fit:\n"+L2.join("\n"));
   return out.join("\n\n");
+}
+
+/* ---------- starting a conversation itself ---------- */
+function checkinReason(){
+  var ts=today();
+  var late=(H.tasks||[]).filter(function(t){return !t.done&&t.due&&t.due<ts;});
+  if(late.length>=3)
+    return "Several of his tasks have gone past due: "+late.slice(0,4).map(function(t){return t.title;}).join("; ")+
+      ". Open gently — ask how it's going, not why he hasn't done them.";
+  var ovi=(H.invoices||[]).filter(function(i){
+    return i.status!=="paid"&&i.status!=="draft"&&i.due&&i.due<ts;});
+  if(ovi.length)
+    return "An invoice has gone past due: "+ovi[0].number+" to "+ovi[0].name+
+      ", due "+ovi[0].due+". Ask if he wants to chase it.";
+  var lt=ledgerTotals();
+  if(lt&&lt.late.length)
+    return "A ticket is past due: "+lt.late.map(function(t){
+      return (t.dir==="owe"?"he owes "+t.name+" ":t.name+" owes him ")+money(t.cents-(t.paidCents||0));}).join("; ")+
+      ". Mention it once, lightly.";
+  var trial=(H.subs||[]).filter(function(x){
+    return x.active!==false&&x.trial&&x.next&&daysBetween(ts,x.next)<=2&&x.next>=ts;});
+  if(trial.length)
+    return "A free trial is about to start charging: "+trial[0].name+" on "+trial[0].next+
+      ". Give him the heads up.";
+  var lastJ=(H.journal||[]).slice().sort(function(a,b){return b.date.localeCompare(a.date);})[0];
+  if(!lastJ||daysBetween(lastJ.date,ts)>=4)
+    return "He hasn't written anything down in a while"+(lastJ?" — last was "+lastJ.date:"")+
+      ". Ask how the last few days have actually been. Don't nag him about journalling.";
+  var prac=(H.practice||[]).slice().sort(function(a,b){return b.date.localeCompare(a.date);})[0];
+  if(prac&&daysBetween(prac.date,ts)>=5&&(H.scores||[]).length)
+    return "He hasn't logged practice since "+prac.date+". Ask about it without making it a telling-off.";
+  var ev=(H.events||[]).filter(function(e){return e.date===ts||e.date===addDays(ts,1);});
+  if(ev.length)
+    return "Coming up: "+ev.map(function(e){return e.title+" "+relDay(e.date);}).join("; ")+
+      ". Ask if he's set for it.";
+  var hb=(H.habits||[]).filter(function(h){
+    var miss=0; for(var i=1;i<=4;i++) if(!(h.days||{})[addDays(ts,-i)]) miss++;
+    return miss>=4;});
+  if(hb.length)
+    return hb[0].name+" has slipped for a few days. Ask about it once, curiously, not as a scold.";
+  return "Nothing is on fire. Just open the conversation — ask how he's doing today, in one or two lines.";
+}
+function checkinDue(){
+  if(!T.checkin.on) return false;
+  var h=new Date().getHours();
+  if(h<8||h>=22) return false;
+  var since=(Date.now()-(T.checkin.lastAt||0))/3600000;
+  return since>=(T.checkin.everyHours||20);
+}
+async function startCheckin(manual){
+  if(busy) return;
+  var c=cur();
+  if(!c||c.msgs.length>1||!manual){
+    c=newChat(false);
+    c.title="Check-in "+pretty(today());
+  }
+  T.checkin.lastAt=Date.now(); saveTalk(); drawPicker(); drawChat();
+  var note=el("div","msg sys","It started this one.");
+  $("#chat").appendChild(note);
+  await askWithSeed("You are opening this conversation, he hasn't said anything yet. "+
+    checkinReason()+"\nKeep it short and human. No greeting boilerplate, no lists, no actions.");
 }
 
 /* ---------- actions ---------- */
@@ -1309,6 +1403,8 @@ function describe(a){
     case "write_ticket": return (a.direction==="owe"?"You owe ":"Owed to you ")+n+" · "+a.who;
     case "add_piece": return "Sheet music: "+a.title;
     case "look_up": return "Look up \""+a.about+"\" in your system";
+    case "draft_invoice": return "Draft an invoice to "+a.who+" for $"+Number(a.amount).toFixed(2)+
+      (a.for?" ("+a.for+")":"");
     case "remember": return "Remember: "+a.text;
     case "forget": return "Forget: "+a.text;
     default: return "Unknown: "+a.do;
@@ -1431,6 +1527,19 @@ function runAction(a){
           paidCents:0,pays:[],personId:pt.id,name:pt.name,note:a.note||"",method:"",
           due:a.due||"",written:today(),status:"open"});
         saveL(); break; }
+      case "draft_invoice": {
+        if(c<=0) return "needs an amount";
+        H.invoices=H.invoices||[];
+        H.settings=H.settings||{};
+        var pi=ensureContact(a.who);
+        var num="INV-"+String(H.settings.invoiceNext||1).padStart(4,"0");
+        H.invoices.push({id:uid(),number:num,name:pi.name,personId:pi.id,
+          forWhat:a.for||"",issued:today(),due:a.due||addDays(today(),14),
+          items:[{desc:a.for||"Work",qty:1,rate:(c/100).toFixed(2)}],
+          terms:(H.settings.biz&&H.settings.biz.terms)||"",notes:"",
+          taxPct:"",discount:"",status:"draft"});
+        H.settings.invoiceNext=(H.settings.invoiceNext||1)+1;
+        break; }
       case "add_piece":
         H.scores=H.scores||[];
         H.scores.push({id:uid(),title:a.title,composer:a.composer||"",arranger:a.arranger||"",
@@ -1524,13 +1633,15 @@ async function send(){
   autoTitle(c); bubble("user",text); saveTalk(); drawPicker(); scrollDown();
   await ask();
 }
-async function ask(){
+async function ask(){ return askWithSeed(null); }
+async function askWithSeed(seed){
   var c=cur();
   busy=true; $("#send").disabled=true;
   var think=el("div","thinking","thinking…");
   $("#chat").appendChild(think); scrollDown();
   var payload=[{role:"system",content:persona()+"\n\n"+context()}].concat(
     c.msgs.slice(-24).map(function(m){return {role:m.role,content:m.content};}));
+  if(seed) payload.push({role:"user",content:seed});
   try{
     var r=await fetch("/api/ai",{method:"POST",
       headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:payload})});
@@ -1613,12 +1724,25 @@ function personaDialog(){
 }
 function settingsDialog(){
   openDlg("Settings",
+    '<h2 class="sec" style="margin-top:0">Check-ins</h2>'+
+    '<label class="check"><input type="checkbox" id="sC"'+(T.checkin.on?" checked":"")+
+      '><span>Let it start a conversation when I open this page</span></label>'+
+    '<label><span>Not more often than</span><select id="sH">'+
+      [[8,"every 8 hours"],[20,"about once a day"],[48,"every couple of days"],[168,"once a week"]]
+        .map(function(o){return '<option value="'+o[0]+'"'+(T.checkin.everyHours===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+
+    '</select></label>'+
+    '<p class="foot-note" style="margin-top:0">It only opens up between 8am and 10pm, and only when it has a reason — something overdue, a trial about to bill, nothing written down in a while, or just to ask how you are.</p>'+
+    '<h2 class="sec">Doing things</h2>'+
     '<label class="check"><input type="checkbox" id="sA"'+(T.auto?" checked":"")+
       '><span>Let it act without asking me first</span></label>'+
     '<p class="foot-note" style="margin-top:0">With this on, adding things happens straight away. Ticking off tasks and forgetting memories still ask first, since those undo work.</p>'+
     '<button class="btn" id="sS" style="width:100%">Save</button>',
     function(){
-      $("#sS").onclick=function(){ T.auto=$("#sA").checked; saveTalk(); pageHead(); dlg.close();
+      $("#sS").onclick=function(){
+        T.auto=$("#sA").checked;
+        T.checkin.on=$("#sC").checked;
+        T.checkin.everyHours=+$("#sH").value;
+        saveTalk(); pageHead(); dlg.close();
         toast(T.auto?"It'll act on its own now":"It'll ask first"); };
     });
 }
@@ -1633,7 +1757,8 @@ function renameDialog(){
         saveTalk(); drawPicker(); pageHead(); dlg.close();};
     });
 }
-async function checkAI(){
+async function checkAI(){ return checkAI_();}
+async function checkAI_(){
   try{
     var r=await fetch("/api/ai/status"); var j=await r.json();
     aiOk=!!j.ok; aiModel=j.model||"";
@@ -1664,10 +1789,16 @@ function pageAction(a){
   else if(a==="remember") memoryDialog();
   else if(a==="persona") personaDialog();
   else if(a==="chatpersona") chatPersonaDialog();
+  else if(a==="checkin"){ T.checkin.lastAt=0; startCheckin(true); }
   else if(a==="settings") settingsDialog();
 }
 function pageBoot(){
-  loadTalk().then(function(){ drawPicker(); drawChat(); pageHead(); checkAI(); });
+  loadTalk().then(function(){
+    drawPicker(); drawChat(); pageHead();
+    checkAI().then(function(){
+      if(aiOk&&checkinDue()) setTimeout(function(){ startCheckin(false); },500);
+    });
+  });
   $("#chatPick").onchange=function(){ T.cur=this.value; saveTalk(); drawChat(); pageHead(); };
   $("#send").onclick=send;
   var b=$("#box");

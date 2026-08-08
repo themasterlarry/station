@@ -1,4 +1,4 @@
-<title>Passwords — Station</title>
+<title>Invoices — Station</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -337,24 +337,57 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div id="pExtra"></div>
     </header>
     <section class="pane" id="pane">
-      <div id="locked" style="display:none">
-        <div class="lockwrap">
-          <div class="lockbox" id="lockbox"></div>
-          <p class="foot-note" id="lockNote"></p>
-        </div>
+      <style>
+      .inv{border:1px solid var(--rule);border-left:4px solid var(--ink-3);background:var(--card);border-radius:2px;padding:11px 12px;margin-bottom:9px;cursor:pointer}
+      .inv:hover{background:var(--card2)}
+      .inv.overdue{border-left-color:var(--stamp)}
+      .inv.paid{border-left-color:var(--pos);opacity:.75}
+      .inv.draft{border-left-color:var(--rule)}
+      .inv .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+      .inv .num{font-family:var(--mono);font-size:12px;color:var(--dim)}
+      .inv .who2{font-family:var(--disp);text-transform:uppercase;letter-spacing:.04em;font-size:16px;font-weight:700}
+      .inv .tot{font-family:var(--mono);font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+      .inv .ft{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:5px;display:flex;gap:8px;flex-wrap:wrap}
+      .li{display:grid;grid-template-columns:1fr 58px 78px 84px auto;gap:7px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+      .li input{padding:7px}
+      .li .amt3{font-family:var(--mono);font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+      .lihead{display:grid;grid-template-columns:1fr 58px 78px 84px auto;gap:7px;font-family:var(--disp);text-transform:uppercase;letter-spacing:.09em;font-size:9.5px;color:var(--dim);padding-bottom:3px}
+      .totals{margin-top:10px;border-top:2px solid var(--ink);padding-top:8px}
+      .totrow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px;padding:2px 0}
+      .totrow.big{font-size:18px;font-weight:600;border-top:1px solid var(--rule);margin-top:5px;padding-top:6px}
+      @media(max-width:520px){
+        .li,.lihead{grid-template-columns:1fr 46px 66px 72px auto;gap:5px;font-size:12px}
+      }
+      @media print{
+        .iv{border:0;padding:0}
+        .iv .hdr{display:flex;justify-content:space-between;border-bottom:3px solid #000;padding-bottom:10px;margin-bottom:16px}
+        .iv .big2{font-family:var(--disp);text-transform:uppercase;letter-spacing:.22em;font-size:22px;font-weight:700}
+        .iv .me{font-size:12px;line-height:1.5;text-align:right}
+        .iv .parties{display:flex;justify-content:space-between;gap:30px;margin-bottom:18px}
+        .iv .lbl2{font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;color:#555;margin-bottom:3px}
+        .iv table{width:100%;border-collapse:collapse;font-size:12.5px}
+        .iv th{font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:9.5px;text-align:left;border-bottom:1.5px solid #000;padding:5px 0}
+        .iv td{border-bottom:1px solid #ccc;padding:6px 0;vertical-align:top}
+        .iv td.r,.iv th.r{text-align:right}
+        .iv .sum{margin-top:12px;margin-left:auto;width:56%}
+        .iv .sum div{display:flex;justify-content:space-between;padding:3px 0;font-size:13px}
+        .iv .sum .grand{border-top:2px solid #000;margin-top:4px;padding-top:6px;font-size:17px;font-weight:700}
+        .iv .terms{margin-top:26px;font-size:11.5px;line-height:1.6;border-top:1px solid #ccc;padding-top:10px}
+        .iv .stamp2{margin-top:14px;display:inline-block;border:3px solid #2C6B4C;color:#2C6B4C;font-family:var(--disp);text-transform:uppercase;letter-spacing:.2em;font-weight:700;font-size:16px;padding:3px 12px;transform:rotate(-6deg)}
+      }
+      </style>
+      <div class="tally" style="margin-bottom:12px">
+        <div><div class="lbl">Owed to you</div><div class="val amt in" id="iOut">$0</div></div>
+        <div><div class="lbl">Overdue</div><div class="val amt out" id="iLate">$0</div></div>
+        <div><div class="lbl">Paid this year</div><div class="val" id="iPaid">$0</div></div>
+        <div><div class="lbl">Drafts</div><div class="val" id="iDraft">0</div></div>
       </div>
-
-      <div id="unlocked" style="display:none">
-        <div class="audit" id="audit"></div>
-        <label style="margin-bottom:12px"><span>Find a login</span><input id="q" placeholder="Site, username, tag…"></label>
-        <div class="row-btns" style="margin-bottom:14px">
-          <button class="btn" data-act="new">Add a login</button>
-          <button class="btn ghost" data-act="gen">Generate a password</button>
-          <button class="btn ghost sm" data-act="lock">Lock now</button>
-          <button class="btn ghost sm" data-act="master">Change master password</button>
-        </div>
-        <div id="list"></div>
+      <div class="row-btns" style="margin-bottom:12px">
+        <button class="btn" data-act="new">New invoice</button>
+        <button class="btn ghost sm" data-act="mydetails">Your details</button>
       </div>
+      <div class="grp" id="ifilters"></div>
+      <div id="ilist"></div>
     </section>
   </div>
 </div>
@@ -368,7 +401,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 <script>
 (function(){
 "use strict";
-var PAGE="vault";
+var PAGE="invoices";
 /* ============================================================
    STATION CORE — shared by every page.
    Storage goes through DB only. Swap DB to move to a server.
@@ -1166,367 +1199,330 @@ document.addEventListener("keydown",function(e){
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();
-/* ============================================================
-   VAULT — AES-256-GCM, key derived with PBKDF2-SHA256.
-   Only ciphertext is ever written to storage. The derived key
-   lives in memory and dies when the page unloads or locks.
-   There is no recovery: lose the master password, lose the data.
-   ============================================================ */
-var ITER=600000;
-var KEY=null;         /* CryptoKey, memory only */
-var ENTRIES=null;     /* decrypted entries, memory only */
-var idleT=null, IDLE_MIN=5;
-var HAVE_CRYPTO=!!(window.crypto&&window.crypto.subtle&&window.isSecureContext!==false);
-
-function b64(buf){
-  var b=new Uint8Array(buf),s="";
-  for(var i=0;i<b.length;i++) s+=String.fromCharCode(b[i]);
-  return btoa(s);
+var ifilter="open";
+function invoices(){ H.invoices=H.invoices||[]; return H.invoices; }
+function biz(){ H.settings=H.settings||{}; H.settings.biz=H.settings.biz||{}; return H.settings.biz; }
+function lineTotal(l){ return Math.round((+l.qty||0)*Math.round((+l.rate||0)*100)); }
+function subTotal(inv){ return (inv.items||[]).reduce(function(t,l){return t+lineTotal(l);},0); }
+function invTotal(inv){
+  var s=subTotal(inv);
+  var d=inv.discount?Math.round(s*(+inv.discount)/100):0;
+  var afterD=s-d;
+  var tax=inv.taxPct?Math.round(afterD*(+inv.taxPct)/100):0;
+  return {sub:s,discount:d,tax:tax,total:afterD+tax};
 }
-function unb64(str){
-  var s=atob(str),b=new Uint8Array(s.length);
-  for(var i=0;i<s.length;i++) b[i]=s.charCodeAt(i);
-  return b;
+function invStatus(inv){
+  if(inv.status==="paid") return "paid";
+  if(inv.status==="draft") return "draft";
+  if(inv.due&&inv.due<today()) return "overdue";
+  return "sent";
 }
-function rand(n){return crypto.getRandomValues(new Uint8Array(n));}
-async function deriveKey(pw,salt,iters){
-  var base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
-  return crypto.subtle.deriveKey(
-    {name:"PBKDF2",salt:salt,iterations:iters,hash:"SHA-256"},
-    base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
-}
-async function sealVault(){
-  var iv=rand(12);
-  var pt=new TextEncoder().encode(JSON.stringify(ENTRIES));
-  var ct=await crypto.subtle.encrypt({name:"AES-GCM",iv:iv},KEY,pt);
-  V={version:1,salt:V.salt,iterations:V.iterations,iv:b64(iv),ct:b64(ct),updated:today()};
-  await DB.set(VKEY,V);
-}
-async function openVault(pw){
-  var salt=unb64(V.salt);
-  var k=await deriveKey(pw,salt,V.iterations||ITER);
-  var pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(V.iv)},k,unb64(V.ct));
-  KEY=k; ENTRIES=JSON.parse(new TextDecoder().decode(pt));
-}
-function lock(){
-  KEY=null; ENTRIES=null;
-  clearTimeout(idleT);
-  pageHead(); pageRender();
-}
-function touchIdle(){
-  if(!KEY) return;
-  clearTimeout(idleT);
-  idleT=setTimeout(function(){ lock(); toast("Locked after "+IDLE_MIN+" minutes idle"); },IDLE_MIN*60000);
+function nextNumber(){
+  var n=(H.settings.invoiceNext||1);
+  return "INV-"+String(n).padStart(4,"0");
 }
 
-/* ---------- strength ---------- */
-function bitsOf(pw){
-  if(!pw) return 0;
-  var n=0;
-  if(/[a-z]/.test(pw)) n+=26;
-  if(/[A-Z]/.test(pw)) n+=26;
-  if(/[0-9]/.test(pw)) n+=10;
-  if(/[^A-Za-z0-9]/.test(pw)) n+=33;
-  if(!n) return 0;
-  return Math.round(pw.length*Math.log(n)/Math.log(2));
-}
-function strengthLabel(b){
-  if(b<40) return ["weak","" ];
-  if(b<60) return ["okay","ok"];
-  if(b<80) return ["strong","good"];
-  return ["very strong","good"];
-}
-function meterFor(input,meter,label){
-  function upd(){
-    var b=bitsOf(input.value),s=strengthLabel(b);
-    meter.className="meter "+s[1];
-    meter.firstChild.style.width=Math.min(100,Math.round(b/100*100))+"%";
-    label.textContent=input.value?(s[0]+" · about "+b+" bits"):"";
-  }
-  input.addEventListener("input",upd); upd();
-}
-
-/* ---------- generator ---------- */
-/* lookalike-free sets: no l o L I O 0 1 */
-var LOW="abcdefghijkmnpqrstuvwxyz", UPP="ABCDEFGHJKLMNPQRSTUVWXYZ",
-    DIG="23456789", SYM="!@#$%^&*()-_=+[]{};:,.?";
-function makePassword(len,opt){
-  var pool="";
-  if(opt.low) pool+=opt.amb?"abcdefghijklmnopqrstuvwxyz":LOW;
-  if(opt.upp) pool+=opt.amb?"ABCDEFGHIJKLMNOPQRSTUVWXYZ":UPP;
-  if(opt.dig) pool+=opt.amb?"0123456789":DIG;
-  if(opt.sym) pool+=SYM;
-  if(!pool) return "";
-  var out="",r=crypto.getRandomValues(new Uint32Array(len));
-  for(var i=0;i<len;i++) out+=pool[r[i]%pool.length];
-  return out;
-}
-function copyNow(txt,label){
-  function done(){
-    toast((label||"Copied")+" — clipboard clears in 20s");
-    setTimeout(function(){
-      if(navigator.clipboard&&navigator.clipboard.writeText)
-        navigator.clipboard.writeText(" ").catch(function(){});
-    },20000);
-  }
-  if(navigator.clipboard&&navigator.clipboard.writeText)
-    navigator.clipboard.writeText(txt).then(done,function(){toast("Copy didn't work — reveal it and copy by hand");});
-  else toast("Copy isn't available here — reveal it and copy by hand");
-}
-
-/* ---------- head + render ---------- */
 function pageHead(){
-  if(!HAVE_CRYPTO){ setHead("PW · passwords","Passwords","Encryption isn't available in this browser"); return; }
-  if(!KEY){
-    setHead("PW · passwords","Passwords", V?"Locked":"No vault on this device yet");
-    return;
-  }
-  var weak=ENTRIES.filter(function(e){return bitsOf(e.pass)<40;}).length;
-  setHead("PW · passwords","Passwords",
-    ENTRIES.length+" saved  ·  unlocked  ·  auto-locks after "+IDLE_MIN+" min idle"+(weak?"  ·  "+weak+" weak":""));
+  var open=0,late=0,paid=0,drafts=0;
+  var yr=today().slice(0,4);
+  invoices().forEach(function(i){
+    var t=invTotal(i).total, st=invStatus(i);
+    if(st==="paid"){ if((i.paidOn||"").slice(0,4)===yr) paid+=t; }
+    else if(st==="draft") drafts++;
+    else { open+=t; if(st==="overdue") late+=t; }});
+  setHead("IV · invoices","Invoices",
+    money(open)+" outstanding"+(late?"  ·  "+money(late)+" overdue":"")+
+    "  ·  "+money(paid)+" paid in "+yr);
+  var e=$("#iOut");
+  if(e){ e.textContent=money(open); $("#iLate").textContent=money(late);
+    $("#iPaid").textContent=money(paid); $("#iDraft").textContent=drafts; }
 }
 function pageRender(){
-  if(!HAVE_CRYPTO){
-    $("#locked").style.display=""; $("#unlocked").style.display="none";
-    $("#lockbox").innerHTML='<div class="lk">Not available</div><h3>Encryption is off</h3>'+
-      '<p style="font-size:13.5px;margin:0">This browser will not give the page its crypto engine, so there is no safe way to store passwords here. Open the file over https or from localhost.</p>';
-    $("#lockNote").textContent="";
-    return;
-  }
-  if(!KEY){ $("#locked").style.display=""; $("#unlocked").style.display="none"; renderLock(); return; }
-  $("#locked").style.display="none"; $("#unlocked").style.display="";
-  renderAudit(); renderList();
-}
+  var counts={open:0,overdue:0,draft:0,paid:0};
+  invoices().forEach(function(i){
+    var st=invStatus(i);
+    if(st==="paid") counts.paid++;
+    else if(st==="draft") counts.draft++;
+    else { counts.open++; if(st==="overdue") counts.overdue++; }});
+  $("#ifilters").innerHTML=[["open","Outstanding ("+counts.open+")"],
+    ["overdue","Overdue ("+counts.overdue+")"],["draft","Drafts ("+counts.draft+")"],
+    ["paid","Paid ("+counts.paid+")"],["all","All"]].map(function(o){
+    return '<button data-f="'+o[0]+'"'+(o[0]===ifilter?' aria-pressed="true"':'')+'>'+esc(o[1])+'</button>';}).join("");
+  $("#ifilters").querySelectorAll("button").forEach(function(b){
+    b.onclick=function(){ifilter=b.dataset.f;pageRender();};});
 
-function renderLock(){
-  var box=$("#lockbox");
-  if(!V){
-    box.innerHTML=
-      '<div class="lk">First run</div><h3>Set a master password</h3>'+
-      '<p class="warn">This is the only key. Nobody can reset it — not this page, not a backup, not me. If you forget it the saved logins are gone for good. Write it down somewhere physical before you go further.</p>'+
-      '<label><span>Master password</span><input type="password" id="m1" autocomplete="new-password"></label>'+
-      '<div class="meter"><i></i></div><div class="mlbl" id="ml"></div>'+
-      '<label style="margin-top:11px"><span>Type it again</span><input type="password" id="m2" autocomplete="new-password"></label>'+
-      '<button class="btn tick" id="mGo" style="width:100%">Create the vault</button>';
-    meterFor($("#m1"),box.querySelector(".meter"),$("#ml"));
-    $("#mGo").onclick=async function(){
-      var a=$("#m1").value,b=$("#m2").value;
-      if(a.length<10){toast("Use at least 10 characters — a phrase works well");return;}
-      if(a!==b){toast("The two don't match");return;}
-      $("#mGo").disabled=true; $("#mGo").textContent="Working…";
-      try{
-        var salt=rand(16);
-        KEY=await deriveKey(a,salt,ITER);
-        ENTRIES=[];
-        V={version:1,salt:b64(salt),iterations:ITER,iv:"",ct:"",updated:today()};
-        await sealVault();
-        touchIdle(); pageHead(); pageRender(); toast("Vault created");
-      }catch(e){ $("#mGo").disabled=false; $("#mGo").textContent="Create the vault"; toast("Couldn't create the vault"); }
-    };
-    $("#lockNote").textContent="A passphrase of four or five unrelated words is easier to remember and harder to crack than a short scramble.";
-    return;
-  }
-  box.innerHTML=
-    '<div class="lk">Locked</div><h3>Enter your master password</h3>'+
-    '<label><span>Master password</span><input type="password" id="mp" autocomplete="current-password"></label>'+
-    '<button class="btn" id="mGo" style="width:100%">Unlock</button>';
-  var go=async function(){
-    var pw=$("#mp").value;
-    if(!pw){toast("Type your master password");return;}
-    $("#mGo").disabled=true; $("#mGo").textContent="Working…";
-    try{
-      await openVault(pw);
-      touchIdle(); pageHead(); pageRender();
-    }catch(e){
-      $("#mGo").disabled=false; $("#mGo").textContent="Unlock";
-      $("#mp").value=""; $("#mp").focus();
-      toast("That password didn't open it");
-    }
-  };
-  $("#mGo").onclick=go;
-  $("#mp").addEventListener("keydown",function(e){if(e.key==="Enter")go();});
-  setTimeout(function(){$("#mp").focus();},40);
-  $("#lockNote").textContent="Unlocking takes a second on purpose — the key is stretched 600,000 rounds so a stolen copy of this file is expensive to attack.";
-}
+  var list=invoices().filter(function(i){
+    var st=invStatus(i);
+    if(ifilter==="all") return true;
+    if(ifilter==="open") return st==="sent"||st==="overdue";
+    return st===ifilter;
+  }).sort(function(a,b){return (b.issued||"").localeCompare(a.issued||"");});
 
-function dupSet(){
-  var seen={},dup={};
-  ENTRIES.forEach(function(e){
-    if(!e.pass) return;
-    if(seen[e.pass]) dup[e.pass]=1; else seen[e.pass]=1;});
-  return dup;
-}
-function renderAudit(){
-  var dup=dupSet();
-  var weak=ENTRIES.filter(function(e){return e.pass&&bitsOf(e.pass)<40;}).length;
-  var reused=ENTRIES.filter(function(e){return e.pass&&dup[e.pass];}).length;
-  var stale=ENTRIES.filter(function(e){return e.updated&&daysBetween(e.updated,today())>365;}).length;
-  var a=$("#audit"); a.innerHTML="";
-  [[weak,"weak"],[reused,"reused"],[stale,"over a year old"]].forEach(function(x){
-    var d=el("div",x[0]?"bad":"");
-    d.appendChild(el("div","n",String(x[0])));
-    d.appendChild(el("div","t",x[1]));
-    a.appendChild(d);});
-}
-function renderList(){
-  var q=($("#q").value||"").trim().toLowerCase();
-  var dup=dupSet();
-  var list=ENTRIES.filter(function(e){
-    if(!q) return true;
-    return [e.title,e.user,e.url,e.note,(e.tags||[]).join(" ")].join(" ").toLowerCase().indexOf(q)>=0;})
-    .slice().sort(function(a,b){return (a.title||"").localeCompare(b.title||"");});
-  var host=$("#list"); host.innerHTML="";
+  var host=$("#ilist"); host.innerHTML="";
   if(!list.length){
-    host.appendChild(emptyBox(q?"No matches":"Vault is empty",
-      q?"Try part of the site name.":"Add your first login. Use the generator so it starts strong."));
+    host.appendChild(emptyBox(invoices().length?"Nothing here":"No invoices yet",
+      invoices().length?"Try another filter.":"Bill somebody for a gig, a lesson, or work you did."));
     return;}
-  list.forEach(function(e){
-    var b=bitsOf(e.pass),isDup=e.pass&&dup[e.pass];
-    var d=el("div","cred"+(b<40?" weak":isDup?" reused":""));
-    d.appendChild(el("div","ct",e.title||"Untitled"));
-    if(e.user) d.appendChild(el("div","cu",e.user));
-    var f=el("div","cf");
-    var s=strengthLabel(b);
-    f.appendChild(el("span","pill"+(b<40?" hot":""),s[0]));
-    if(isDup) f.appendChild(el("span","pill warm","reused"));
-    (e.tags||[]).forEach(function(t){f.appendChild(el("span","pill",t));});
-    var cp=el("button","btn ghost sm","Copy password");
-    cp.onclick=function(ev){ev.stopPropagation();touchIdle();copyNow(e.pass,"Password copied");};
-    f.appendChild(cp);
-    if(e.user){
-      var cu=el("button","btn ghost sm","Copy user");
-      cu.onclick=function(ev){ev.stopPropagation();touchIdle();copyNow(e.user,"Username copied");};
-      f.appendChild(cu);
-    }
-    d.appendChild(f);
-    d.onclick=function(){credDialog(e);};
+  list.forEach(function(inv){
+    var st=invStatus(inv), t=invTotal(inv).total;
+    var d=el("div","inv "+st);
+    var top=el("div","top");
+    var L2=el("div");
+    L2.appendChild(el("div","who2",inv.name||"No one yet"));
+    L2.appendChild(el("div","num",inv.number+(inv.forWhat?" · "+inv.forWhat:"")));
+    top.appendChild(L2);
+    top.appendChild(el("div","tot",money(t)));
+    d.appendChild(top);
+    var ft=el("div","ft");
+    ft.appendChild(el("span","pill"+(st==="overdue"?" hot":st==="paid"?"":st==="draft"?"":" warm"),st));
+    if(inv.issued) ft.appendChild(el("span",null,"issued "+pretty(inv.issued)));
+    if(inv.due&&st!=="paid") ft.appendChild(el("span",null,(st==="overdue"?"was due ":"due ")+pretty(inv.due)));
+    if(st==="paid"&&inv.paidOn) ft.appendChild(el("span",null,"paid "+pretty(inv.paidOn)));
+    ft.appendChild(el("span",null,(inv.items||[]).length+" line"+((inv.items||[]).length===1?"":"s")));
+    d.appendChild(ft);
+    d.onclick=function(){invDialog(inv);};
     host.appendChild(d);});
 }
 
-/* ---------- dialogs ---------- */
-function credDialog(e){
-  var isNew=!e;
-  e=e||{title:"",user:"",pass:"",url:"",note:"",tags:[]};
-  openDlg(isNew?"Add a login":(e.title||"Login"),
-    '<label><span>Site or app</span><input id="fT" value="'+esc(e.title||"")+'" placeholder="Cash App, Gmail, landlord portal"></label>'+
-    '<label><span>Username or email</span><input id="fU" value="'+esc(e.user||"")+'" autocomplete="off"></label>'+
-    '<label><span>Password</span><input type="password" id="fP" value="'+esc(e.pass||"")+'" autocomplete="new-password"></label>'+
-    '<div class="meter"><i></i></div><div class="mlbl" id="ml"></div>'+
-    '<div class="row-btns" style="margin:8px 0 12px">'+
-      '<button class="btn ghost sm" id="fShow">Reveal</button>'+
-      '<button class="btn ghost sm" id="fGen">Generate one</button>'+
-      (isNew?'':'<button class="btn ghost sm" id="fCopy">Copy</button>')+'</div>'+
-    '<label><span>Web address</span><input id="fW" value="'+esc(e.url||"")+'" placeholder="Optional"></label>'+
-    '<label><span>Tags</span><input id="fG" value="'+esc((e.tags||[]).join(", "))+'" placeholder="banking, email, shopping"></label>'+
-    '<label><span>Notes</span><textarea id="fN" style="min-height:60px" placeholder="Security question answers, account number, anything else">'+esc(e.note||"")+'</textarea></label>'+
-    '<div class="row-btns"><button class="btn" id="fS" style="flex:1">'+(isNew?"Save it":"Save")+'</button>'+
-    (isNew?'':'<button class="btn ghost" id="fX">Delete</button>')+'</div>',
+function invDialog(inv){
+  var isNew=!inv;
+  inv=inv||{number:nextNumber(),name:"",personId:null,forWhat:"",
+    issued:today(),due:addDays(today(),14),items:[{desc:"",qty:1,rate:""}],
+    terms:biz().terms||"",notes:"",taxPct:"",discount:"",status:"draft"};
+  var st=invStatus(inv);
+  openDlg(isNew?"New invoice":inv.number+" · "+(inv.name||""),
+    '<div class="two">'+
+      '<label><span>Number</span><input id="vNum" value="'+esc(inv.number)+'"></label>'+
+      '<label><span>Status</span><select id="vSt">'+
+        [["draft","Draft"],["sent","Sent"],["paid","Paid"]].map(function(o){
+          return '<option value="'+o[0]+'"'+(inv.status===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+
+      '</select></label></div>'+
+    '<label><span>Bill to</span><input id="vWho" list="dlPeople" value="'+esc(inv.name||"")+'" placeholder="Name"></label>'+peopleDatalist()+
+    '<label><span>What it is for</span><input id="vFor" value="'+esc(inv.forWhat||"")+'" placeholder="Saturday gig, two lessons"></label>'+
+    '<div class="two">'+
+      '<label><span>Issued</span><input type="date" id="vIss" value="'+esc(inv.issued||today())+'"></label>'+
+      '<label><span>Due</span><input type="date" id="vDue" value="'+esc(inv.due||"")+'"></label></div>'+
+    '<h2 class="sec">Lines</h2>'+
+    '<div class="lihead"><div>What</div><div>Qty</div><div>Rate</div><div>Amount</div><div></div></div>'+
+    '<div id="vLines"></div>'+
+    '<button class="btn ghost sm" id="vAdd" style="width:100%;margin-top:6px">Add a line</button>'+
+    '<div class="two" style="margin-top:12px">'+
+      '<label><span>Discount %</span><input type="number" id="vDisc" inputmode="decimal" value="'+esc(inv.discount||"")+'" placeholder="0"></label>'+
+      '<label><span>Tax %</span><input type="number" id="vTax" inputmode="decimal" value="'+esc(inv.taxPct||"")+'" placeholder="0"></label></div>'+
+    '<div class="totals" id="vTot"></div>'+
+    '<label style="margin-top:12px"><span>How to pay you</span><textarea id="vTerms" style="min-height:52px" placeholder="Cash App $handle, cash on the night, due within 14 days">'+esc(inv.terms||"")+'</textarea></label>'+
+    '<label><span>Notes on the invoice</span><input id="vNotes" value="'+esc(inv.notes||"")+'"></label>'+
+    '<div class="row-btns"><button class="btn" id="vS" style="flex:1">'+(isNew?"Create it":"Save")+'</button>'+
+    (isNew?'':'<button class="btn ghost sm" id="vPrint">Print</button>'+
+             '<button class="btn ghost sm" id="vSend">Send</button>'+
+             (st!=="paid"?'<button class="btn tick sm" id="vPaid">Mark paid</button>':'')+
+             '<button class="btn ghost sm" id="vX">Delete</button>')+'</div>',
     function(){
-      var pi=$("#fP");
-      meterFor(pi,$("#dlgBody").querySelector(".meter"),$("#ml"));
-      $("#fShow").onclick=function(){
-        var shown=pi.type==="text";
-        pi.type=shown?"password":"text";
-        $("#fShow").textContent=shown?"Reveal":"Hide";};
-      $("#fGen").onclick=function(){
-        dlg.close();
-        setTimeout(function(){ genDialog(function(pw){ e.pass=pw; credDialog(isNew?null:e); if(isNew){ setTimeout(function(){ $("#fP").value=pw; $("#fP").dispatchEvent(new Event("input")); },80);} }); },60);};
-      if(!isNew) $("#fCopy").onclick=function(){touchIdle();copyNow(pi.value,"Password copied");};
-      $("#fS").onclick=async function(){
-        var t=$("#fT").value.trim();
-        if(!t){toast("What site is this for?");return;}
-        e.title=t; e.user=$("#fU").value.trim(); e.url=$("#fW").value.trim();
-        e.note=$("#fN").value; e.updated=today();
-        e.tags=$("#fG").value.split(",").map(function(s){return s.trim();}).filter(Boolean);
-        var np=pi.value;
-        if(np!==e.pass){ e.pass=np; e.changed=today(); }
-        if(isNew){ e.id=uid(); e.created=today(); e.changed=today(); ENTRIES.push(e); }
-        await sealVault(); touchIdle(); pageHead(); pageRender(); dlg.close();
-        toast(isNew?"Saved to the vault":"Saved");};
-      if(!isNew) $("#fX").onclick=async function(){
-        if(!confirm("Delete the login for "+(e.title||"this site")+"? It cannot be recovered.")) return;
-        ENTRIES=ENTRIES.filter(function(x){return x.id!==e.id;});
-        await sealVault(); pageHead(); pageRender(); dlg.close(); toast("Deleted");};
-    });
-}
-
-function genDialog(onUse){
-  openDlg("Generate a password",
-    '<div class="genout" id="gOut">—</div>'+
-    '<div class="slider"><input type="range" id="gLen" min="8" max="64" value="20"><span class="v" id="gLenV">20</span></div>'+
-    '<div class="mlbl" id="gBits" style="margin-bottom:11px"></div>'+
-    '<div class="togs">'+
-      '<label><input type="checkbox" id="gL" checked><span>a–z</span></label>'+
-      '<label><input type="checkbox" id="gU" checked><span>A–Z</span></label>'+
-      '<label><input type="checkbox" id="gD" checked><span>0–9</span></label>'+
-      '<label><input type="checkbox" id="gS" checked><span>symbols</span></label>'+
-      '<label style="grid-column:1/-1"><input type="checkbox" id="gA"><span>allow lookalikes (l 1 I O 0)</span></label>'+
-    '</div>'+
-    '<div class="row-btns">'+
-      '<button class="btn ghost" id="gAgain" style="flex:1">Roll again</button>'+
-      '<button class="btn ghost" id="gCopy">Copy</button>'+
-      (onUse?'<button class="btn tick" id="gUse">Use it</button>':'')+
-    '</div>'+
-    '<p class="foot-note">Random characters come from the browser\'s cryptographic generator, not Math.random.</p>',
-    function(){
-      function roll(){
-        var len=+$("#gLen").value;
-        var pw=makePassword(len,{low:$("#gL").checked,upp:$("#gU").checked,
-          dig:$("#gD").checked,sym:$("#gS").checked,amb:$("#gA").checked});
-        if(!pw){ $("#gOut").textContent="pick at least one kind of character"; $("#gBits").textContent=""; return; }
-        $("#gOut").textContent=pw;
-        $("#gLenV").textContent=len;
-        var b=bitsOf(pw);
-        $("#gBits").textContent=strengthLabel(b)[0]+" · about "+b+" bits of entropy";
+      var items=(inv.items&&inv.items.length)?inv.items.map(function(l){return {desc:l.desc,qty:l.qty,rate:l.rate};})
+        :[{desc:"",qty:1,rate:""}];
+      function totals(){
+        var tmp={items:items,taxPct:$("#vTax").value,discount:$("#vDisc").value};
+        var t=invTotal(tmp), h=$("#vTot"); h.innerHTML="";
+        function row(l,v,cls){
+          var r=el("div","totrow"+(cls?" "+cls:""));
+          r.appendChild(el("div",null,l)); r.appendChild(el("div",null,v));
+          h.appendChild(r);}
+        row("Subtotal",money(t.sub));
+        if(t.discount) row("Discount "+$("#vDisc").value+"%","−"+money(t.discount));
+        if(t.tax) row("Tax "+$("#vTax").value+"%",money(t.tax));
+        row("Total",money(t.total),"big");
       }
-      ["gLen","gL","gU","gD","gS","gA"].forEach(function(id){ $("#"+id).oninput=roll; });
-      $("#gAgain").onclick=roll;
-      $("#gCopy").onclick=function(){touchIdle();copyNow($("#gOut").textContent,"Password copied");};
-      if(onUse) $("#gUse").onclick=function(){ var pw=$("#gOut").textContent; dlg.close(); onUse(pw); };
-      roll();
+      function drawLines(){
+        var h=$("#vLines"); h.innerHTML="";
+        items.forEach(function(l,idx){
+          var r=el("div","li");
+          var d1=el("input"); d1.value=l.desc||""; d1.placeholder="Playing a set";
+          d1.oninput=function(){l.desc=d1.value;};
+          var q=el("input"); q.type="number"; q.inputMode="decimal"; q.value=l.qty!=null?l.qty:1;
+          var rt=el("input"); rt.type="number"; rt.inputMode="decimal"; rt.step="0.01";
+          rt.value=l.rate!==""&&l.rate!=null?l.rate:""; rt.placeholder="0.00";
+          var amt=el("div","amt3",money(lineTotal(l)));
+          q.oninput=function(){l.qty=q.value;amt.textContent=money(lineTotal(l));totals();};
+          rt.oninput=function(){l.rate=rt.value;amt.textContent=money(lineTotal(l));totals();};
+          var k=el("button","kill","×");
+          k.onclick=function(e){e.preventDefault();
+            if(items.length<2) return toast("An invoice needs at least one line");
+            items.splice(idx,1);drawLines();totals();};
+          r.appendChild(d1);r.appendChild(q);r.appendChild(rt);r.appendChild(amt);r.appendChild(k);
+          h.appendChild(r);});
+      }
+      drawLines(); totals();
+      $("#vAdd").onclick=function(e){e.preventDefault();items.push({desc:"",qty:1,rate:""});drawLines();};
+      $("#vDisc").oninput=totals; $("#vTax").oninput=totals;
+
+      function collect(){
+        inv.number=$("#vNum").value.trim()||inv.number;
+        inv.name=$("#vWho").value.trim();
+        if(inv.name){ var p=ensureContact(inv.name); inv.personId=p?p.id:null; }
+        inv.forWhat=$("#vFor").value.trim();
+        inv.issued=$("#vIss").value||today(); inv.due=$("#vDue").value;
+        inv.items=items.filter(function(l){return (l.desc||"").trim()||lineTotal(l);});
+        inv.taxPct=$("#vTax").value; inv.discount=$("#vDisc").value;
+        inv.terms=$("#vTerms").value; inv.notes=$("#vNotes").value.trim();
+        inv.status=$("#vSt").value;
+      }
+      $("#vS").onclick=function(){
+        collect();
+        if(!inv.items.length) return toast("Put at least one line on it");
+        if(isNew){
+          inv.id=uid();
+          invoices().push(inv);
+          H.settings.invoiceNext=(H.settings.invoiceNext||1)+1;
+        }
+        save(); pageHead(); pageRender(); dlg.close();
+        toast(isNew?"Invoice "+inv.number+" created":"Saved");};
+      if(!isNew){
+        $("#vPrint").onclick=function(){ collect(); save(); printInvoice(inv); };
+        $("#vSend").onclick=function(){ collect(); save(); sendInvoice(inv); };
+        if($("#vPaid")) $("#vPaid").onclick=function(){
+          collect(); markPaid(inv); };
+        $("#vX").onclick=function(){
+          if(!confirm("Delete "+inv.number+"?")) return;
+          trashIt("invoice",inv.number+" · "+(inv.name||""),inv);
+          H.invoices=invoices().filter(function(x){return x.id!==inv.id;});
+          save(); pageHead(); pageRender(); dlg.close();};
+      }
     });
 }
 
-function masterDialog(){
-  openDlg("Change master password",
-    '<p class="warn">Everything gets re-encrypted with the new one. Old backups still need the old password.</p>'+
-    '<label><span>Current master password</span><input type="password" id="c0" autocomplete="current-password"></label>'+
-    '<label><span>New master password</span><input type="password" id="c1" autocomplete="new-password"></label>'+
-    '<div class="meter"><i></i></div><div class="mlbl" id="ml"></div>'+
-    '<label style="margin-top:11px"><span>Type the new one again</span><input type="password" id="c2" autocomplete="new-password"></label>'+
-    '<button class="btn" id="cGo" style="width:100%">Change it</button>',
+function markPaid(inv){
+  var t=invTotal(inv).total;
+  dlg.close();
+  setTimeout(function(){
+    openDlg("Mark "+inv.number+" paid",
+      '<p class="foot-note" style="margin-top:0">This logs the money coming in, so you do not have to enter it twice.</p>'+
+      '<div class="two">'+
+        '<label><span>How much came in</span><input type="number" step="0.01" id="mpAmt" value="'+(t/100).toFixed(2)+'"></label>'+
+        '<label><span>When</span><input type="date" id="mpDate" value="'+today()+'"></label></div>'+
+      (L?'<div class="two">'+
+        '<label><span>Into</span><select id="mpAcct">'+(L.accounts||[]).map(function(a){
+          return '<option value="'+a.id+'">'+esc(a.name)+'</option>';}).join("")+'</select></label>'+
+        '<label><span>How they paid</span><select id="mpM"><option value="">Not noted</option>'+
+          (L.methods||[]).map(function(m){return '<option value="'+esc(m)+'">'+esc(m)+'</option>';}).join("")+
+        '</select></label></div>':'<p class="warn">No ledger on this device, so it will only mark the invoice.</p>')+
+      '<button class="btn tick" id="mpGo" style="width:100%">Mark it paid</button>',
+      function(){
+        $("#mpGo").onclick=function(){
+          var c=Math.round(parseFloat($("#mpAmt").value)*100)||0;
+          inv.status="paid"; inv.paidOn=$("#mpDate").value||today();
+          if(L&&c>0){
+            var ac=(L.accounts||[]).filter(function(a){return a.id===$("#mpAcct").value;})[0]||L.accounts[0];
+            if(ac){
+              var txn={id:uid(),type:"in",cents:c,date:inv.paidOn,accountId:ac.id,
+                who:inv.name||"Invoice",personId:inv.personId||null,
+                method:$("#mpM")?$("#mpM").value:"",note:"Invoice "+inv.number};
+              ac.cents+=c; L.txns.push(txn); saveL();
+              inv.txnId=txn.id;
+            }
+          }
+          save(); pageHead(); pageRender(); dlg.close();
+          toast("Paid — "+money(c)+" logged in");};
+      });
+  },60);
+}
+
+function invoiceText(inv){
+  var t=invTotal(inv), b=biz();
+  var A=[];
+  A.push("INVOICE "+inv.number);
+  if(b.name) A.push("From: "+b.name);
+  A.push("To: "+(inv.name||"—"));
+  if(inv.forWhat) A.push("For: "+inv.forWhat);
+  A.push("Issued: "+prettyFull(inv.issued));
+  if(inv.due) A.push("Due: "+prettyFull(inv.due));
+  A.push("");
+  (inv.items||[]).forEach(function(l){
+    A.push("  "+(l.desc||"—")+"   "+(l.qty||1)+" x "+money(Math.round((+l.rate||0)*100))+
+      "   "+money(lineTotal(l)));});
+  A.push("");
+  if(t.discount) A.push("Discount: −"+money(t.discount));
+  if(t.tax) A.push("Tax: "+money(t.tax));
+  A.push("TOTAL: "+money(t.total));
+  if(inv.terms){ A.push(""); A.push(inv.terms); }
+  if(inv.notes){ A.push(""); A.push(inv.notes); }
+  return A.join("\n");
+}
+function sendInvoice(inv){
+  var txt=invoiceText(inv);
+  if(navigator.share) navigator.share({title:inv.number,text:txt}).catch(function(){copyInv(txt);});
+  else copyInv(txt);
+}
+function copyInv(txt){
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(txt).then(function(){toast("Copied — paste it to them");},
+      function(){toast("Copy didn't work");});
+  else toast("Copy isn't available here");
+}
+function printInvoice(inv){
+  var t=invTotal(inv), b=biz(), st=invStatus(inv);
+  var rows=(inv.items||[]).map(function(l){
+    return '<tr><td>'+esc(l.desc||"—")+'</td><td class="r">'+esc(String(l.qty||1))+
+      '</td><td class="r">'+esc(money(Math.round((+l.rate||0)*100)))+
+      '</td><td class="r">'+esc(money(lineTotal(l)))+'</td></tr>';}).join("");
+  $("#printArea").innerHTML=
+    '<div class="iv"><div class="hdr">'+
+      '<div><div class="big2">Invoice</div><div style="font-family:var(--mono);font-size:13px;margin-top:4px">'+esc(inv.number)+'</div></div>'+
+      '<div class="me">'+[b.name,b.line1,b.line2,b.phone,b.email].filter(Boolean).map(esc).join("<br>")+'</div>'+
+    '</div>'+
+    '<div class="parties">'+
+      '<div><div class="lbl2">Billed to</div><div style="font-size:15px;font-weight:700">'+esc(inv.name||"—")+'</div>'+
+        (inv.forWhat?'<div style="font-size:12px;margin-top:3px">'+esc(inv.forWhat)+'</div>':'')+'</div>'+
+      '<div style="text-align:right"><div class="lbl2">Issued</div><div>'+esc(prettyFull(inv.issued))+'</div>'+
+        (inv.due?'<div class="lbl2" style="margin-top:8px">Due</div><div>'+esc(prettyFull(inv.due))+'</div>':'')+'</div>'+
+    '</div>'+
+    '<table><thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table>'+
+    '<div class="sum">'+
+      '<div><span>Subtotal</span><span>'+esc(money(t.sub))+'</span></div>'+
+      (t.discount?'<div><span>Discount</span><span>−'+esc(money(t.discount))+'</span></div>':'')+
+      (t.tax?'<div><span>Tax</span><span>'+esc(money(t.tax))+'</span></div>':'')+
+      '<div class="grand"><span>Total due</span><span>'+esc(money(t.total))+'</span></div>'+
+    '</div>'+
+    (st==="paid"?'<div class="stamp2">Paid '+esc(prettyFull(inv.paidOn||today()))+'</div>':'')+
+    (inv.terms||inv.notes?'<div class="terms">'+esc(inv.terms||"").replace(/\n/g,"<br>")+
+      (inv.notes?'<br><br>'+esc(inv.notes):'')+'</div>':'')+
+    '</div>';
+  if(dlg.open) dlg.close();
+  setTimeout(function(){ window.print(); },80);
+}
+
+function detailsDialog(){
+  var b=biz();
+  openDlg("Your details",
+    '<p class="foot-note" style="margin-top:0">These go at the top of every invoice you print or send.</p>'+
+    '<label><span>Your name or trading name</span><input id="bN" value="'+esc(b.name||"")+'"></label>'+
+    '<label><span>Address line 1</span><input id="b1" value="'+esc(b.line1||"")+'"></label>'+
+    '<label><span>Address line 2</span><input id="b2" value="'+esc(b.line2||"")+'"></label>'+
+    '<div class="two">'+
+      '<label><span>Phone</span><input id="bP" value="'+esc(b.phone||"")+'"></label>'+
+      '<label><span>Email</span><input id="bE" value="'+esc(b.email||"")+'"></label></div>'+
+    '<label><span>Standard payment terms</span><textarea id="bT" style="min-height:60px" placeholder="Cash App $handle · due within 14 days">'+esc(b.terms||"")+'</textarea></label>'+
+    '<div class="two">'+
+      '<label><span>Next invoice number</span><input type="number" id="bNum" value="'+(H.settings.invoiceNext||1)+'"></label>'+
+      '<label><span>Default due in (days)</span><input type="number" id="bD" value="'+(b.dueDays||14)+'"></label></div>'+
+    '<button class="btn" id="bS" style="width:100%">Save</button>',
     function(){
-      meterFor($("#c1"),$("#dlgBody").querySelector(".meter"),$("#ml"));
-      $("#cGo").onclick=async function(){
-        var cur=$("#c0").value,a=$("#c1").value,b=$("#c2").value;
-        if(a.length<10){toast("Use at least 10 characters");return;}
-        if(a!==b){toast("The two new ones don't match");return;}
-        $("#cGo").disabled=true; $("#cGo").textContent="Working…";
-        try{
-          await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(V.iv)},
-            await deriveKey(cur,unb64(V.salt),V.iterations||ITER),unb64(V.ct));
-        }catch(e){
-          $("#cGo").disabled=false; $("#cGo").textContent="Change it";
-          toast("The current password is wrong"); return;}
-        var salt=rand(16);
-        KEY=await deriveKey(a,salt,ITER);
-        V.salt=b64(salt); V.iterations=ITER;
-        await sealVault(); touchIdle(); dlg.close(); toast("Master password changed");
-      };
+      $("#bS").onclick=function(){
+        b.name=$("#bN").value.trim(); b.line1=$("#b1").value.trim(); b.line2=$("#b2").value.trim();
+        b.phone=$("#bP").value.trim(); b.email=$("#bE").value.trim(); b.terms=$("#bT").value;
+        b.dueDays=+$("#bD").value||14;
+        H.settings.invoiceNext=+$("#bNum").value||1;
+        save(); dlg.close(); toast("Saved");};
     });
 }
-
 function pageAction(a){
-  if(a==="new") credDialog(null);
-  else if(a==="gen") genDialog(null);
-  else if(a==="lock"){ lock(); toast("Locked"); }
-  else if(a==="master") masterDialog();
+  if(a==="new") invDialog(null);
+  else if(a==="mydetails") detailsDialog();
 }
 function pageBoot(){
-  $("#q").oninput=function(){touchIdle();renderList();};
-  ["click","keydown"].forEach(function(ev){
-    document.addEventListener(ev,touchIdle,true);});
-  window.addEventListener("pagehide",lock);
+  H.invoices=H.invoices||[];
+  if(qparam("f")) ifilter=qparam("f");
+  if(qparam("new")) setTimeout(function(){invDialog(null);},120);
 }
 })();
 </script>
