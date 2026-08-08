@@ -390,8 +390,14 @@ var DB={
   }
 };
 
-var APP_VERSION="1.6";
+var APP_VERSION="1.7";
 var CHANGELOG=[
+ {v:"1.7",d:"2026-08-08",t:"Music gets its own page",
+  items:["Sheet music moved out of Documents onto its own Music page",
+         "Practice log — minutes per session, which pieces, a seven day chart, streak and time on each piece",
+         "Trouble spots — mark the bars that keep going wrong, tick them off when they stop being a problem",
+         "Recordings — put run-throughs on a piece and play them back in the page",
+         "Schedule practice straight onto the calendar with the pieces you plan to work on"]},
  {v:"1.6",d:"2026-08-08",t:"Settings and changelog",
   items:["A Settings page — appearance, your details, task lists, money categories, AI behaviour, capture address, and data tools all in one place",
          "This changelog, with a dot on the Settings tab when something is new",
@@ -447,7 +453,7 @@ function migrateH(){
   H.tasks=H.tasks||[];H.events=H.events||[];H.notes=H.notes||[];
   H.habits=H.habits||[];H.things=H.things||[];H.contacts=H.contacts||[];
   H.subs=H.subs||[];H.journal=H.journal||[];H.scores=H.scores||[];
-  H.trash=H.trash||[];H.settings=H.settings||{};
+  H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];
   H.lists=(H.lists&&H.lists.length)?H.lists:DEF_LISTS.slice();
   H.version=H.version||1;
 }
@@ -749,6 +755,7 @@ var MODULES=[
   {id:"subs",cd:"SB",label:"Subscriptions",file:"subs.html"},
   {id:"journal",cd:"JR",label:"Journal",file:"journal.html"},
   {id:"docs",cd:"DC",label:"Documents",file:"docs.html"},
+  {id:"music",cd:"MU",label:"Music",file:"music.html"},
   {id:"history",cd:"HI",label:"History",file:"history.html"},
   {id:"talk",cd:"AI",label:"Talk",file:"talk.html"},
   {id:"settings",cd:"SE",label:"Settings",file:"settings.html"}
@@ -761,6 +768,8 @@ function navCounts(){
   c.habits=H.habits.filter(function(h){return !(h.days||{})[ts];}).length;
   var lt=ledgerTotals(); c.money=lt?lt.late.length:0;
   c.settings=unseenCount();
+  c.music=(H.scores||[]).reduce(function(t,p){
+    return t+((p.spots||[]).filter(function(x){return !x.fixed;}).length?1:0);},0);
   c.subs=(H.subs||[]).filter(function(x){return x.active!==false&&x.next&&daysBetween(ts,x.next)<=3;}).length;
   return c;
 }
@@ -903,7 +912,7 @@ function commandBar(){
               out.push({cd:"NT",t:n.title||"Untitled",s:"note",go:"notes.html?n="+n.id});});
           (H.scores||[]).forEach(function(p){
             if((p.title+" "+(p.composer||"")+" "+(p.arranger||"")).toLowerCase().indexOf(q)>=0)
-              out.push({cd:"DC",t:p.title,s:"sheet music",go:"docs.html"});});
+              out.push({cd:"MU",t:p.title,s:"sheet music",go:"music.html"});});
           (H.subs||[]).forEach(function(x){
             if(x.name.toLowerCase().indexOf(q)>=0)
               out.push({cd:"SB",t:x.name,s:"subscription",go:"subs.html"});});
@@ -1123,6 +1132,7 @@ function pageHead(){
 function marksFor(d,people){
   var m={ev:0,task:0,due:0,bday:0};
   H.events.forEach(function(e){if(e.date===d)m.ev++;if(e.followUp===d&&!e.followDone)m.due++;});
+  (H.practice||[]).forEach(function(p){if(p.date===d)m.task++;});
   H.tasks.forEach(function(t){if(!t.done&&t.due===d)m.task++;});
   if(L) L.tickets.forEach(function(t){if(t.status==="open"&&t.due===d)m.due++;});
   H.things.forEach(function(t){if(!t.back&&t.due===d)m.due++;});
@@ -1166,7 +1176,7 @@ function pageRender(){
       Ld.appendChild(el("div","meta",bits.join(" · ")));
       r.appendChild(Ld);
       r.appendChild(el("span","pill"+(e.kind==="appointment"&&e.date<today()&&!e.outcome?" warm":""),
-        e.kind==="appointment"?"appt":"CL"));
+        e.kind==="appointment"?"appt":(e.kind==="practice"?"MU":"CL")));
       var k=el("button","kill","×");
       k.onclick=function(ev){ev.stopPropagation();
         if(!confirm("Delete this event?")) return;
@@ -1204,6 +1214,16 @@ function pageRender(){
     Ld.appendChild(el("div","meta",(t.dir==="lent"?"from ":"to ")+(personName(t.personId)||"someone")));
     r.appendChild(Ld); r.appendChild(el("span","pill","TH"));
     var a3=el("a","pill","open"); a3.href="items.html"; r.appendChild(a3);
+    rows.push(r);});
+  (H.practice||[]).filter(function(x){return x.date===selDay;}).forEach(function(x){
+    var names=(x.scoreIds||[]).map(function(id){
+      var sc=(H.scores||[]).filter(function(p){return p.id===id;})[0];
+      return sc?sc.title:null;}).filter(Boolean);
+    var r=el("div","bar-row trio"),Ld=el("div");
+    Ld.appendChild(el("div","who","Practised "+x.minutes+" minutes"));
+    Ld.appendChild(el("div","meta",(names.length?names.join(", "):"no pieces noted")+(x.what?" · "+x.what:"")));
+    r.appendChild(Ld); r.appendChild(el("span","pill","MU"));
+    var a5=el("a","pill","open"); a5.href="music.html?tab=prac"; r.appendChild(a5);
     rows.push(r);});
   allPeople().forEach(function(p){
     if(!p.bday||p.bday.slice(5)!==selDay.slice(5)) return;

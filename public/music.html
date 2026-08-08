@@ -1,4 +1,4 @@
-<title>Subscriptions — Station</title>
+<title>Music — Station</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -337,22 +337,81 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div id="pExtra"></div>
     </header>
     <section class="pane" id="pane">
-      <div class="tally">
-        <div><div class="lbl">Every month</div><div class="val amt out" id="mMonth">$0</div></div>
-        <div><div class="lbl">Every year</div><div class="val amt out" id="mYear">$0</div></div>
-        <div><div class="lbl">Next 30 days</div><div class="val amt out" id="m30">$0</div></div>
-        <div><div class="lbl">Cancelled so far</div><div class="val amt in" id="mSaved">$0</div></div>
+      <style>
+      .mrow2{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:10px 11px;border-bottom:1px solid rgba(0,0,0,.06)}
+      .mrow2:nth-child(odd){background:var(--bar)}
+      .mrow2:last-child{border-bottom:0}
+      .mrow2:hover{background:var(--hover);cursor:pointer}
+      .gr{font-family:var(--mono);font-size:12px;font-weight:600;border:1px solid var(--ink-3);border-radius:2px;padding:3px 6px;min-width:30px;text-align:center}
+      .gr.g5{border-color:var(--stamp);color:var(--stamp)}
+      .mrow2 .ti{font-weight:600;font-size:14.5px}
+      .mrow2 .by{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:1px}
+      .parts{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+      .prt{font-family:var(--mono);font-size:11px;border:1px solid var(--rule);background:var(--card);border-radius:2px;padding:3px 7px;display:flex;align-items:center;gap:5px}
+      .prt a{color:inherit;text-decoration:none}
+      .prt a:hover{text-decoration:underline}
+      .prt.mine{border-color:var(--tick-deep);background:var(--warm);font-weight:600}
+      .prt .x{cursor:pointer;color:var(--dim);font-size:13px;line-height:1}
+      .miss{font-family:var(--mono);font-size:11px;border:1px dashed var(--stamp);color:var(--stamp);border-radius:2px;padding:3px 7px}
+      .spot{display:grid;grid-template-columns:auto 1fr auto auto;gap:9px;align-items:center;padding:8px 10px;border-bottom:1px solid rgba(0,0,0,.06)}
+      .spot:nth-child(odd){background:var(--bar)}
+      .spot .mm{font-family:var(--mono);font-size:12px;font-weight:600;border:1px solid var(--rule);border-radius:2px;padding:2px 6px;white-space:nowrap}
+      .spot.fixed .mm{border-color:var(--pos);color:var(--pos)}
+      .spot.fixed .w{text-decoration:line-through;color:var(--dim)}
+      .spot .w{font-size:13.5px}
+      .spot .p{font-family:var(--mono);font-size:11px;color:var(--dim)}
+      .bars{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0}
+      .bars div{text-align:center}
+      .bars .bar{height:56px;display:flex;align-items:flex-end;justify-content:center}
+      .bars .bar i{display:block;width:70%;background:var(--pos);border-radius:1px 1px 0 0;min-height:2px}
+      .bars .lb{font-family:var(--mono);font-size:9.5px;color:var(--dim);margin-top:3px}
+      .bars .mn{font-family:var(--mono);font-size:10px;font-weight:600}
+      audio{width:100%;margin-top:6px}
+      </style>
+      <div class="seg mini" id="mtabs">
+        <button type="button" data-t="lib" aria-pressed="true">Library</button>
+        <button type="button" data-t="prac" aria-pressed="false">Practice</button>
+        <button type="button" data-t="work" aria-pressed="false">Needs work</button>
       </div>
-      <div class="row-btns" style="margin:14px 0">
-        <button class="btn" data-act="new">Add a subscription</button>
-        <button class="btn ghost sm" data-act="trial">Add a free trial</button>
+      <div id="v-lib">
+        <div class="tally" style="margin-bottom:12px">
+          <div><div class="lbl">Pieces</div><div class="val" id="nPieces">0</div></div>
+          <div><div class="lbl">Parts filed</div><div class="val" id="nParts">0</div></div>
+          <div><div class="lbl">Missing parts</div><div class="val amt out" id="nMiss">0</div></div>
+          <div><div class="lbl">Your part</div><div class="val" id="myPart" style="font-size:14px">—</div></div>
+        </div>
+        <div class="row-btns" style="margin-bottom:12px">
+          <button class="btn" data-act="newpiece">Add a piece</button>
+          <button class="btn ghost sm" data-act="setmine">Set your instrument</button>
+        </div>
+        <label style="margin-bottom:10px"><span>Find a piece</span><input id="mq" placeholder="Title, composer, arranger, folder…"></label>
+        <div class="grp" id="mfilters"></div>
+        <div id="mlist"></div>
       </div>
-      <h2 class="sec">Coming up</h2>
-      <div id="soon"></div>
-      <h2 class="sec"><span>Active</span><span class="r" id="activeCount"></span></h2>
-      <div id="list"></div>
-      <h2 class="sec">Cancelled</h2>
-      <div id="dead"></div>
+      <div id="v-prac" style="display:none">
+        <div class="tally" style="margin-bottom:12px">
+          <div><div class="lbl">This week</div><div class="val" id="pWeek">0m</div></div>
+          <div><div class="lbl">Streak</div><div class="val" id="pStreak">0</div></div>
+          <div><div class="lbl">Sessions logged</div><div class="val" id="pCount">0</div></div>
+          <div><div class="lbl">All time</div><div class="val" id="pAll">0h</div></div>
+        </div>
+        <div class="bars" id="pBars"></div>
+        <div class="row-btns" style="margin-bottom:12px">
+          <button class="btn" data-act="logpractice">Log a session</button>
+          <button class="btn ghost sm" data-act="schedule">Schedule practice</button>
+        </div>
+        <h2 class="sec">Time on each piece</h2>
+        <div id="pPieces"></div>
+        <h2 class="sec">Recent sessions</h2>
+        <div id="pList"></div>
+      </div>
+      <div id="v-work" style="display:none">
+        <p class="foot-note" style="margin-top:0">Every spot you've marked across every piece. Tick one off when it stops being a problem.</p>
+        <div class="row-btns" style="margin-bottom:12px">
+          <button class="btn ghost sm" data-act="showfixed">Show sorted ones too</button>
+        </div>
+        <div id="wList"></div>
+      </div>
     </section>
   </div>
 </div>
@@ -362,11 +421,11 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
   <div class="dlg-head"><span id="dlgTitle">—</span><button type="button" id="dlgX" aria-label="Close">×</button></div>
   <div class="dlg-body" id="dlgBody"></div>
 </dialog>
-<button class="btn tick fab" data-act="new">+ New</button>
+<button class="btn tick fab" data-act="newpiece">+ New</button>
 <script>
 (function(){
 "use strict";
-var PAGE="subs";
+var PAGE="music";
 /* ============================================================
    STATION CORE — shared by every page.
    Storage goes through DB only. Swap DB to move to a server.
@@ -1122,175 +1181,533 @@ document.addEventListener("keydown",function(e){
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();
-function perYear(s){
-  var c=s.cents||0;
-  if(s.cycle==="weekly") return Math.round(c*52);
-  if(s.cycle==="monthly") return c*12;
-  if(s.cycle==="quarterly") return c*4;
-  return c;
+var BAND=["Full Score","Piccolo","Flute 1","Flute 2","Oboe","Bassoon",
+  "Clarinet 1","Clarinet 2","Clarinet 3","Bass Clarinet",
+  "Alto Sax 1","Alto Sax 2","Tenor Sax","Bari Sax",
+  "Trumpet 1","Trumpet 2","Trumpet 3","Horn 1","Horn 2",
+  "Trombone 1","Trombone 2","Bass Trombone","Euphonium","Tuba","String Bass",
+  "Timpani","Percussion 1","Percussion 2","Mallets"];
+var JAZZ=["Full Score","Alto Sax 1","Alto Sax 2","Tenor Sax 1","Tenor Sax 2","Bari Sax",
+  "Trumpet 1","Trumpet 2","Trumpet 3","Trumpet 4",
+  "Trombone 1","Trombone 2","Trombone 3","Bass Trombone",
+  "Guitar","Piano","Bass","Drums"];
+var FILES=[], mtab="lib", mq="", mfilter="all", showFixed=false;
+
+function scores(){ H.scores=H.scores||[]; return H.scores; }
+function sessions(){ H.practice=H.practice||[]; return H.practice; }
+function partsOf(id){ return FILES.filter(function(f){return f.linkKind==="score"&&f.linkId===id;}); }
+function recsOf(id){ return FILES.filter(function(f){return f.linkKind==="recording"&&f.linkId===id;}); }
+function expectedOf(p){ return (p.expected&&p.expected.length)?p.expected:(p.ensemble==="jazz"?JAZZ:BAND); }
+function missingOf(p){
+  var have=partsOf(p.id).map(function(f){return (f.label||f.name).toLowerCase().trim();});
+  return expectedOf(p).filter(function(i){
+    return !have.some(function(h){return h===i.toLowerCase()||h.indexOf(i.toLowerCase())>=0;});});
 }
-function perMonth(s){ return Math.round(perYear(s)/12); }
-function advance(s,from){
-  if(s.cycle==="weekly") return addDays(from,7);
-  if(s.cycle==="monthly") return addMonth(from);
-  if(s.cycle==="quarterly") return addMonth(addMonth(addMonth(from)));
-  var d=parseD(from); d.setFullYear(d.getFullYear()+1); return ymd(d);
+function myPart(){ return (H.settings&&H.settings.instrument)||""; }
+function spotsOf(p){ return p.spots||[]; }
+function openSpots(p){ return spotsOf(p).filter(function(s){return !s.fixed;}); }
+function pieceById(id){ return scores().filter(function(p){return p.id===id;})[0]; }
+
+/* ---------- practice maths ---------- */
+function minutesOn(day){
+  return sessions().filter(function(s){return s.date===day;})
+    .reduce(function(t,s){return t+(+s.minutes||0);},0);
 }
-function rollForward(s){
-  // catch a next-charge date up to today, so nothing sits stale
-  var moved=false;
-  while(s.next&&s.next<today()){ s.next=advance(s,s.next); moved=true; }
-  return moved;
+function weekMinutes(){
+  var t=0; for(var i=0;i<7;i++) t+=minutesOn(addDays(today(),-i));
+  return t;
 }
-function active(){ return (H.subs||[]).filter(function(s){return s.active!==false;}); }
+function practiceStreak(){
+  var n=0,d=today();
+  if(!minutesOn(d)) d=addDays(d,-1);
+  while(minutesOn(d)){ n++; d=addDays(d,-1); }
+  return n;
+}
+function minutesForPiece(id){
+  return sessions().filter(function(s){return (s.scoreIds||[]).indexOf(id)>=0;})
+    .reduce(function(t,s){
+      var n=(s.scoreIds||[]).length||1;
+      return t+Math.round((+s.minutes||0)/n);},0);
+}
+function hoursText(m){
+  if(m<60) return m+"m";
+  var h=Math.floor(m/60), r=m%60;
+  return h+"h"+(r?" "+r+"m":"");
+}
 
 function pageHead(){
-  var a=active();
-  var m=a.reduce(function(t,s){return t+perMonth(s);},0);
-  setHead("SB · subscriptions","Subscriptions",
-    a.length+" active  ·  "+money(m)+" a month  ·  "+money(a.reduce(function(t,s){return t+perYear(s);},0))+" a year");
+  if(mtab==="prac"){
+    var wk=weekMinutes(), st=practiceStreak();
+    setHead("MU · practice","Practice",
+      hoursText(wk)+" this week"+(st?"  ·  "+st+" day streak":"")+"  ·  "+sessions().length+" sessions logged");
+  } else if(mtab==="work"){
+    var n=scores().reduce(function(t,p){return t+openSpots(p).length;},0);
+    setHead("MU · trouble spots","Needs work",
+      n?n+" spot"+(n===1?"":"s")+" still to sort out":"nothing marked");
+  } else {
+    var sc=scores().length;
+    var miss=scores().reduce(function(t,p){return t+missingOf(p).length;},0);
+    setHead("MU · music","Music library",
+      sc+" piece"+(sc===1?"":"s")+"  ·  "+FILES.filter(function(f){return f.linkKind==="score";}).length+
+      " parts"+(miss?"  ·  "+miss+" missing":""));
+  }
 }
-function chargesIn(days){
-  var out=[];
-  active().forEach(function(s){
-    if(!s.next) return;
-    var d=s.next;
-    while(daysBetween(today(),d)<=days){
-      if(d>=today()) out.push({sub:s,date:d});
-      d=advance(s,d);
-      if(out.length>60) break;
-    }
-  });
-  return out.sort(function(a,b){return a.date.localeCompare(b.date);});
+async function reload(){ FILES=await fileList(); pageHead(); drawTab(); }
+
+/* ---------- library ---------- */
+function folders(){
+  var f={}; scores().forEach(function(p){ if(p.folder) f[p.folder]=(f[p.folder]||0)+1; });
+  return f;
 }
-function subRow(s,showActions){
-  var late=s.next&&s.next<=today();
-  var soon=s.next&&daysBetween(today(),s.next)<=3;
-  var r=el("div","bar-row trio"+(showActions?"":" tap")),L=el("div");
-  L.appendChild(el("div","who",s.name));
-  var bits=[money(s.cents)+" "+(s.cycle||"monthly")];
-  if(s.next&&s.active!==false) bits.push((late?"due now":"next "+relDay(s.next)));
-  if(s.method) bits.push(s.method);
-  if(s.cat) bits.push(s.cat);
-  if(s.trial) bits.push("FREE TRIAL");
-  if(s.active===false&&s.cancelledOn) bits.push("cancelled "+pretty(s.cancelledOn));
-  L.appendChild(el("div","meta",bits.join(" · ")));
-  r.appendChild(L);
-  var a=el("div","amt out",money(perMonth(s))+"/mo");
-  a.style.fontSize="12.5px";
-  if(s.active===false){ a.className="amt"; a.textContent="—"; }
-  r.appendChild(a);
-  if(s.trial&&s.active!==false&&soon) r.appendChild(el("span","pill hot","cancel now"));
-  else if(late) r.appendChild(el("span","pill hot","due"));
-  else if(soon) r.appendChild(el("span","pill warm","soon"));
-  else r.appendChild(el("div"));
-  r.onclick=function(){subDialog(s);};
+function drawLib(){
+  var sc=scores();
+  $("#nPieces").textContent=sc.length;
+  $("#nParts").textContent=sc.reduce(function(t,p){return t+partsOf(p.id).length;},0);
+  $("#nMiss").textContent=sc.reduce(function(t,p){return t+missingOf(p).length;},0);
+  $("#myPart").textContent=myPart()||"not set";
+
+  var fo=folders(), fl=$("#mfilters");
+  var opts=[["all","All ("+sc.length+")"]];
+  Object.keys(fo).sort().forEach(function(k){opts.push(["f:"+k,k+" ("+fo[k]+")"]);});
+  opts.push(["incomplete","Missing parts"],["work","Has trouble spots"]);
+  if(myPart()) opts.push(["mine","Has my part"]);
+  fl.innerHTML=opts.map(function(o){
+    return '<button data-f="'+esc(o[0])+'"'+(o[0]===mfilter?' aria-pressed="true"':'')+'>'+esc(o[1])+'</button>';}).join("");
+  fl.querySelectorAll("button").forEach(function(b){
+    b.onclick=function(){mfilter=b.dataset.f;drawLib();};});
+
+  var q=mq.toLowerCase();
+  var list=sc.filter(function(p){
+    if(mfilter.indexOf("f:")===0&&p.folder!==mfilter.slice(2)) return false;
+    if(mfilter==="incomplete"&&!missingOf(p).length) return false;
+    if(mfilter==="work"&&!openSpots(p).length) return false;
+    if(mfilter==="mine"){
+      var mine=myPart().toLowerCase();
+      if(!mine||!partsOf(p.id).some(function(f){return (f.label||"").toLowerCase().indexOf(mine)>=0;})) return false;}
+    if(!q) return true;
+    return [p.title,p.composer,p.arranger,p.folder,p.notes].join(" ").toLowerCase().indexOf(q)>=0;
+  }).sort(function(a,b){return (a.title||"").localeCompare(b.title||"");});
+
+  var host=$("#mlist"); host.innerHTML="";
+  if(!list.length){
+    host.appendChild(emptyBox(sc.length?"Nothing matches":"No pieces yet",
+      sc.length?"Try another word or filter.":"Add a piece, then upload parts as you get them."));
+    return;}
+  var box=el("div","bar-list");
+  list.forEach(function(p){
+    var pts=partsOf(p.id), miss=missingOf(p), sp=openSpots(p), mins=minutesForPiece(p.id);
+    var r=el("div","mrow2");
+    r.appendChild(el("div","gr"+((+p.grade)>=5?" g5":""),p.grade||"–"));
+    var L2=el("div");
+    L2.appendChild(el("div","ti",p.title||"Untitled"));
+    var by=[];
+    if(p.composer) by.push(p.composer);
+    if(p.arranger) by.push("arr. "+p.arranger);
+    if(p.tempo) by.push(p.tempo+" bpm");
+    if(mins) by.push(hoursText(mins)+" practised");
+    if(p.folder) by.push(p.folder);
+    L2.appendChild(el("div","by",by.join(" · ")||"no details yet"));
+    r.appendChild(L2);
+    r.appendChild(el("span","pill",pts.length+" part"+(pts.length===1?"":"s")));
+    r.appendChild(sp.length?el("span","pill hot",sp.length+" to fix")
+      :(miss.length?el("span","pill warm",miss.length+" missing"):el("span","pill","ready")));
+    r.onclick=function(){pieceDialog(p);};
+    box.appendChild(r);});
+  host.appendChild(box);
+}
+
+/* ---------- practice ---------- */
+function drawPrac(){
+  $("#pWeek").textContent=hoursText(weekMinutes());
+  $("#pStreak").textContent=practiceStreak();
+  $("#pCount").textContent=sessions().length;
+  $("#pAll").textContent=hoursText(sessions().reduce(function(t,s){return t+(+s.minutes||0);},0));
+
+  var bars=$("#pBars"); bars.innerHTML="";
+  var max=1;
+  for(var i=6;i>=0;i--) max=Math.max(max,minutesOn(addDays(today(),-i)));
+  for(var j=6;j>=0;j--){
+    var d=addDays(today(),-j), m=minutesOn(d);
+    var c=el("div");
+    var b=el("div","bar"), fill=el("i");
+    fill.style.height=Math.round(m/max*56)+"px";
+    if(!m) fill.style.background="var(--rule)";
+    b.appendChild(fill); c.appendChild(b);
+    c.appendChild(el("div","mn",m?m+"":""));
+    c.appendChild(el("div","lb",DOWL[parseD(d).getDay()].slice(0,1)));
+    bars.appendChild(c);}
+
+  var ph=$("#pPieces"); ph.innerHTML="";
+  var withTime=scores().map(function(p){return {p:p,m:minutesForPiece(p.id)};})
+    .filter(function(x){return x.m>0;}).sort(function(a,b){return b.m-a.m;});
+  if(!withTime.length) ph.appendChild(emptyBox("Nothing logged against a piece yet",
+    "Pick which pieces you worked on when you log a session."));
+  else{
+    var top=withTime[0].m, box=el("div");
+    withTime.forEach(function(x){
+      var d=el("div","cat"),l=el("div","cl");
+      l.appendChild(el("b",null,x.p.title));
+      l.appendChild(el("span",null,hoursText(x.m)));
+      d.appendChild(l);
+      var tr=el("div","track"),f=el("div","fill");
+      f.style.width=Math.max(3,Math.round(x.m/top*100))+"%";
+      f.style.background="var(--pos)";
+      tr.appendChild(f); d.appendChild(tr); box.appendChild(d);});
+    ph.appendChild(box);}
+
+  var host=$("#pList"); host.innerHTML="";
+  var list=sessions().slice().sort(function(a,b){return b.date.localeCompare(a.date);}).slice(0,20);
+  if(!list.length){ host.appendChild(emptyBox("No sessions yet","Log one after you next play.")); return; }
+  var box2=el("div","bar-list");
+  list.forEach(function(s){
+    var r=el("div","bar-row trio tap"),L2=el("div");
+    var names=(s.scoreIds||[]).map(function(id){var p=pieceById(id);return p?p.title:null;}).filter(Boolean);
+    L2.appendChild(el("div","who",s.minutes+" minutes"+(names.length?" · "+names.join(", "):"")));
+    L2.appendChild(el("div","meta",prettyFull(s.date)+" · "+relDay(s.date)+(s.what?" · "+s.what:"")));
+    r.appendChild(L2);
+    r.appendChild(el("span","pill","MU"));
+    var k=el("button","kill","×");
+    k.onclick=function(e){e.stopPropagation();
+      if(!confirm("Delete this session?")) return;
+      H.practice=sessions().filter(function(x){return x.id!==s.id;});
+      save();pageHead();drawPrac();};
+    r.appendChild(k);
+    r.onclick=function(){sessionDialog(s);};
+    box2.appendChild(r);});
+  host.appendChild(box2);
+}
+
+/* ---------- needs work ---------- */
+function drawWork(){
+  var host=$("#wList"); host.innerHTML="";
+  var any=false;
+  scores().forEach(function(p){
+    var sp=spotsOf(p).filter(function(s){return showFixed||!s.fixed;});
+    if(!sp.length) return;
+    any=true;
+    host.appendChild(el("h2","sec",p.title+(p.tempo?" · "+p.tempo+" bpm":"")));
+    var box=el("div","bar-list");
+    sp.sort(function(a,b){return (+a.measure||0)-(+b.measure||0);}).forEach(function(s){
+      box.appendChild(spotRow(p,s,function(){drawWork();pageHead();}));});
+    host.appendChild(box);});
+  if(!any) host.appendChild(emptyBox("Nothing marked",
+    "Open a piece and mark the bars that keep tripping you up."));
+}
+function spotRow(p,s,after){
+  var r=el("div","spot"+(s.fixed?" fixed":""));
+  r.appendChild(el("div","mm","m."+(s.measure||"?")));
+  var L2=el("div");
+  L2.appendChild(el("div","w",s.what||"—"));
+  if(s.part) L2.appendChild(el("div","p",s.part));
+  r.appendChild(L2);
+  var b=el("button","btn ghost sm",s.fixed?"Unfix":"Sorted");
+  b.onclick=function(){ s.fixed=!s.fixed; s.fixedOn=s.fixed?today():""; save(); after&&after(); };
+  r.appendChild(b);
+  var k=el("button","kill","×");
+  k.onclick=function(){
+    p.spots=spotsOf(p).filter(function(x){return x.id!==s.id;});
+    save(); after&&after();};
+  r.appendChild(k);
   return r;
 }
-function pageRender(){
-  var changed=false;
-  (H.subs||[]).forEach(function(s){ if(s.active!==false&&rollForward(s)) changed=true; });
-  if(changed) save();
 
-  var a=active();
-  $("#mMonth").textContent=money(a.reduce(function(t,s){return t+perMonth(s);},0));
-  $("#mYear").textContent=money(a.reduce(function(t,s){return t+perYear(s);},0));
-  $("#m30").textContent=money(chargesIn(30).reduce(function(t,c){return t+c.sub.cents;},0));
-  $("#mSaved").textContent=money((H.subs||[]).filter(function(s){return s.active===false;})
-    .reduce(function(t,s){return t+perYear(s);},0))+"/yr";
-  $("#activeCount").textContent=a.length+" of them";
-
-  var soon=chargesIn(30),host=$("#soon"); host.innerHTML="";
-  if(!soon.length) host.appendChild(emptyBox("Nothing charging soon","Add a subscription and its next charge shows up here."));
-  else{
-    var box=el("div","bar-list");
-    soon.slice(0,12).forEach(function(c){
-      var r=el("div","bar-row trio"),L=el("div");
-      L.appendChild(el("div","who",c.sub.name));
-      L.appendChild(el("div","meta",relDay(c.date)+" · "+prettyFull(c.date)+(c.sub.method?" · "+c.sub.method:"")));
-      r.appendChild(L);
-      r.appendChild(el("div","amt out",money(c.sub.cents)));
-      r.appendChild(c.sub.trial?el("span","pill hot","trial"):el("div"));
-      box.appendChild(r);});
-    host.appendChild(box);
-  }
-
-  var lh=$("#list"); lh.innerHTML="";
-  if(!a.length) lh.appendChild(emptyBox("Nothing tracked yet","Add what you pay for every month — streaming, phone, storage, anything."));
-  else{
-    var b2=el("div","bar-list");
-    a.slice().sort(function(x,y){return perYear(y)-perYear(x);}).forEach(function(s){b2.appendChild(subRow(s));});
-    lh.appendChild(b2);
-  }
-
-  var dead=(H.subs||[]).filter(function(s){return s.active===false;});
-  var dh=$("#dead"); dh.innerHTML="";
-  if(!dead.length) dh.appendChild(emptyBox("None cancelled","When you cancel something it moves here with what it was costing you."));
-  else{
-    var b3=el("div","bar-list");
-    dead.forEach(function(s){b3.appendChild(subRow(s));});
-    dh.appendChild(b3);
-  }
-}
-function methodOpts(sel){
-  var ms=(L&&L.methods)?L.methods:["Cash","Cash App","Apple Pay","Debit card"];
-  return '<option value="">Not noted</option>'+ms.map(function(m){
-    return '<option value="'+esc(m)+'"'+(m===sel?" selected":"")+'>'+esc(m)+'</option>';}).join("");
-}
-function subDialog(s,isTrial){
-  var isNew=!s;
-  s=s||{name:"",cents:0,cycle:isTrial?"monthly":"monthly",next:"",method:"",cat:"",url:"",notes:"",
-        active:true,trial:!!isTrial};
-  openDlg(isNew?(isTrial?"Add a free trial":"Add a subscription"):s.name,
-    (isTrial?'<p class="warn">Put the date the trial ends as the next charge. It turns red three days before, so you get a chance to cancel first.</p>':'')+
-    '<label><span>What is it</span><input id="fN" value="'+esc(s.name)+'" placeholder="Spotify, phone, storage"></label>'+
+/* ---------- dialogs ---------- */
+function pieceDialog(p){
+  var isNew=!p;
+  p=p||{title:"",composer:"",arranger:"",grade:"",ensemble:"band",key:"",tempo:"",
+        duration:"",publisher:"",folder:"",notes:"",spots:[],expected:[]};
+  openDlg(isNew?"Add a piece":(p.title||"Piece"),
+    '<label><span>Title</span><input id="pT" value="'+esc(p.title)+'" placeholder="Keep on Running"></label>'+
     '<div class="two">'+
-      '<label><span>How much</span><input type="number" step="0.01" min="0" id="fA" inputmode="decimal" value="'+(s.cents?(s.cents/100).toFixed(2):"")+'" placeholder="0.00"></label>'+
-      '<label><span>How often</span><select id="fC">'+
-        ["weekly","monthly","quarterly","yearly"].map(function(c){
-          return '<option value="'+c+'"'+(s.cycle===c?" selected":"")+'>'+c+'</option>';}).join("")+
-      '</select></label></div>'+
+      '<label><span>Composer</span><input id="pC" value="'+esc(p.composer||"")+'"></label>'+
+      '<label><span>Arranger</span><input id="pA" value="'+esc(p.arranger||"")+'"></label></div>'+
     '<div class="two">'+
-      '<label><span>'+(s.trial?"Trial ends":"Next charge")+'</span><input type="date" id="fD" value="'+esc(s.next||"")+'"></label>'+
-      '<label><span>Paid with</span><select id="fM">'+methodOpts(s.method)+'</select></label></div>'+
+      '<label><span>Grade</span><input id="pG" value="'+esc(p.grade||"")+'" inputmode="decimal" placeholder="4"></label>'+
+      '<label><span>Ensemble</span><select id="pE">'+
+        '<option value="band"'+(p.ensemble!=="jazz"?" selected":"")+'>Concert band</option>'+
+        '<option value="jazz"'+(p.ensemble==="jazz"?" selected":"")+'>Jazz band</option></select></label></div>'+
     '<div class="two">'+
-      '<label><span>Category</span><input id="fT" value="'+esc(s.cat||"")+'" placeholder="Music, phone, tools"></label>'+
-      '<label class="check" style="margin-top:18px"><input type="checkbox" id="fR"'+(s.trial?" checked":"")+'><span>This is a free trial</span></label></div>'+
-    '<label><span>Where to cancel it</span><input id="fU" value="'+esc(s.url||"")+'" placeholder="Website or phone number"></label>'+
-    '<label><span>Notes</span><input id="fO" value="'+esc(s.notes||"")+'" placeholder="Optional"></label>'+
-    '<div class="row-btns"><button class="btn" id="fS" style="flex:1">'+(isNew?"Add it":"Save")+'</button>'+
-    (isNew?'':(s.active===false
-      ? '<button class="btn ghost" id="fRe">Restart it</button>'
-      : '<button class="btn ghost" id="fX">Cancelled it</button>')+
-      '<button class="btn ghost sm" id="fDel">Delete</button>')+'</div>',
+      '<label><span>Tempo (bpm)</span><input id="pB" value="'+esc(p.tempo||"")+'" inputmode="numeric"></label>'+
+      '<label><span>Key</span><input id="pK" value="'+esc(p.key||"")+'"></label></div>'+
+    '<div class="two">'+
+      '<label><span>Length</span><input id="pD" value="'+esc(p.duration||"")+'" placeholder="6:30"></label>'+
+      '<label><span>Folder / concert</span><input id="pF" value="'+esc(p.folder||"")+'" list="dlFolders"></label></div>'+
+    '<datalist id="dlFolders">'+Object.keys(folders()).map(function(f){
+      return '<option value="'+esc(f)+'">';}).join("")+'</datalist>'+
+    '<label><span>Publisher</span><input id="pP" value="'+esc(p.publisher||"")+'"></label>'+
+    '<label><span>Notes</span><textarea id="pN" style="min-height:52px" placeholder="Cuts, repeats, tempo changes">'+esc(p.notes||"")+'</textarea></label>'+
+    (isNew?'':'<div id="pParts"></div><div id="pSpots"></div><div id="pRecs"></div><div id="pHist"></div>')+
+    '<div class="row-btns"><button class="btn" id="pS" style="flex:1">'+(isNew?"Add it":"Save")+'</button>'+
+    (isNew?'':'<button class="btn ghost sm" id="pI">Instrumentation</button><button class="btn ghost sm" id="pX">Delete</button>')+'</div>',
     function(){
-      $("#fS").onclick=function(){
-        var n=$("#fN").value.trim();
-        if(!n){toast("What is it called?");return;}
-        s.name=n; s.cents=cents($("#fA").value); s.cycle=$("#fC").value;
-        s.next=$("#fD").value; s.method=$("#fM").value; s.cat=$("#fT").value.trim();
-        s.url=$("#fU").value.trim(); s.notes=$("#fO").value.trim(); s.trial=$("#fR").checked;
-        if(isNew){s.id=uid();s.active=true;s.created=today();H.subs.push(s);}
-        save();pageHead();pageRender();buildNav();dlg.close();toast(isNew?"Added":"Saved");};
-      if(!isNew&&s.active!==false) $("#fX").onclick=function(){
-        s.active=false; s.cancelledOn=today();
-        save();pageHead();pageRender();buildNav();dlg.close();
-        toast("Cancelled — that's "+money(perYear(s))+" a year back");};
-      if(!isNew&&s.active===false) $("#fRe").onclick=function(){
-        s.active=true; delete s.cancelledOn;
-        if(s.next&&s.next<today()) rollForward(s);
-        save();pageHead();pageRender();buildNav();dlg.close();toast("Back on the list");};
-      if(!isNew) $("#fDel").onclick=function(){
-        if(!confirm("Delete "+s.name+" completely? Use 'Cancelled it' instead if you want to keep the record.")) return;
-        trashIt("sub",s.name,s);
-        H.subs=H.subs.filter(function(x){return x.id!==s.id;});
-        save();pageHead();pageRender();buildNav();dlg.close();};
+      if(!isNew){ drawParts(p); drawSpots(p); drawRecs(p); drawHist(p); }
+      $("#pS").onclick=function(){
+        var t=$("#pT").value.trim();
+        if(!t) return toast("What's the piece called?");
+        p.title=t;p.composer=$("#pC").value.trim();p.arranger=$("#pA").value.trim();
+        p.grade=$("#pG").value.trim();p.ensemble=$("#pE").value;p.tempo=$("#pB").value.trim();
+        p.key=$("#pK").value.trim();p.duration=$("#pD").value.trim();
+        p.folder=$("#pF").value.trim();p.publisher=$("#pP").value.trim();p.notes=$("#pN").value;
+        if(isNew){p.id=uid();p.added=today();p.spots=[];scores().push(p);}
+        save();pageHead();drawTab();dlg.close();
+        toast(isNew?"Added — open it to upload parts":"Saved");};
+      if(!isNew){
+        $("#pI").onclick=function(){ dlg.close(); setTimeout(function(){instrDialog(p);},60); };
+        $("#pX").onclick=function(){
+          var n=partsOf(p.id).length;
+          if(!confirm("Delete "+p.title+"?"+(n?" Its "+n+" file(s) stay in Documents.":""))) return;
+          trashIt("piece",p.title,p);
+          H.scores=scores().filter(function(x){return x.id!==p.id;});
+          save();pageHead();drawTab();dlg.close();};
+      }
     });
 }
-function pageAction(a){
-  if(a==="new") subDialog(null,false);
-  else if(a==="trial") subDialog(null,true);
+function drawParts(p){
+  var host=$("#pParts"); if(!host) return;
+  host.innerHTML="";
+  host.appendChild(el("h2","sec","Parts"));
+  var pts=partsOf(p.id).sort(function(a,b){
+    return expectedOf(p).indexOf(a.label||"")-expectedOf(p).indexOf(b.label||"");});
+  var wrap=el("div","parts"), mine=myPart().toLowerCase();
+  pts.forEach(function(f){
+    var d=el("div","prt"+(mine&&(f.label||"").toLowerCase().indexOf(mine)>=0?" mine":""));
+    var a=el("a",null,f.label||f.name); a.href="/api/files/"+f.id; a.target="_blank";
+    d.appendChild(a);
+    var x=el("span","x","×");
+    x.onclick=function(){
+      if(!confirm("Remove "+(f.label||f.name)+"?")) return;
+      fileDelete(f.id).then(function(){ reload().then(function(){drawParts(p);}); });};
+    d.appendChild(x); wrap.appendChild(d);});
+  missingOf(p).forEach(function(i){ wrap.appendChild(el("div","miss",i)); });
+  if(!pts.length&&!missingOf(p).length) wrap.appendChild(el("div","prt","nothing yet"));
+  host.appendChild(wrap);
+  uploadRow(host,p,"score","Upload a part","Which instrument",
+    "image/*,application/pdf,.heic",expectedOf(p),function(){drawParts(p);});
 }
-function pageBoot(){ if(qparam("new")) setTimeout(function(){subDialog(null,false);},120); }
+function drawRecs(p){
+  var host=$("#pRecs"); if(!host) return;
+  host.innerHTML="";
+  host.appendChild(el("h2","sec","Recordings"));
+  var rs=recsOf(p.id);
+  if(!rs.length) host.appendChild(el("p","foot-note","Record a run-through on your phone and put it here to hear it back later."));
+  rs.sort(function(a,b){return b.added-a.added;}).forEach(function(f){
+    var d=el("div"); d.style.marginBottom="10px";
+    var top=el("div"); top.style.cssText="display:flex;justify-content:space-between;gap:8px;align-items:center";
+    top.appendChild(el("div","who",(f.label||f.name)+" · "+new Date(f.added).toLocaleDateString()));
+    var k=el("button","kill","×");
+    k.onclick=function(){
+      if(!confirm("Delete this recording?")) return;
+      fileDelete(f.id).then(function(){ reload().then(function(){drawRecs(p);}); });};
+    top.appendChild(k); d.appendChild(top);
+    if(/^audio|^video/.test(f.type||"")){
+      var a=document.createElement(/^video/.test(f.type)?"video":"audio");
+      a.controls=true; a.src="/api/files/"+f.id;
+      if(/^video/.test(f.type)) a.style.width="100%";
+      d.appendChild(a);
+    } else {
+      var lnk=el("a","btn ghost sm","Open"); lnk.href="/api/files/"+f.id; lnk.target="_blank";
+      d.appendChild(lnk);
+    }
+    host.appendChild(d);});
+  uploadRow(host,p,"recording","Add a recording","Name it (e.g. run-through Aug 8)",
+    "audio/*,video/*",[],function(){drawRecs(p);});
+}
+function uploadRow(host,p,kind,btnLabel,namePlaceholder,accept,list,after){
+  var lab=el("label"); lab.style.marginTop="9px";
+  var id="up_"+kind;
+  lab.innerHTML='<span>'+esc(btnLabel)+'</span><input id="'+id+'" list="dl_'+kind+'" placeholder="'+esc(namePlaceholder)+'">'+
+    (list.length?'<datalist id="dl_'+kind+'">'+list.map(function(i){
+      return '<option value="'+esc(i)+'">';}).join("")+'</datalist>':'');
+  host.appendChild(lab);
+  var pick=el("input"); pick.type="file"; pick.style.display="none"; pick.accept=accept;
+  var btn=el("button","btn ghost sm","Choose the file"); btn.style.width="100%";
+  btn.onclick=function(e){
+    e.preventDefault();
+    if(!$("#"+id).value.trim()) return toast("Give it a name first");
+    pick.click();};
+  host.appendChild(btn); host.appendChild(pick);
+  pick.onchange=function(){
+    var f=pick.files[0]; if(!f) return;
+    var name=$("#"+id).value.trim();
+    btn.disabled=true; btn.textContent="Uploading…";
+    fileUpload(f,kind,p.id,name).then(function(){
+      btn.disabled=false; btn.textContent="Choose the file";
+      pick.value=""; reload().then(function(){ after(); toast(name+" added"); });
+    }).catch(function(e2){
+      btn.disabled=false; btn.textContent="Choose the file";
+      toast(e2.message||"Upload failed");});};
+}
+function drawSpots(p){
+  var host=$("#pSpots"); if(!host) return;
+  host.innerHTML="";
+  host.appendChild(el("h2","sec","Trouble spots"));
+  var sp=spotsOf(p);
+  if(!sp.length) host.appendChild(el("p","foot-note","Mark the bars that keep going wrong so you know what to drill."));
+  else{
+    var box=el("div","bar-list");
+    sp.slice().sort(function(a,b){return (+a.measure||0)-(+b.measure||0);}).forEach(function(s){
+      box.appendChild(spotRow(p,s,function(){drawSpots(p);}));});
+    host.appendChild(box);}
+  var row=el("div"); row.style.marginTop="9px";
+  row.innerHTML='<div class="two">'+
+    '<label><span>Measure</span><input id="spM" inputmode="numeric" placeholder="47"></label>'+
+    '<label><span>Part (optional)</span><input id="spP" placeholder="'+esc(myPart()||"Trumpet 2")+'"></label></div>'+
+    '<label><span>What goes wrong</span><input id="spW" placeholder="the run into the key change"></label>';
+  host.appendChild(row);
+  var b=el("button","btn ghost sm","Mark this spot"); b.style.width="100%";
+  b.onclick=function(e){
+    e.preventDefault();
+    var w=$("#spW").value.trim();
+    if(!w) return toast("What goes wrong there?");
+    p.spots=spotsOf(p);
+    p.spots.push({id:uid(),measure:$("#spM").value.trim(),part:$("#spP").value.trim(),
+      what:w,fixed:false,added:today()});
+    save(); $("#spM").value="";$("#spP").value="";$("#spW").value="";
+    drawSpots(p); pageHead(); toast("Marked");};
+  host.appendChild(b);
+}
+function drawHist(p){
+  var host=$("#pHist"); if(!host) return;
+  host.innerHTML="";
+  var ss=sessions().filter(function(s){return (s.scoreIds||[]).indexOf(p.id)>=0;})
+    .sort(function(a,b){return b.date.localeCompare(a.date);});
+  if(!ss.length) return;
+  host.appendChild(el("h2","sec","You've practised this"));
+  host.appendChild(el("p","foot-note",hoursText(minutesForPiece(p.id))+" across "+ss.length+
+    " session"+(ss.length===1?"":"s")+", last on "+prettyFull(ss[0].date)+"."));
+}
+function instrDialog(p){
+  openDlg("Instrumentation — "+p.title,
+    '<p class="foot-note" style="margin-top:0">What this arrangement actually calls for. Missing parts are worked out from this.</p>'+
+    '<label><span>Parts needed</span><textarea id="iL" style="min-height:180px">'+esc(expectedOf(p).join("\n"))+'</textarea></label>'+
+    '<div class="row-btns"><button class="btn" id="iS" style="flex:1">Save the list</button>'+
+    '<button class="btn ghost sm" id="iR">Reset to standard</button></div>',
+    function(){
+      $("#iS").onclick=function(){
+        p.expected=$("#iL").value.split("\n").map(function(x){return x.trim();}).filter(Boolean);
+        save();drawTab();dlg.close();setTimeout(function(){pieceDialog(p);},60);};
+      $("#iR").onclick=function(){ $("#iL").value=(p.ensemble==="jazz"?JAZZ:BAND).join("\n"); };
+    });
+}
+function sessionDialog(s){
+  var isNew=!s;
+  s=s||{date:today(),minutes:30,scoreIds:[],what:"",notes:""};
+  openDlg(isNew?"Log a practice session":"Practice session",
+    '<div class="two">'+
+      '<label><span>When</span><input type="date" id="sD" value="'+esc(s.date)+'" max="'+today()+'"></label>'+
+      '<label><span>How long (minutes)</span><input type="number" id="sM" inputmode="numeric" min="1" value="'+(s.minutes||30)+'"></label></div>'+
+    '<label><span>What you worked on</span><input id="sW" value="'+esc(s.what||"")+'" placeholder="scales, the hard bit in the middle"></label>'+
+    '<div id="sPieces"></div>'+
+    '<label><span>Notes</span><textarea id="sN" style="min-height:52px" placeholder="How it went">'+esc(s.notes||"")+'</textarea></label>'+
+    '<div class="row-btns"><button class="btn" id="sS" style="flex:1">'+(isNew?"Log it":"Save")+'</button>'+
+    (isNew?'':'<button class="btn ghost sm" id="sX">Delete</button>')+'</div>',
+    function(){
+      var host=$("#sPieces"), chosen=(s.scoreIds||[]).slice();
+      var lab=el("div");
+      lab.style.cssText="font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--dim);margin-bottom:4px";
+      lab.textContent="Which pieces"; host.appendChild(lab);
+      var web=el("div","web");
+      if(!scores().length) web.appendChild(el("span","pill","no pieces in the library yet"));
+      scores().forEach(function(p){
+        var on=chosen.indexOf(p.id)>=0;
+        var c=el("span","pill"+(on?" warm":""),p.title);
+        c.style.cursor="pointer";
+        c.onclick=function(){
+          var i=chosen.indexOf(p.id);
+          if(i>=0){chosen.splice(i,1);c.className="pill";}
+          else{chosen.push(p.id);c.className="pill warm";}};
+        web.appendChild(c);});
+      host.appendChild(web);
+      $("#sS").onclick=function(){
+        var m=+$("#sM").value;
+        if(!m||m<1) return toast("How many minutes?");
+        s.date=$("#sD").value||today(); s.minutes=m;
+        s.what=$("#sW").value.trim(); s.notes=$("#sN").value.trim(); s.scoreIds=chosen;
+        if(isNew){ s.id=uid(); sessions().push(s); }
+        save(); pageHead(); drawTab(); dlg.close();
+        toast(isNew?hoursText(m)+" logged":"Saved");};
+      if(!isNew) $("#sX").onclick=function(){
+        if(!confirm("Delete this session?")) return;
+        H.practice=sessions().filter(function(x){return x.id!==s.id;});
+        save();pageHead();drawTab();dlg.close();};
+    });
+}
+function scheduleDialog(){
+  openDlg("Schedule practice",
+    '<p class="foot-note" style="margin-top:0">Puts it on the calendar. Practices show with an MU tag on the day.</p>'+
+    '<div class="two">'+
+      '<label><span>Day</span><input type="date" id="kD" value="'+today()+'"></label>'+
+      '<label><span>Time</span><input type="time" id="kT" value="19:00"></label></div>'+
+    '<label><span>What for</span><input id="kW" placeholder="Section rehearsal, run the concert set"></label>'+
+    '<div id="kPieces"></div>'+
+    '<button class="btn" id="kS" style="width:100%">Put it on the calendar</button>',
+    function(){
+      var host=$("#kPieces"), chosen=[];
+      var lab=el("div");
+      lab.style.cssText="font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--dim);margin:8px 0 4px";
+      lab.textContent="Pieces to work on"; host.appendChild(lab);
+      var web=el("div","web"); web.style.marginBottom="10px";
+      scores().forEach(function(p){
+        var c=el("span","pill",p.title); c.style.cursor="pointer";
+        c.onclick=function(){
+          var i=chosen.indexOf(p.id);
+          if(i>=0){chosen.splice(i,1);c.className="pill";}
+          else{chosen.push(p.id);c.className="pill warm";}};
+        web.appendChild(c);});
+      host.appendChild(web);
+      $("#kS").onclick=function(){
+        var names=chosen.map(function(id){var p=pieceById(id);return p?p.title:"";}).filter(Boolean);
+        H.events.push({id:uid(),title:$("#kW").value.trim()||"Practice",
+          date:$("#kD").value||today(),time:$("#kT").value,endTime:"",place:"",
+          notes:names.length?"Pieces: "+names.join(", "):"",personIds:[],
+          kind:"practice",scoreIds:chosen});
+        save(); dlg.close(); toast("On the calendar");};
+    });
+}
+function instrumentDialog(){
+  openDlg("Your instrument",
+    '<p class="foot-note" style="margin-top:0">Your own parts get highlighted, and you can filter to pieces you play.</p>'+
+    '<label><span>What do you play</span><input id="myI" list="dlAll" value="'+esc(myPart())+'" placeholder="Trumpet 2"></label>'+
+    '<datalist id="dlAll">'+BAND.concat(JAZZ).filter(function(v,i,a){return a.indexOf(v)===i;})
+      .map(function(i){return '<option value="'+esc(i)+'">';}).join("")+'</datalist>'+
+    '<button class="btn" id="myS" style="width:100%">Save</button>',
+    function(){
+      $("#myS").onclick=function(){
+        H.settings=H.settings||{};
+        H.settings.instrument=$("#myI").value.trim();
+        save();drawTab();dlg.close();toast(myPart()?"Set to "+myPart():"Cleared");};
+    });
+}
+
+function drawTab(){
+  if(mtab==="lib") drawLib();
+  else if(mtab==="prac") drawPrac();
+  else drawWork();
+}
+function setTab(t){
+  mtab=t;
+  $("#v-lib").style.display=t==="lib"?"block":"none";
+  $("#v-prac").style.display=t==="prac"?"block":"none";
+  $("#v-work").style.display=t==="work"?"block":"none";
+  $("#mtabs").querySelectorAll("button").forEach(function(b){
+    b.setAttribute("aria-pressed",b.dataset.t===t);});
+  pageHead(); drawTab();
+}
+function pageRender(){ drawTab(); }
+function pageAction(a){
+  if(a==="newpiece"||a==="new") pieceDialog(null);
+  else if(a==="setmine") instrumentDialog();
+  else if(a==="logpractice") sessionDialog(null);
+  else if(a==="schedule") scheduleDialog();
+  else if(a==="showfixed"){ showFixed=!showFixed; drawWork(); }
+}
+function pageBoot(){
+  H.scores=H.scores||[]; H.practice=H.practice||[];
+  $("#mq").oninput=function(){ mq=this.value.trim(); drawLib(); };
+  $("#mtabs").querySelectorAll("button").forEach(function(b){
+    b.onclick=function(){ setTab(b.dataset.t); };});
+  if(qparam("tab")) mtab=qparam("tab");
+  reload();
+}
 })();
 </script>

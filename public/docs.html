@@ -337,46 +337,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div id="pExtra"></div>
     </header>
     <section class="pane" id="pane">
-      <style>
-      .mrow2{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:10px 11px;border-bottom:1px solid rgba(0,0,0,.06)}
-      .mrow2:nth-child(odd){background:var(--bar)}
-      .mrow2:last-child{border-bottom:0}
-      .mrow2:hover{background:var(--hover);cursor:pointer}
-      .gr{font-family:var(--mono);font-size:12px;font-weight:600;border:1px solid var(--ink-3);border-radius:2px;padding:3px 6px;min-width:30px;text-align:center}
-      .gr.g5{border-color:var(--stamp);color:var(--stamp)}
-      .mrow2 .ti{font-weight:600;font-size:14.5px}
-      .mrow2 .by{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:1px}
-      .parts{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
-      .prt{font-family:var(--mono);font-size:11px;border:1px solid var(--rule);background:var(--card);border-radius:2px;padding:3px 7px;display:flex;align-items:center;gap:5px}
-      .prt a{color:inherit;text-decoration:none}
-      .prt a:hover{text-decoration:underline}
-      .prt.mine{border-color:var(--tick-deep);background:var(--warm);font-weight:600}
-      .prt .x{cursor:pointer;color:var(--dim);font-size:13px;line-height:1}
-      .prt .x:hover{color:var(--stamp)}
-      .miss{font-family:var(--mono);font-size:11px;border:1px dashed var(--stamp);color:var(--stamp);border-radius:2px;padding:3px 7px}
-      </style>
-      <div class="seg mini" id="mode">
-        <button type="button" data-m="music" aria-pressed="true">Sheet music</button>
-        <button type="button" data-m="files" aria-pressed="false">All documents</button>
-      </div>
 
-      <div id="v-music">
-        <div class="tally" style="margin-bottom:12px">
-          <div><div class="lbl">Pieces</div><div class="val" id="nPieces">0</div></div>
-          <div><div class="lbl">Parts filed</div><div class="val" id="nParts">0</div></div>
-          <div><div class="lbl">Missing parts</div><div class="val amt out" id="nMiss">0</div></div>
-          <div><div class="lbl">Your part</div><div class="val" id="myPart" style="font-size:14px">—</div></div>
-        </div>
-        <div class="row-btns" style="margin-bottom:12px">
-          <button class="btn" data-act="newpiece">Add a piece</button>
-          <button class="btn ghost sm" data-act="setmine">Set your instrument</button>
-        </div>
-        <label style="margin-bottom:10px"><span>Find a piece</span><input id="mq" placeholder="Title, composer, arranger, folder…"></label>
-        <div class="grp" id="mfilters"></div>
-        <div id="mlist"></div>
-      </div>
-
-      <div id="v-files" style="display:none">
       <div class="drop" id="drop">
         <b>Add a document</b>
         Tap here, or drag files in. Photos, PDFs, scans — 25 MB each.
@@ -385,8 +346,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <label style="margin-bottom:12px"><span>Find a document</span><input id="q" placeholder="Name, label, tag…"></label>
       <div class="grp" id="filters"></div>
       <div id="grid"></div>
-      </div>
-    </section>
+          </section>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -426,8 +386,14 @@ var DB={
   }
 };
 
-var APP_VERSION="1.6";
+var APP_VERSION="1.7";
 var CHANGELOG=[
+ {v:"1.7",d:"2026-08-08",t:"Music gets its own page",
+  items:["Sheet music moved out of Documents onto its own Music page",
+         "Practice log — minutes per session, which pieces, a seven day chart, streak and time on each piece",
+         "Trouble spots — mark the bars that keep going wrong, tick them off when they stop being a problem",
+         "Recordings — put run-throughs on a piece and play them back in the page",
+         "Schedule practice straight onto the calendar with the pieces you plan to work on"]},
  {v:"1.6",d:"2026-08-08",t:"Settings and changelog",
   items:["A Settings page — appearance, your details, task lists, money categories, AI behaviour, capture address, and data tools all in one place",
          "This changelog, with a dot on the Settings tab when something is new",
@@ -483,7 +449,7 @@ function migrateH(){
   H.tasks=H.tasks||[];H.events=H.events||[];H.notes=H.notes||[];
   H.habits=H.habits||[];H.things=H.things||[];H.contacts=H.contacts||[];
   H.subs=H.subs||[];H.journal=H.journal||[];H.scores=H.scores||[];
-  H.trash=H.trash||[];H.settings=H.settings||{};
+  H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];
   H.lists=(H.lists&&H.lists.length)?H.lists:DEF_LISTS.slice();
   H.version=H.version||1;
 }
@@ -785,6 +751,7 @@ var MODULES=[
   {id:"subs",cd:"SB",label:"Subscriptions",file:"subs.html"},
   {id:"journal",cd:"JR",label:"Journal",file:"journal.html"},
   {id:"docs",cd:"DC",label:"Documents",file:"docs.html"},
+  {id:"music",cd:"MU",label:"Music",file:"music.html"},
   {id:"history",cd:"HI",label:"History",file:"history.html"},
   {id:"talk",cd:"AI",label:"Talk",file:"talk.html"},
   {id:"settings",cd:"SE",label:"Settings",file:"settings.html"}
@@ -797,6 +764,8 @@ function navCounts(){
   c.habits=H.habits.filter(function(h){return !(h.days||{})[ts];}).length;
   var lt=ledgerTotals(); c.money=lt?lt.late.length:0;
   c.settings=unseenCount();
+  c.music=(H.scores||[]).reduce(function(t,p){
+    return t+((p.spots||[]).filter(function(x){return !x.fixed;}).length?1:0);},0);
   c.subs=(H.subs||[]).filter(function(x){return x.active!==false&&x.next&&daysBetween(ts,x.next)<=3;}).length;
   return c;
 }
@@ -939,7 +908,7 @@ function commandBar(){
               out.push({cd:"NT",t:n.title||"Untitled",s:"note",go:"notes.html?n="+n.id});});
           (H.scores||[]).forEach(function(p){
             if((p.title+" "+(p.composer||"")+" "+(p.arranger||"")).toLowerCase().indexOf(q)>=0)
-              out.push({cd:"DC",t:p.title,s:"sheet music",go:"docs.html"});});
+              out.push({cd:"MU",t:p.title,s:"sheet music",go:"music.html"});});
           (H.subs||[]).forEach(function(x){
             if(x.name.toLowerCase().indexOf(q)>=0)
               out.push({cd:"SB",t:x.name,s:"subscription",go:"subs.html"});});
@@ -1149,17 +1118,8 @@ document.addEventListener("keydown",function(e){
 var FILES=[], filter="all";
 function pageHead(){
   var n=FILES.length, mb=FILES.reduce(function(t,f){return t+f.size;},0);
-  if(mode==="music"){
-    var sc=(H.scores||[]).length;
-    var miss=(H.scores||[]).reduce(function(t,p){return t+missingOf(p).length;},0);
-    setHead("DC · sheet music","Music library",
-      sc+" piece"+(sc===1?"":"s")+"  ·  "+
-      FILES.filter(function(f){return f.linkKind==="score";}).length+" parts filed"+
-      (miss?"  ·  "+miss+" parts missing":""));
-  } else {
-    setHead("DC · documents","Documents",
-      n+" file"+(n===1?"":"s")+(n?"  ·  "+fileSize(mb)+" stored":"  ·  nothing yet"));
-  }
+  setHead("DC · documents","Documents",
+    n+" file"+(n===1?"":"s")+(n?"  ·  "+fileSize(mb)+" stored":"  ·  nothing yet"));
 }
 function extOf(f){
   var p=(f.name||"").split("."); 
@@ -1173,15 +1133,15 @@ function linkLabel(f){
     var sc=(H.scores||[]).filter(function(p){return p.id===f.linkId;})[0];
     return sc?("part of "+sc.title):"sheet music";
   }
+  if(f.linkKind==="recording"){
+    var rc=(H.scores||[]).filter(function(p){return p.id===f.linkId;})[0];
+    return rc?("recording of "+rc.title):"recording";
+  }
   if(f.linkKind==="item") return "a lent item";
   if(f.linkKind==="journal") return "journal "+f.linkId;
   return f.linkKind;
 }
-async function reload(){
-  FILES=await fileList();
-  pageHead();
-  if(mode==="music") drawMusic(); else draw();
-}
+async function reload(){ FILES=await fileList(); pageHead(); draw(); }
 function draw(){
   var q=($("#q").value||"").trim().toLowerCase();
   var fl=$("#filters");
@@ -1197,7 +1157,7 @@ function draw(){
     b.onclick=function(){filter=b.dataset.f;draw();};});
 
   var list=FILES.filter(function(f){
-    if(f.linkKind==="score"&&filter!=="all"&&filter!=="attached") return false;
+    if((f.linkKind==="score"||f.linkKind==="recording")&&filter!=="all"&&filter!=="attached") return false;
     if(filter==="images"&&!isImage(f)) return false;
     if(filter==="pdfs"&&!/pdf/.test(f.type)) return false;
     if(filter==="other"&&(isImage(f)||/pdf/.test(f.type))) return false;
@@ -1281,271 +1241,9 @@ function wireDrop(){
   d.addEventListener("drop",function(ev){
     if(ev.dataTransfer&&ev.dataTransfer.files.length) upload(ev.dataTransfer.files);});
 }
-function pageRender(){ if(mode==="music") drawMusic(); else draw(); }
-function pageAction(a){
-  if(a==="newpiece") pieceDialog(null);
-  else if(a==="setmine") instrumentDialog();
-  else if(a==="new"){ if(mode==="music") pieceDialog(null); else $("#pick").click(); }
-}
-function pageBoot(){
-  H.scores=H.scores||[];
-  $("#q").oninput=draw;
-  $("#mq").oninput=function(){ mq=this.value.trim(); drawMusic(); };
-  $("#mode").querySelectorAll("button").forEach(function(b){
-    b.onclick=function(){ setMode(b.dataset.m); pageHead(); };});
-  wireDrop();
-  reload();
-}
+function pageRender(){ draw(); }
+function pageAction(a){ if(a==="new") $("#pick").click(); }
+function pageBoot(){ $("#q").oninput=draw; wireDrop(); reload(); }
 
-/* ============================================================
-   SHEET MUSIC LIBRARY
-   A piece is a record in H.scores; each part is an uploaded
-   file linked with linkKind="score", linkId=piece.id and the
-   instrument name as its label.
-   ============================================================ */
-var BAND=["Full Score","Piccolo","Flute 1","Flute 2","Oboe","Bassoon",
-  "Clarinet 1","Clarinet 2","Clarinet 3","Bass Clarinet",
-  "Alto Sax 1","Alto Sax 2","Tenor Sax","Bari Sax",
-  "Trumpet 1","Trumpet 2","Trumpet 3","Horn 1","Horn 2",
-  "Trombone 1","Trombone 2","Bass Trombone","Euphonium","Tuba","String Bass",
-  "Timpani","Percussion 1","Percussion 2","Mallets"];
-var JAZZ=["Full Score","Alto Sax 1","Alto Sax 2","Tenor Sax 1","Tenor Sax 2","Bari Sax",
-  "Trumpet 1","Trumpet 2","Trumpet 3","Trumpet 4",
-  "Trombone 1","Trombone 2","Trombone 3","Bass Trombone",
-  "Guitar","Piano","Bass","Drums"];
-var mode="music", mq="", mfilter="all";
-
-function scores(){ H.scores=H.scores||[]; return H.scores; }
-function partsOf(id){ return FILES.filter(function(f){return f.linkKind==="score"&&f.linkId===id;}); }
-function expectedOf(p){
-  if(p.expected&&p.expected.length) return p.expected;
-  return p.ensemble==="jazz"?JAZZ:BAND;
-}
-function missingOf(p){
-  var have=partsOf(p.id).map(function(f){return (f.label||f.name).toLowerCase().trim();});
-  return expectedOf(p).filter(function(i){
-    return !have.some(function(h){return h===i.toLowerCase()||h.indexOf(i.toLowerCase())>=0;});
-  });
-}
-function myPart(){ return (H.settings&&H.settings.instrument)||""; }
-
-function musicHead(){
-  var sc=scores();
-  var parts=sc.reduce(function(t,p){return t+partsOf(p.id).length;},0);
-  var miss=sc.reduce(function(t,p){return t+missingOf(p).length;},0);
-  $("#nPieces").textContent=sc.length;
-  $("#nParts").textContent=parts;
-  $("#nMiss").textContent=miss;
-  $("#myPart").textContent=myPart()||"not set";
-}
-function folders(){
-  var f={}; scores().forEach(function(p){ if(p.folder) f[p.folder]=(f[p.folder]||0)+1; });
-  return f;
-}
-function drawMusic(){
-  musicHead();
-  var fo=folders(), fl=$("#mfilters");
-  var opts=[["all","All pieces ("+scores().length+")"]];
-  Object.keys(fo).sort().forEach(function(k){ opts.push(["f:"+k,k+" ("+fo[k]+")"]); });
-  opts.push(["incomplete","Missing parts"]);
-  if(myPart()) opts.push(["mine","Has my part"]);
-  fl.innerHTML=opts.map(function(o){
-    return '<button data-f="'+esc(o[0])+'"'+(o[0]===mfilter?' aria-pressed="true"':'')+'>'+esc(o[1])+'</button>';}).join("");
-  fl.querySelectorAll("button").forEach(function(b){
-    b.onclick=function(){mfilter=b.dataset.f;drawMusic();};});
-
-  var q=mq.toLowerCase();
-  var list=scores().filter(function(p){
-    if(mfilter.indexOf("f:")===0&&p.folder!==mfilter.slice(2)) return false;
-    if(mfilter==="incomplete"&&!missingOf(p).length) return false;
-    if(mfilter==="mine"){
-      var mine=myPart().toLowerCase();
-      if(!mine||!partsOf(p.id).some(function(f){return (f.label||"").toLowerCase().indexOf(mine)>=0;})) return false;
-    }
-    if(!q) return true;
-    return [p.title,p.composer,p.arranger,p.folder,p.notes,(p.tags||[]).join(" ")]
-      .join(" ").toLowerCase().indexOf(q)>=0;
-  }).sort(function(a,b){return (a.title||"").localeCompare(b.title||"");});
-
-  var host=$("#mlist"); host.innerHTML="";
-  if(!list.length){
-    host.appendChild(emptyBox(scores().length?"Nothing matches":"No pieces yet",
-      scores().length?"Try another word or filter."
-        :"Add a piece, then upload each part as you get it. Missing parts get flagged for you."));
-    return;
-  }
-  var box=el("div","bar-list");
-  list.forEach(function(p){
-    var pts=partsOf(p.id), miss=missingOf(p);
-    var r=el("div","mrow2");
-    var g=el("div","gr"+((+p.grade)>=5?" g5":""),p.grade||"–");
-    r.appendChild(g);
-    var L=el("div");
-    L.appendChild(el("div","ti",p.title||"Untitled"));
-    var by=[];
-    if(p.composer) by.push(p.composer);
-    if(p.arranger) by.push("arr. "+p.arranger);
-    if(p.tempo) by.push(p.tempo+" bpm");
-    if(p.folder) by.push(p.folder);
-    L.appendChild(el("div","by",by.join(" · ")||"no details yet"));
-    r.appendChild(L);
-    r.appendChild(el("span","pill",pts.length+" part"+(pts.length===1?"":"s")));
-    r.appendChild(miss.length?el("span","pill hot",miss.length+" missing"):el("span","pill","complete"));
-    r.onclick=function(){pieceDialog(p);};
-    box.appendChild(r);});
-  host.appendChild(box);
-}
-
-function pieceDialog(p){
-  var isNew=!p;
-  p=p||{title:"",composer:"",arranger:"",grade:"",ensemble:"band",key:"",tempo:"",
-        duration:"",publisher:"",folder:"",notes:"",tags:[],expected:[]};
-  openDlg(isNew?"Add a piece":(p.title||"Piece"),
-    '<label><span>Title</span><input id="pT" value="'+esc(p.title)+'" placeholder="Keep on Running"></label>'+
-    '<div class="two">'+
-      '<label><span>Composer</span><input id="pC" value="'+esc(p.composer||"")+'"></label>'+
-      '<label><span>Arranger</span><input id="pA" value="'+esc(p.arranger||"")+'" placeholder="Frank Sullivan"></label></div>'+
-    '<div class="two">'+
-      '<label><span>Grade</span><input id="pG" value="'+esc(p.grade||"")+'" placeholder="4" inputmode="decimal"></label>'+
-      '<label><span>Ensemble</span><select id="pE">'+
-        '<option value="band"'+(p.ensemble!=="jazz"?" selected":"")+'>Concert band</option>'+
-        '<option value="jazz"'+(p.ensemble==="jazz"?" selected":"")+'>Jazz band</option>'+
-      '</select></label></div>'+
-    '<div class="two">'+
-      '<label><span>Tempo (bpm)</span><input id="pB" value="'+esc(p.tempo||"")+'" inputmode="numeric" placeholder="162"></label>'+
-      '<label><span>Key</span><input id="pK" value="'+esc(p.key||"")+'" placeholder="Bb"></label></div>'+
-    '<div class="two">'+
-      '<label><span>Length</span><input id="pD" value="'+esc(p.duration||"")+'" placeholder="6:30"></label>'+
-      '<label><span>Folder / concert</span><input id="pF" value="'+esc(p.folder||"")+'" list="dlFolders" placeholder="Spring Concert"></label></div>'+
-    '<datalist id="dlFolders">'+Object.keys(folders()).map(function(f){
-      return '<option value="'+esc(f)+'">';}).join("")+'</datalist>'+
-    '<label><span>Publisher</span><input id="pP" value="'+esc(p.publisher||"")+'"></label>'+
-    '<label><span>Notes</span><textarea id="pN" style="min-height:52px" placeholder="Tempo changes, cuts, tricky spots">'+esc(p.notes||"")+'</textarea></label>'+
-    '<div id="pParts"></div>'+
-    '<div class="row-btns"><button class="btn" id="pS" style="flex:1">'+(isNew?"Add it":"Save")+'</button>'+
-    (isNew?'':'<button class="btn ghost sm" id="pI">Instrumentation</button><button class="btn ghost sm" id="pX">Delete</button>')+'</div>',
-    function(){
-      if(!isNew) drawParts(p);
-      $("#pS").onclick=function(){
-        var t=$("#pT").value.trim();
-        if(!t){toast("What's the piece called?");return;}
-        p.title=t;p.composer=$("#pC").value.trim();p.arranger=$("#pA").value.trim();
-        p.grade=$("#pG").value.trim();p.ensemble=$("#pE").value;p.tempo=$("#pB").value.trim();
-        p.key=$("#pK").value.trim();p.duration=$("#pD").value.trim();
-        p.folder=$("#pF").value.trim();p.publisher=$("#pP").value.trim();p.notes=$("#pN").value;
-        if(isNew){p.id=uid();p.added=today();scores().push(p);}
-        save();drawMusic();dlg.close();
-        toast(isNew?"Added — open it again to upload parts":"Saved");};
-      if(!isNew){
-        $("#pI").onclick=function(){ dlg.close(); setTimeout(function(){instrDialog(p);},60); };
-        $("#pX").onclick=function(){
-          var n=partsOf(p.id).length;
-          if(!confirm("Delete "+p.title+"?"+(n?" Its "+n+" part file"+(n===1?"":"s")+" stay in Documents.":""))) return;
-          trashIt("piece",p.title,p);
-          H.scores=scores().filter(function(x){return x.id!==p.id;});
-          save();drawMusic();dlg.close();};
-      }
-    });
-}
-
-function drawParts(p){
-  var host=$("#pParts"); host.innerHTML="";
-  var h=el("div");
-  h.style.cssText="font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--dim);margin-bottom:4px";
-  h.textContent="Parts on file";
-  host.appendChild(h);
-
-  var pts=partsOf(p.id).sort(function(a,b){
-    return expectedOf(p).indexOf(a.label||"")-expectedOf(p).indexOf(b.label||"");});
-  var wrap=el("div","parts");
-  var mine=myPart().toLowerCase();
-  pts.forEach(function(f){
-    var isMine=mine&&(f.label||"").toLowerCase().indexOf(mine)>=0;
-    var d=el("div","prt"+(isMine?" mine":""));
-    var a=el("a",null,f.label||f.name);
-    a.href="/api/files/"+f.id; a.target="_blank";
-    d.appendChild(a);
-    var x=el("span","x","×");
-    x.onclick=function(){
-      if(!confirm("Remove "+(f.label||f.name)+"?")) return;
-      fileDelete(f.id).then(function(){ reload().then(function(){drawParts(p);}); });};
-    d.appendChild(x);
-    wrap.appendChild(d);});
-  var miss=missingOf(p);
-  miss.forEach(function(i){ wrap.appendChild(el("div","miss",i)); });
-  if(!pts.length&&!miss.length) wrap.appendChild(el("div","prt","nothing yet"));
-  host.appendChild(wrap);
-
-  var row=el("div"); row.style.marginTop="9px";
-  var lab=el("label");
-  lab.innerHTML='<span>Upload a part</span><input id="partName" list="dlInstr" placeholder="Which instrument">'+
-    '<datalist id="dlInstr">'+expectedOf(p).map(function(i){
-      return '<option value="'+esc(i)+'">';}).join("")+'</datalist>';
-  row.appendChild(lab);
-  var pick=el("input"); pick.type="file"; pick.style.display="none";
-  pick.accept="image/*,application/pdf,.heic";
-  var btn=el("button","btn ghost sm","Choose the file");
-  btn.style.width="100%";
-  btn.onclick=function(e){
-    e.preventDefault();
-    if(!$("#partName").value.trim()){toast("Name the instrument first");return;}
-    pick.click();};
-  row.appendChild(btn); row.appendChild(pick);
-  host.appendChild(row);
-
-  pick.onchange=function(){
-    var f=pick.files[0]; if(!f) return;
-    var name=$("#partName").value.trim();
-    btn.disabled=true; btn.textContent="Uploading…";
-    fileUpload(f,"score",p.id,name).then(function(){
-      btn.disabled=false; btn.textContent="Choose the file";
-      pick.value=""; $("#partName").value="";
-      reload().then(function(){ drawParts(p); toast(name+" filed"); });
-    }).catch(function(e){
-      btn.disabled=false; btn.textContent="Choose the file";
-      toast(e.message||"Upload failed");});
-  };
-}
-
-function instrDialog(p){
-  openDlg("Instrumentation — "+p.title,
-    '<p class="foot-note" style="margin-top:0">This is the list a piece is checked against, so you know what is still missing. Trim it to what this arrangement actually calls for.</p>'+
-    '<label><span>Parts this piece needs</span><textarea id="iL" style="min-height:180px">'+
-      esc(expectedOf(p).join("\n"))+'</textarea></label>'+
-    '<div class="row-btns">'+
-      '<button class="btn" id="iS" style="flex:1">Save the list</button>'+
-      '<button class="btn ghost sm" id="iR">Reset to standard</button></div>',
-    function(){
-      $("#iS").onclick=function(){
-        p.expected=$("#iL").value.split("\n").map(function(x){return x.trim();}).filter(Boolean);
-        save();drawMusic();dlg.close();setTimeout(function(){pieceDialog(p);},60);};
-      $("#iR").onclick=function(){
-        $("#iL").value=(p.ensemble==="jazz"?JAZZ:BAND).join("\n");};
-    });
-}
-
-function instrumentDialog(){
-  openDlg("Your instrument",
-    '<p class="foot-note" style="margin-top:0">Your own parts get highlighted, and you can filter to just the pieces you play.</p>'+
-    '<label><span>What do you play</span><input id="myI" list="dlAll" value="'+esc(myPart())+'" placeholder="Trumpet 2"></label>'+
-    '<datalist id="dlAll">'+BAND.concat(JAZZ).filter(function(v,i,a){return a.indexOf(v)===i;})
-      .map(function(i){return '<option value="'+esc(i)+'">';}).join("")+'</datalist>'+
-    '<button class="btn" id="myS" style="width:100%">Save</button>',
-    function(){
-      $("#myS").onclick=function(){
-        H.settings=H.settings||{};
-        H.settings.instrument=$("#myI").value.trim();
-        save();drawMusic();dlg.close();toast(myPart()?"Set to "+myPart():"Cleared");};
-    });
-}
-
-function setMode(m){
-  mode=m;
-  $("#v-music").style.display=m==="music"?"block":"none";
-  $("#v-files").style.display=m==="files"?"block":"none";
-  $("#mode").querySelectorAll("button").forEach(function(b){
-    b.setAttribute("aria-pressed",b.dataset.m===m);});
-  if(m==="music") drawMusic(); else draw();
-}
 })();
 </script>
