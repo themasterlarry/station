@@ -17,6 +17,10 @@ const PUB_DIR  = process.env.STATION_PUBLIC || path.join(__dirname, "public");
 const FILE_DIR = path.join(DATA_DIR, "files");
 const HIST_DIR = path.join(DATA_DIR, "history");
 const MAX_BODY = 8 * 1024 * 1024;        // JSON payload cap
+const AI_URL   = process.env.STATION_AI_URL   || "http://ollama:11434";
+const AI_MODEL = process.env.STATION_AI_MODEL || "qwen2.5:1.5b";
+const AI_KEY   = process.env.STATION_AI_KEY   || "";     // only for hosted providers
+const AI_STYLE = process.env.STATION_AI_STYLE || "ollama"; // ollama | openai
 const MAX_FILE = 25 * 1024 * 1024;       // upload cap
 const HIST_KEEP = 40;                    // versions kept per key
 
@@ -126,8 +130,60 @@ const server = http.createServer(async (req, res) => {
   const url = req.url.split("?")[0];
   const q = new URLSearchParams((req.url.split("?")[1] || ""));
 
+  /* ---- AI proxy: keeps the model host and any key server-side ---- */
+  if (url === "/api/ai/status") {
+    try {
+      const base = AI_STYLE === "openai" ? AI_URL + "/models" : AI_URL + "/api/tags";
+      const r = await fetch(base, { headers: AI_KEY ? { Authorization: "Bearer " + AI_KEY } : {} });
+      const j = await r.json();
+      const models = AI_STYLE === "openai"
+        ? (j.data || []).map(m => m.id)
+        : (j.models || []).map(m => m.name);
+      return send(res, 200, JSON.stringify({ ok: r.ok, style: AI_STYLE, model: AI_MODEL, models }));
+    } catch (e) {
+      return send(res, 200, JSON.stringify({ ok: false, style: AI_STYLE, model: AI_MODEL,
+        error: "can't reach the model at " + AI_URL }));
+    }
+  }
+
+  if (url === "/api/ai" && req.method === "POST") {
+    const raw = await readBody(req, 1024 * 1024);
+    if (!raw) return send(res, 400, JSON.stringify({ error: "no body" }));
+    let body;
+    try { body = JSON.parse(raw.toString("utf8")); }
+    catch (e) { return send(res, 400, JSON.stringify({ error: "bad json" })); }
+    const messages = body.messages || [];
+    if (!messages.length) return send(res, 400, JSON.stringify({ error: "no messages" }));
+    try {
+      let endpoint, payload;
+      if (AI_STYLE === "openai") {
+        endpoint = AI_URL + "/chat/completions";
+        payload = { model: body.model || AI_MODEL, messages, temperature: 0.75, max_tokens: 900 };
+      } else {
+        endpoint = AI_URL + "/api/chat";
+        payload = { model: body.model || AI_MODEL, messages, stream: false,
+                    options: { temperature: 0.75, num_predict: 900 } };
+      }
+      const r = await fetch(endpoint, {
+        method: "POST",
+        headers: Object.assign({ "Content-Type": "application/json" },
+                               AI_KEY ? { Authorization: "Bearer " + AI_KEY } : {}),
+        body: JSON.stringify(payload)
+      });
+      const j = await r.json();
+      if (!r.ok) return send(res, 502, JSON.stringify({ error: j.error || "model error" }));
+      const text = AI_STYLE === "openai"
+        ? (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || ""
+        : (j.message && j.message.content) || "";
+      return send(res, 200, JSON.stringify({ text }));
+    } catch (e) {
+      return send(res, 502, JSON.stringify({ error: "couldn't reach the model — is Ollama running?" }));
+    }
+  }
+
   if (url === "/api/health")
     return send(res, 200, JSON.stringify({ ok:true, time:Date.now() }));
+
 
   if (url === "/api/token" && req.method === "GET")
     return send(res, 200, JSON.stringify({ token: CAPTURE_TOKEN }));
