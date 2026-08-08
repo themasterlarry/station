@@ -358,22 +358,76 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       @media(max-width:520px){
         .li,.lihead{grid-template-columns:1fr 46px 66px 72px auto;gap:5px;font-size:12px}
       }
+      /* ---- the invoice document, on screen and on paper ---- */
+      .paper{background:#fff;color:#12181d;border:1px solid var(--rule);border-radius:2px;
+        padding:26px 26px 20px;max-width:760px;margin:0 auto;font-size:13px;line-height:1.5}
+      .paper .band{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;
+        border-bottom:3px solid #12181d;padding-bottom:14px;margin-bottom:18px}
+      .paper .mono2{width:44px;height:44px;background:#12181d;color:#fff;display:flex;
+        align-items:center;justify-content:center;font-family:var(--disp);font-weight:700;
+        font-size:19px;letter-spacing:.04em;border-radius:2px;margin-bottom:8px}
+      .paper .word{font-family:var(--disp);text-transform:uppercase;letter-spacing:.3em;
+        font-size:26px;font-weight:700;line-height:1}
+      .paper .from{font-size:12px;line-height:1.6}
+      .paper .from b{font-family:var(--disp);text-transform:uppercase;letter-spacing:.06em;font-size:14px}
+      .paper .meta{text-align:right;font-size:12px;min-width:190px}
+      .paper .meta table{width:100%;border-collapse:collapse}
+      .paper .meta td{padding:2px 0;vertical-align:top}
+      .paper .meta td.k{text-align:left;font-family:var(--disp);text-transform:uppercase;
+        letter-spacing:.12em;font-size:9px;color:#6b7680;padding-right:14px;white-space:nowrap}
+      .paper .meta td.v{text-align:right;font-family:var(--mono);font-size:12px}
+      .paper .cols{display:flex;gap:30px;margin-bottom:20px}
+      .paper .cols>div{flex:1}
+      .paper .cap{font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;
+        font-size:9px;color:#6b7680;border-bottom:1px solid #d6dbd2;padding-bottom:3px;margin-bottom:6px}
+      .paper .who3{font-family:var(--disp);text-transform:uppercase;font-size:16px;font-weight:700;letter-spacing:.03em}
+      .paper table.items{width:100%;border-collapse:collapse;margin-bottom:2px}
+      .paper table.items th{font-family:var(--disp);text-transform:uppercase;letter-spacing:.12em;
+        font-size:9px;color:#6b7680;text-align:left;border-bottom:2px solid #12181d;padding:6px 8px}
+      .paper table.items td{padding:9px 8px;border-bottom:1px solid #e2e6dd;vertical-align:top}
+      .paper table.items tr:nth-child(even) td{background:#f7f9f4}
+      .paper table.items .r{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+      .paper .desc2{font-weight:600}
+      .paper .sums{display:flex;justify-content:flex-end;margin-top:14px}
+      .paper .sums table{border-collapse:collapse;min-width:260px}
+      .paper .sums td{padding:4px 0}
+      .paper .sums td.k{padding-right:22px;color:#48535c}
+      .paper .sums td.v{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+      .paper .sums tr.grand td{border-top:2px solid #12181d;padding-top:8px;font-size:17px;font-weight:700}
+      .paper .sums tr.paidrow td{color:#2C6B4C}
+      .paper .due{margin-top:16px;background:#12181d;color:#fff;padding:12px 16px;border-radius:2px;
+        display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+      .paper .due .l{font-family:var(--disp);text-transform:uppercase;letter-spacing:.16em;font-size:10px}
+      .paper .due .n{font-family:var(--mono);font-size:22px;font-weight:600}
+      .paper .due.settled{background:#2C6B4C}
+      .paper .codebox{margin-top:14px;border:2px dashed #12181d;border-radius:2px;padding:11px 14px;
+        display:flex;justify-content:space-between;align-items:center;gap:14px}
+      .paper .codebox .c{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:.12em}
+      .paper .codebox .t2{font-family:var(--disp);text-transform:uppercase;letter-spacing:.12em;font-size:9px;color:#6b7680}
+      .paper .terms2{margin-top:20px;border-top:1px solid #d6dbd2;padding-top:12px;font-size:11.5px;
+        line-height:1.65;color:#3c464e;white-space:pre-wrap}
+      .paper .foot2{margin-top:18px;border-top:1px solid #e2e6dd;padding-top:8px;
+        font-family:var(--mono);font-size:9.5px;color:#8a949c;display:flex;justify-content:space-between}
+      .paper .stamp3{position:absolute;right:34px;top:120px;border:4px solid #2C6B4C;color:#2C6B4C;
+        font-family:var(--disp);text-transform:uppercase;letter-spacing:.22em;font-weight:700;
+        font-size:23px;padding:5px 16px;transform:rotate(-9deg);opacity:.85;border-radius:3px}
+      .paperwrap{position:relative}
+      @media(max-width:560px){
+        .paper{padding:16px}
+        .paper .band,.paper .cols{flex-direction:column;gap:12px}
+        .paper .meta{text-align:left;min-width:0}
+        .paper .meta td.v{text-align:left}
+        .paper .word{font-size:20px}
+      }
       @media print{
-        .iv{border:0;padding:0}
-        .iv .hdr{display:flex;justify-content:space-between;border-bottom:3px solid #000;padding-bottom:10px;margin-bottom:16px}
-        .iv .big2{font-family:var(--disp);text-transform:uppercase;letter-spacing:.22em;font-size:22px;font-weight:700}
-        .iv .me{font-size:12px;line-height:1.5;text-align:right}
-        .iv .parties{display:flex;justify-content:space-between;gap:30px;margin-bottom:18px}
-        .iv .lbl2{font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;color:#555;margin-bottom:3px}
-        .iv table{width:100%;border-collapse:collapse;font-size:12.5px}
-        .iv th{font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:9.5px;text-align:left;border-bottom:1.5px solid #000;padding:5px 0}
-        .iv td{border-bottom:1px solid #ccc;padding:6px 0;vertical-align:top}
-        .iv td.r,.iv th.r{text-align:right}
-        .iv .sum{margin-top:12px;margin-left:auto;width:56%}
-        .iv .sum div{display:flex;justify-content:space-between;padding:3px 0;font-size:13px}
-        .iv .sum .grand{border-top:2px solid #000;margin-top:4px;padding-top:6px;font-size:17px;font-weight:700}
-        .iv .terms{margin-top:26px;font-size:11.5px;line-height:1.6;border-top:1px solid #ccc;padding-top:10px}
-        .iv .stamp2{margin-top:14px;display:inline-block;border:3px solid #2C6B4C;color:#2C6B4C;font-family:var(--disp);text-transform:uppercase;letter-spacing:.2em;font-weight:700;font-size:16px;padding:3px 12px;transform:rotate(-6deg)}
+        .shell,.fab,.toast,dialog{display:none!important}
+        body{background:#fff}
+        #printArea{display:block}
+        #printArea .paper{border:0;max-width:none;padding:0;font-size:12px}
+        #printArea .paper table.items tr:nth-child(even) td{background:#f4f6f1;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        #printArea .paper .due{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        #printArea .paper .mono2{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        @page{margin:16mm}
       }
       </style>
       <div class="tally" style="margin-bottom:12px">
@@ -428,8 +482,15 @@ var DB={
   }
 };
 
-var APP_VERSION="2.0";
+var APP_VERSION="2.1";
 var CHANGELOG=[
+ {v:"2.1",d:"2026-08-08",t:"Proper invoices, tied to your tickets",
+  items:["Invoices now look like real invoices — monogram, ruled line table, totals block, an amount-due panel and a PAID stamp",
+         "Preview one on screen before you print it or save it as a PDF",
+         "Issue a payment ticket from an invoice: they get a code to pay against",
+         "Part payments work — the invoice shows what has come in and what is still due, and the code stays good until it clears",
+         "Paying a ticket in Money updates the invoice by itself, and the other way round",
+         "Their address, email and phone come through from Contacts onto the invoice"]},
  {v:"2.0",d:"2026-08-08",t:"Invoices, and it can start the conversation",
   items:["A new Invoices page — line items with quantity and rate, discount and tax, numbering that carries on by itself",
          "Print a proper invoice, or send it as text; paid ones get a PAID stamp",
@@ -1211,9 +1272,79 @@ function invTotal(inv){
   var tax=inv.taxPct?Math.round(afterD*(+inv.taxPct)/100):0;
   return {sub:s,discount:d,tax:tax,total:afterD+tax};
 }
+function ticketFor(inv){
+  if(!L||!inv.ticketId) return null;
+  return (L.tickets||[]).filter(function(t){return t.id===inv.ticketId;})[0]||null;
+}
+function invPaid(inv){
+  var tk=ticketFor(inv);
+  if(tk) return tk.paidCents||0;
+  return inv.status==="paid"?invTotal(inv).total:(inv.paidCents||0);
+}
+function invDue(inv){ return Math.max(0,invTotal(inv).total-invPaid(inv)); }
+function newTicketCode(){
+  var A="ABCDEFGHJKLMNPQRSTUVWXYZ",D="23456789",c;
+  do{ c=""; for(var i=0;i<4;i++)c+=A[Math.floor(Math.random()*A.length)];
+      c+="-"; for(var j=0;j<4;j++)c+=D[Math.floor(Math.random()*D.length)];
+  }while((L.tickets||[]).some(function(t){return t.code===c;}));
+  return c;
+}
+function issueTicket(inv){
+  if(!L) return toast("No ledger on this device");
+  var t=invTotal(inv).total;
+  if(t<=0) return toast("Put some lines on it first");
+  if(ticketFor(inv)) return toast("It already has a ticket");
+  var p=inv.personId?contactRec(inv.personId):(inv.name?ensureContact(inv.name):null);
+  var tk={id:uid(),code:newTicketCode(),dir:"owed",cents:t,paidCents:0,pays:[],
+    personId:p?p.id:null,name:inv.name||"",note:"Invoice "+inv.number+(inv.forWhat?" — "+inv.forWhat:""),
+    method:"",due:inv.due||"",written:today(),status:"open",invoiceId:inv.id};
+  L.tickets.push(tk); saveL();
+  inv.ticketId=tk.id; inv.ticketCode=tk.code;
+  if(inv.status==="draft") inv.status="sent";
+  save();
+  return tk;
+}
+function syncFromTicket(inv){
+  var tk=ticketFor(inv);
+  if(!tk) return;
+  if(tk.status==="paid"&&inv.status!=="paid"){
+    inv.status="paid"; inv.paidOn=tk.closedOn||today();
+  } else if(tk.status==="open"&&inv.status==="paid"){
+    inv.status="sent"; delete inv.paidOn;
+  }
+}
+function takePayment(inv,cents2,method,acctId,when){
+  var tk=ticketFor(inv);
+  var txn=null;
+  if(L){
+    var ac=(L.accounts||[]).filter(function(a){return a.id===acctId;})[0]||L.accounts[0];
+    if(ac){
+      txn={id:uid(),type:"in",cents:cents2,date:when||today(),accountId:ac.id,
+        who:inv.name||"Invoice",personId:inv.personId||null,method:method||"",
+        note:"Invoice "+inv.number+(tk?" · ticket "+tk.code:"")};
+      ac.cents+=cents2; L.txns.push(txn);
+    }
+  }
+  if(tk){
+    tk.pays=tk.pays||[];
+    tk.pays.push({id:uid(),date:when||today(),cents:cents2,accountId:acctId,
+      method:method||"",txnId:txn?txn.id:null});
+    tk.paidCents=(tk.paidCents||0)+cents2;
+    if(tk.paidCents>=tk.cents){ tk.status="paid"; tk.closedOn=when||today(); }
+    saveL();
+    syncFromTicket(inv);
+  } else {
+    inv.paidCents=(inv.paidCents||0)+cents2;
+    if(inv.paidCents>=invTotal(inv).total){ inv.status="paid"; inv.paidOn=when||today(); }
+    if(L) saveL();
+  }
+  save();
+}
 function invStatus(inv){
+  syncFromTicket(inv);
   if(inv.status==="paid") return "paid";
   if(inv.status==="draft") return "draft";
+  if(invPaid(inv)>0) return inv.due&&inv.due<today()?"overdue":"part paid";
   if(inv.due&&inv.due<today()) return "overdue";
   return "sent";
 }
@@ -1229,7 +1360,7 @@ function pageHead(){
     var t=invTotal(i).total, st=invStatus(i);
     if(st==="paid"){ if((i.paidOn||"").slice(0,4)===yr) paid+=t; }
     else if(st==="draft") drafts++;
-    else { open+=t; if(st==="overdue") late+=t; }});
+    else { open+=invDue(i); paid+=invPaid(i); if(st==="overdue") late+=invDue(i); }});
   setHead("IV · invoices","Invoices",
     money(open)+" outstanding"+(late?"  ·  "+money(late)+" overdue":"")+
     "  ·  "+money(paid)+" paid in "+yr);
@@ -1254,7 +1385,7 @@ function pageRender(){
   var list=invoices().filter(function(i){
     var st=invStatus(i);
     if(ifilter==="all") return true;
-    if(ifilter==="open") return st==="sent"||st==="overdue";
+    if(ifilter==="open") return st==="sent"||st==="overdue"||st==="part paid";
     return st===ifilter;
   }).sort(function(a,b){return (b.issued||"").localeCompare(a.issued||"");});
 
@@ -1264,20 +1395,22 @@ function pageRender(){
       invoices().length?"Try another filter.":"Bill somebody for a gig, a lesson, or work you did."));
     return;}
   list.forEach(function(inv){
-    var st=invStatus(inv), t=invTotal(inv).total;
-    var d=el("div","inv "+st);
+    var st=invStatus(inv), t=invTotal(inv).total, paid=invPaid(inv);
+    var d=el("div","inv "+(st==="part paid"?"overdue":st));
     var top=el("div","top");
     var L2=el("div");
     L2.appendChild(el("div","who2",inv.name||"No one yet"));
     L2.appendChild(el("div","num",inv.number+(inv.forWhat?" · "+inv.forWhat:"")));
     top.appendChild(L2);
-    top.appendChild(el("div","tot",money(t)));
+    top.appendChild(el("div","tot",paid&&st!=="paid"?money(invDue(inv)):money(t)));
     d.appendChild(top);
     var ft=el("div","ft");
     ft.appendChild(el("span","pill"+(st==="overdue"?" hot":st==="paid"?"":st==="draft"?"":" warm"),st));
     if(inv.issued) ft.appendChild(el("span",null,"issued "+pretty(inv.issued)));
     if(inv.due&&st!=="paid") ft.appendChild(el("span",null,(st==="overdue"?"was due ":"due ")+pretty(inv.due)));
     if(st==="paid"&&inv.paidOn) ft.appendChild(el("span",null,"paid "+pretty(inv.paidOn)));
+    if(paid&&st!=="paid") ft.appendChild(el("span",null,money(paid)+" of "+money(t)+" in"));
+    if(inv.ticketCode) ft.appendChild(el("span","pill",inv.ticketCode));
     ft.appendChild(el("span",null,(inv.items||[]).length+" line"+((inv.items||[]).length===1?"":"s")));
     d.appendChild(ft);
     d.onclick=function(){invDialog(inv);};
@@ -1310,12 +1443,14 @@ function invDialog(inv){
       '<label><span>Discount %</span><input type="number" id="vDisc" inputmode="decimal" value="'+esc(inv.discount||"")+'" placeholder="0"></label>'+
       '<label><span>Tax %</span><input type="number" id="vTax" inputmode="decimal" value="'+esc(inv.taxPct||"")+'" placeholder="0"></label></div>'+
     '<div class="totals" id="vTot"></div>'+
+    (isNew?'':'<div id="vTicket"></div>')+
     '<label style="margin-top:12px"><span>How to pay you</span><textarea id="vTerms" style="min-height:52px" placeholder="Cash App $handle, cash on the night, due within 14 days">'+esc(inv.terms||"")+'</textarea></label>'+
     '<label><span>Notes on the invoice</span><input id="vNotes" value="'+esc(inv.notes||"")+'"></label>'+
     '<div class="row-btns"><button class="btn" id="vS" style="flex:1">'+(isNew?"Create it":"Save")+'</button>'+
-    (isNew?'':'<button class="btn ghost sm" id="vPrint">Print</button>'+
+    (isNew?'':'<button class="btn ghost sm" id="vPrev">Preview</button>'+
+             '<button class="btn ghost sm" id="vPrint">Print</button>'+
              '<button class="btn ghost sm" id="vSend">Send</button>'+
-             (st!=="paid"?'<button class="btn tick sm" id="vPaid">Mark paid</button>':'')+
+             (st!=="paid"?'<button class="btn tick sm" id="vPaid">Take a payment</button>':'')+
              '<button class="btn ghost sm" id="vX">Delete</button>')+'</div>',
     function(){
       var items=(inv.items&&inv.items.length)?inv.items.map(function(l){return {desc:l.desc,qty:l.qty,rate:l.rate};})
@@ -1352,6 +1487,7 @@ function invDialog(inv){
           h.appendChild(r);});
       }
       drawLines(); totals();
+      if(!isNew) drawTicketBox(inv);
       $("#vAdd").onclick=function(e){e.preventDefault();items.push({desc:"",qty:1,rate:""});drawLines();};
       $("#vDisc").oninput=totals; $("#vTax").oninput=totals;
 
@@ -1377,10 +1513,10 @@ function invDialog(inv){
         save(); pageHead(); pageRender(); dlg.close();
         toast(isNew?"Invoice "+inv.number+" created":"Saved");};
       if(!isNew){
+        $("#vPrev").onclick=function(){ collect(); save(); previewInvoice(inv); };
         $("#vPrint").onclick=function(){ collect(); save(); printInvoice(inv); };
         $("#vSend").onclick=function(){ collect(); save(); sendInvoice(inv); };
-        if($("#vPaid")) $("#vPaid").onclick=function(){
-          collect(); markPaid(inv); };
+        if($("#vPaid")) $("#vPaid").onclick=function(){ collect(); save(); payDialog(inv); };
         $("#vX").onclick=function(){
           if(!confirm("Delete "+inv.number+"?")) return;
           trashIt("invoice",inv.number+" · "+(inv.name||""),inv);
@@ -1390,6 +1526,70 @@ function invDialog(inv){
     });
 }
 
+function drawTicketBox(inv){
+  var host=$("#vTicket"); if(!host) return;
+  host.innerHTML="";
+  host.appendChild(el("h2","sec","Payment ticket"));
+  var tk=ticketFor(inv);
+  if(!tk){
+    host.appendChild(el("p","foot-note",
+      "Issue a ticket and they get a code to pay against. It handles part payments, shows on the invoice, and lives with your other tickets in Money."));
+    var b=el("button","btn ghost sm","Issue a ticket for this"); b.style.width="100%";
+    b.onclick=function(e){ e.preventDefault();
+      if(issueTicket(inv)){ drawTicketBox(inv); pageHead(); pageRender(); toast("Ticket "+inv.ticketCode+" issued"); } };
+    host.appendChild(b);
+    return;
+  }
+  var box=el("div","bar-list");
+  var r=el("div","bar-row trio"),L2=el("div");
+  L2.appendChild(el("div","who",tk.code));
+  L2.appendChild(el("div","meta",money(tk.paidCents||0)+" of "+money(tk.cents)+" in · "+tk.status));
+  r.appendChild(L2);
+  r.appendChild(el("div","amt in",money(tk.cents-(tk.paidCents||0))+" left"));
+  r.appendChild(el("div"));
+  box.appendChild(r);
+  (tk.pays||[]).forEach(function(p){
+    var pr=el("div","bar-row"),PL=el("div");
+    PL.appendChild(el("div","who",money(p.cents)));
+    PL.appendChild(el("div","meta",prettyFull(p.date)+(p.method?" · "+p.method:"")));
+    pr.appendChild(PL); pr.appendChild(el("span","pill","paid"));
+    box.appendChild(pr);});
+  host.appendChild(box);
+  var row=el("div","row-btns"); row.style.marginTop="8px";
+  var a=el("a","btn ghost sm","Open in Money"); a.href="money.html?t="+tk.code;
+  row.appendChild(a);
+  host.appendChild(row);
+}
+
+function payDialog(inv){
+  var left=invDue(inv);
+  dlg.close();
+  setTimeout(function(){
+    openDlg("Payment on "+inv.number,
+      '<p class="foot-note" style="margin-top:0">'+esc(money(invPaid(inv)))+' of '+esc(money(invTotal(inv).total))+
+        ' has come in. Part payments are fine — the rest stays open.</p>'+
+      '<div class="two">'+
+        '<label><span>How much now</span><input type="number" step="0.01" min="0" id="mpAmt" value="'+(left/100).toFixed(2)+'"></label>'+
+        '<label><span>When</span><input type="date" id="mpDate" value="'+today()+'"></label></div>'+
+      (L?'<div class="two">'+
+        '<label><span>Into</span><select id="mpAcct">'+(L.accounts||[]).map(function(a){
+          return '<option value="'+a.id+'">'+esc(a.name)+'</option>';}).join("")+'</select></label>'+
+        '<label><span>How they paid</span><select id="mpM"><option value="">Not noted</option>'+
+          (L.methods||[]).map(function(m){return '<option value="'+esc(m)+'">'+esc(m)+'</option>';}).join("")+
+        '</select></label></div>':'<p class="warn">No ledger here, so this only marks the invoice.</p>')+
+      '<button class="btn tick" id="mpGo" style="width:100%">Record it</button>',
+      function(){
+        $("#mpGo").onclick=function(){
+          var c=Math.round(parseFloat($("#mpAmt").value)*100)||0;
+          if(c<=0) return toast("How much came in?");
+          if(c>left) return toast("That is more than the "+money(left)+" still due");
+          takePayment(inv,c,$("#mpM")?$("#mpM").value:"",$("#mpAcct")?$("#mpAcct").value:null,$("#mpDate").value);
+          pageHead(); pageRender(); dlg.close();
+          var rest=invDue(inv);
+          toast(rest>0?money(rest)+" still due":"Invoice "+inv.number+" settled");};
+      });
+  },60);
+}
 function markPaid(inv){
   var t=invTotal(inv).total;
   dlg.close();
@@ -1443,6 +1643,14 @@ function invoiceText(inv){
   if(t.discount) A.push("Discount: −"+money(t.discount));
   if(t.tax) A.push("Tax: "+money(t.tax));
   A.push("TOTAL: "+money(t.total));
+  var paid=invPaid(inv);
+  if(paid){ A.push("Received: "+money(paid)); A.push("STILL DUE: "+money(invDue(inv))); }
+  var tk=ticketFor(inv);
+  if(tk&&invDue(inv)>0){
+    A.push("");
+    A.push("Pay against code: "+tk.code);
+    A.push("Part payments are fine — the code stays good until it clears.");
+  }
   if(inv.terms){ A.push(""); A.push(inv.terms); }
   if(inv.notes){ A.push(""); A.push(inv.notes); }
   return A.join("\n");
@@ -1458,39 +1666,90 @@ function copyInv(txt){
       function(){toast("Copy didn't work");});
   else toast("Copy isn't available here");
 }
-function printInvoice(inv){
-  var t=invTotal(inv), b=biz(), st=invStatus(inv);
-  var rows=(inv.items||[]).map(function(l){
-    return '<tr><td>'+esc(l.desc||"—")+'</td><td class="r">'+esc(String(l.qty||1))+
-      '</td><td class="r">'+esc(money(Math.round((+l.rate||0)*100)))+
-      '</td><td class="r">'+esc(money(lineTotal(l)))+'</td></tr>';}).join("");
-  $("#printArea").innerHTML=
-    '<div class="iv"><div class="hdr">'+
-      '<div><div class="big2">Invoice</div><div style="font-family:var(--mono);font-size:13px;margin-top:4px">'+esc(inv.number)+'</div></div>'+
-      '<div class="me">'+[b.name,b.line1,b.line2,b.phone,b.email].filter(Boolean).map(esc).join("<br>")+'</div>'+
-    '</div>'+
-    '<div class="parties">'+
-      '<div><div class="lbl2">Billed to</div><div style="font-size:15px;font-weight:700">'+esc(inv.name||"—")+'</div>'+
-        (inv.forWhat?'<div style="font-size:12px;margin-top:3px">'+esc(inv.forWhat)+'</div>':'')+'</div>'+
-      '<div style="text-align:right"><div class="lbl2">Issued</div><div>'+esc(prettyFull(inv.issued))+'</div>'+
-        (inv.due?'<div class="lbl2" style="margin-top:8px">Due</div><div>'+esc(prettyFull(inv.due))+'</div>':'')+'</div>'+
-    '</div>'+
-    '<table><thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th></tr></thead>'+
-    '<tbody>'+rows+'</tbody></table>'+
-    '<div class="sum">'+
-      '<div><span>Subtotal</span><span>'+esc(money(t.sub))+'</span></div>'+
-      (t.discount?'<div><span>Discount</span><span>−'+esc(money(t.discount))+'</span></div>':'')+
-      (t.tax?'<div><span>Tax</span><span>'+esc(money(t.tax))+'</span></div>':'')+
-      '<div class="grand"><span>Total due</span><span>'+esc(money(t.total))+'</span></div>'+
-    '</div>'+
-    (st==="paid"?'<div class="stamp2">Paid '+esc(prettyFull(inv.paidOn||today()))+'</div>':'')+
-    (inv.terms||inv.notes?'<div class="terms">'+esc(inv.terms||"").replace(/\n/g,"<br>")+
-      (inv.notes?'<br><br>'+esc(inv.notes):'')+'</div>':'')+
-    '</div>';
-  if(dlg.open) dlg.close();
-  setTimeout(function(){ window.print(); },80);
+function initials2(n){
+  var p=String(n||"").trim().split(/\s+/).filter(Boolean);
+  if(!p.length) return "S";
+  return ((p[0][0]||"")+(p.length>1?p[p.length-1][0]:"")).toUpperCase();
 }
-
+function invoiceHTML(inv){
+  var t=invTotal(inv), b=biz(), st=invStatus(inv);
+  var paid=invPaid(inv), due=invDue(inv), tk=ticketFor(inv);
+  var person=inv.personId?contactRec(inv.personId):null;
+  var billTo=[inv.name||"—"];
+  if(person){
+    if(person.addr) billTo.push(person.addr);
+    if(person.email) billTo.push(person.email);
+    if(person.phone) billTo.push(person.phone);
+  }
+  var rows=(inv.items||[]).map(function(l){
+    return '<tr><td><div class="desc2">'+esc(l.desc||"—")+'</div></td>'+
+      '<td class="r">'+esc(String(l.qty||1))+'</td>'+
+      '<td class="r">'+esc(money(Math.round((+l.rate||0)*100)))+'</td>'+
+      '<td class="r">'+esc(money(lineTotal(l)))+'</td></tr>';}).join("");
+  var meta='<table>'+
+    '<tr><td class="k">Invoice</td><td class="v">'+esc(inv.number)+'</td></tr>'+
+    '<tr><td class="k">Issued</td><td class="v">'+esc(prettyFull(inv.issued))+'</td></tr>'+
+    (inv.due?'<tr><td class="k">Due</td><td class="v">'+esc(prettyFull(inv.due))+'</td></tr>':'')+
+    (inv.forWhat?'<tr><td class="k">Reference</td><td class="v">'+esc(inv.forWhat)+'</td></tr>':'')+
+    '</table>';
+  var sums='<table>'+
+    '<tr><td class="k">Subtotal</td><td class="v">'+esc(money(t.sub))+'</td></tr>'+
+    (t.discount?'<tr><td class="k">Discount '+esc(inv.discount)+'%</td><td class="v">−'+esc(money(t.discount))+'</td></tr>':'')+
+    (t.tax?'<tr><td class="k">Tax '+esc(inv.taxPct)+'%</td><td class="v">'+esc(money(t.tax))+'</td></tr>':'')+
+    '<tr class="grand"><td class="k">Total</td><td class="v">'+esc(money(t.total))+'</td></tr>'+
+    (paid?'<tr class="paidrow"><td class="k">Received</td><td class="v">−'+esc(money(paid))+'</td></tr>':'')+
+    '</table>';
+  return '<div class="paperwrap"><div class="paper">'+
+    '<div class="band">'+
+      '<div><div class="mono2">'+esc(initials2(b.name||"Station"))+'</div>'+
+        '<div class="word">Invoice</div></div>'+
+      '<div class="from">'+(b.name?'<b>'+esc(b.name)+'</b><br>':'')+
+        [b.line1,b.line2,b.phone,b.email].filter(Boolean).map(esc).join("<br>")+'</div>'+
+      '<div class="meta">'+meta+'</div>'+
+    '</div>'+
+    '<div class="cols">'+
+      '<div><div class="cap">Billed to</div><div class="who3">'+esc(billTo[0])+'</div>'+
+        (billTo.length>1?'<div style="margin-top:4px">'+billTo.slice(1).map(esc).join("<br>")+'</div>':'')+'</div>'+
+      '<div><div class="cap">Status</div><div class="who3">'+esc(st==="part paid"?"Part paid":st)+'</div>'+
+        (inv.due&&st!=="paid"?'<div style="margin-top:4px">Payment due '+esc(prettyFull(inv.due))+'</div>':'')+
+        (st==="paid"&&inv.paidOn?'<div style="margin-top:4px">Settled '+esc(prettyFull(inv.paidOn))+'</div>':'')+'</div>'+
+    '</div>'+
+    '<table class="items"><thead><tr>'+
+      '<th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th>'+
+    '</tr></thead><tbody>'+(rows||'<tr><td colspan="4">No lines yet</td></tr>')+'</tbody></table>'+
+    '<div class="sums">'+sums+'</div>'+
+    '<div class="due'+(due<=0?" settled":"")+'">'+
+      '<span class="l">'+(due<=0?"Paid in full":"Amount due")+'</span>'+
+      '<span class="n">'+esc(money(due<=0?t.total:due))+'</span></div>'+
+    (tk&&due>0?'<div class="codebox"><div><div class="t2">Pay against this code</div>'+
+      '<div class="c">'+esc(tk.code)+'</div></div>'+
+      '<div style="text-align:right;font-size:11.5px;max-width:230px">Quote it when you pay. '+
+      'Part payments are fine — the code stays good until the balance clears.</div></div>':'')+
+    ((inv.terms||inv.notes)?'<div class="terms2">'+esc(inv.terms||"")+
+      (inv.notes?"\n\n"+esc(inv.notes):"")+'</div>':'')+
+    '<div class="foot2"><span>'+esc(inv.number)+(b.name?' · '+esc(b.name):'')+'</span>'+
+      '<span>'+esc(prettyFull(inv.issued))+'</span></div>'+
+    (st==="paid"?'<div class="stamp3">Paid</div>':'')+
+    '</div></div>';
+}
+function previewInvoice(inv){
+  openDlg(inv.number+" · preview",
+    invoiceHTML(inv)+
+    '<div class="row-btns" style="margin-top:14px">'+
+      '<button class="btn" id="pvPrint" style="flex:1">Print or save as PDF</button>'+
+      '<button class="btn ghost sm" id="pvSend">Send as text</button>'+
+      '<button class="btn ghost sm" id="pvBack">Back</button></div>',
+    function(){
+      $("#pvPrint").onclick=function(){ printInvoice(inv); };
+      $("#pvSend").onclick=function(){ sendInvoice(inv); };
+      $("#pvBack").onclick=function(){ dlg.close(); setTimeout(function(){invDialog(inv);},60); };
+    });
+}
+function printInvoice(inv){
+  $("#printArea").innerHTML=invoiceHTML(inv);
+  if(dlg.open) dlg.close();
+  setTimeout(function(){ window.print(); },120);
+}
 function detailsDialog(){
   var b=biz();
   openDlg("Your details",
