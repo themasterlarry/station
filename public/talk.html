@@ -369,6 +369,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
         <button class="btn ghost sm" data-act="rename">Rename</button>
         <button class="btn ghost sm" data-act="delchat">Delete chat</button>
         <button class="btn ghost sm" data-act="remember">Memory</button>
+        <button class="btn ghost sm" data-act="chatpersona">This chat's style</button>
         <button class="btn ghost sm" data-act="persona">How it talks</button>
         <button class="btn ghost sm" data-act="settings">Settings</button>
       </div>
@@ -411,8 +412,15 @@ var DB={
   }
 };
 
-var APP_VERSION="1.8";
+var APP_VERSION="1.9";
 var CHANGELOG=[
+ {v:"1.9",d:"2026-08-08",t:"Money trends and a sharper AI",
+  items:["Trends tab in Money — twelve months of in and out, and this month's spending against last month by category",
+         "A thirty day forecast: what's already scheduled to leave and arrive, and the lowest your balance would get",
+         "Log straight from a receipt photo, with a rough read of the total; the photo stays attached to the entry",
+         "The AI can now look things up in your system instead of guessing",
+         "It flags anything it wasn't sure about before doing it",
+         "Each conversation can have its own style — venting, planning, practice, money"]},
  {v:"1.8",d:"2026-08-08",t:"Tasks and calendar",
   items:["Steps inside a task, with a progress bar on the row",
          "Someday — park a task without it cluttering your open list",
@@ -1179,11 +1187,21 @@ var DEFAULT_PERSONA =
 "  write_ticket {direction:\"owe\"|\"owed\", amount, who, note?, due?}\n"+
 "  add_piece {title, composer?, arranger?, grade?, tempo?}\n"+
 "  remember {text}                        forget {text}\n"+
-"Dates are YYYY-MM-DD, times HH:MM, amounts are plain numbers like 24.50. "+
+"Dates are YYYY-MM-DD, times HH:MM, amounts are plain numbers like 24.50.\n"+
+"If you are not certain of a date, an amount or a name, DO NOT invent one. Either ask him, "+
+"or put \"unsure\":true on the action so it gets flagged before it runs.\n"+
+"LOOKING THINGS UP: you only get a summary of his system, not all of it. If you need detail you "+
+"do not have — an old entry, what a piece is called, who owes what — ask for it with:\n"+
+"```action\n[{\"do\":\"look_up\",\"about\":\"trumpet\"}]\n```\n"+
+"The results come straight back to you and then you answer him properly. Use it instead of guessing.\n"+
 "Use remember for anything worth carrying into future conversations. "+
 "Only act when he actually asked. Describe what you did in your own words too — never mention the block itself.";
 
-function persona(){ return (T.persona&&T.persona.trim())||DEFAULT_PERSONA; }
+function persona(){
+  var c=cur();
+  if(c&&c.persona&&c.persona.trim()) return c.persona;
+  return (T.persona&&T.persona.trim())||DEFAULT_PERSONA;
+}
 function cur(){ return T.chats.filter(function(c){return c.id===T.cur;})[0]||T.chats[0]; }
 
 async function loadTalk(){
@@ -1290,16 +1308,64 @@ function describe(a){
     case "log_money": return (a.direction==="in"?"Money in ":"Money out ")+n+(a.who?" · "+a.who:"");
     case "write_ticket": return (a.direction==="owe"?"You owe ":"Owed to you ")+n+" · "+a.who;
     case "add_piece": return "Sheet music: "+a.title;
+    case "look_up": return "Look up \""+a.about+"\" in your system";
     case "remember": return "Remember: "+a.text;
     case "forget": return "Forget: "+a.text;
     default: return "Unknown: "+a.do;
   }
 }
 function destructive(a){ return a.do==="complete_task"||a.do==="forget"; }
+function searchAll(q){
+  q=(q||"").toLowerCase(); var out=[];
+  if(q.length<2) return out;
+  (H.tasks||[]).forEach(function(t){
+    if(t.title.toLowerCase().indexOf(q)>=0)
+      out.push("TASK: "+t.title+(t.done?" (done)":"")+(t.due?" due "+t.due:""));});
+  (H.events||[]).forEach(function(e){
+    if((e.title+" "+(e.place||"")).toLowerCase().indexOf(q)>=0)
+      out.push("EVENT: "+e.title+" on "+e.date+(e.time?" at "+e.time:"")+(e.place?" at "+e.place:""));});
+  (H.notes||[]).forEach(function(n){
+    if(((n.title||"")+" "+(n.body||"")).toLowerCase().indexOf(q)>=0)
+      out.push("NOTE: "+(n.title||"untitled")+" — "+(n.body||"").slice(0,200));});
+  (H.journal||[]).forEach(function(j){
+    if((j.body||"").toLowerCase().indexOf(q)>=0)
+      out.push("JOURNAL "+j.date+": "+(j.body||"").slice(0,250));});
+  allPeople().forEach(function(p){
+    if((p.name+" "+(p.how||"")+" "+(p.notes||"")).toLowerCase().indexOf(q)>=0){
+      var m=moneyWith(p.id);
+      out.push("PERSON: "+p.name+(p.how?" ("+p.how+")":"")+(p.phone?" "+p.phone:"")+
+        (m&&m.net?(m.net>0?" — owes him "+money(m.net):" — he owes "+money(-m.net)):""));}});
+  (H.scores||[]).forEach(function(p){
+    if((p.title+" "+(p.composer||"")+" "+(p.arranger||"")).toLowerCase().indexOf(q)>=0)
+      out.push("MUSIC: "+p.title+(p.arranger?" arr. "+p.arranger:"")+
+        (p.grade?" grade "+p.grade:"")+(p.tempo?" at "+p.tempo+"bpm":"")+
+        ((p.spots||[]).filter(function(x){return !x.fixed;}).length?
+          " — "+(p.spots.filter(function(x){return !x.fixed;}).length)+" trouble spots":""));});
+  (H.subs||[]).forEach(function(x){
+    if(x.name.toLowerCase().indexOf(q)>=0)
+      out.push("SUBSCRIPTION: "+x.name+" "+money(x.cents)+" "+x.cycle+
+        (x.active===false?" (cancelled)":x.next?", next "+x.next:""));});
+  (H.things||[]).forEach(function(x){
+    if(x.name.toLowerCase().indexOf(q)>=0)
+      out.push("ITEM: "+x.name+" "+(x.dir==="lent"?"lent to ":"borrowed from ")+
+        (personName(x.personId)||x.who)+(x.back?" (returned)":""));});
+  if(L){
+    (L.txns||[]).forEach(function(t){
+      if(((t.who||"")+" "+(t.note||"")+" "+(t.cat||"")).toLowerCase().indexOf(q)>=0)
+        out.push("MONEY "+t.date+": "+(t.type==="in"?"+":"-")+money(t.cents).replace("-","")+
+          " "+(t.who||"")+(t.cat?" ["+t.cat+"]":""));});
+    (L.tickets||[]).forEach(function(t){
+      if((t.name+" "+t.code+" "+(t.note||"")).toLowerCase().indexOf(q)>=0)
+        out.push("TICKET "+t.code+": "+(t.dir==="owe"?"he owes ":"owed to him by ")+t.name+
+          " "+money(remaining(t))+" ("+t.status+")");});
+  }
+  return out.slice(0,25);
+}
 function runAction(a){
   var c=a.amount!=null?Math.round(Number(a.amount)*100):0;
   try{
     switch(a.do){
+      case "look_up": return true;
       case "add_task":
         H.tasks.push({id:uid(),title:a.title,done:false,list:a.list||(H.lists||["Inbox"])[0],
           prio:3,due:a.due||"",notes:"",repeat:"none",created:today()}); break;
@@ -1384,11 +1450,31 @@ function runAction(a){
   save();
   return true;
 }
+async function doLookup(a){
+  var res=searchAll(a.about);
+  var w=el("div","act done");
+  w.appendChild(el("div","t","Looked up \""+a.about+"\""));
+  w.appendChild(el("div","d",res.length?res.length+" thing"+(res.length===1?"":"s")+" found":"nothing found"));
+  $("#chat").appendChild(w); scrollDown();
+  var c=cur();
+  c.msgs.push({role:"user",content:"[results for \""+a.about+"\"]\n"+
+    (res.length?res.join("\n"):"nothing found")+
+    "\n\nNow answer what I asked, using these. Don't mention the lookup."});
+  saveTalk();
+  await ask();
+}
 function offerAction(a){
+  if(a.do==="look_up"){ doLookup(a); return; }
   var w=el("div","act");
   var head=el("div","t","It wants to do this");
   w.appendChild(head);
   w.appendChild(el("div","d",describe(a)));
+  if(a.unsure){
+    var u=el("div","d");
+    u.style.cssText="font-weight:400;font-size:12.5px;color:var(--stamp)";
+    u.textContent="It wasn't sure about this one — check it before you say yes.";
+    w.appendChild(u);
+  }
   function complete(res){
     w.innerHTML="";
     if(res===true){ w.className="act done";
@@ -1397,7 +1483,7 @@ function offerAction(a){
     else { w.appendChild(el("div","t","Didn't work"));
       w.appendChild(el("div","d",describe(a)+" — "+res)); }
   }
-  if(T.auto&&!destructive(a)){ complete(runAction(a)); $("#chat").appendChild(w); return; }
+  if(T.auto&&!destructive(a)&&!a.unsure){ complete(runAction(a)); $("#chat").appendChild(w); return; }
   var row=el("div","row-btns");
   var yes=el("button","btn sm","Do it");
   var no=el("button","btn ghost sm","Skip");
@@ -1436,7 +1522,10 @@ async function send(){
   $("#box").value=""; $("#box").style.height="auto";
   c.msgs.push({role:"user",content:text}); c.updated=today();
   autoTitle(c); bubble("user",text); saveTalk(); drawPicker(); scrollDown();
-
+  await ask();
+}
+async function ask(){
+  var c=cur();
   busy=true; $("#send").disabled=true;
   var think=el("div","thinking","thinking…");
   $("#chat").appendChild(think); scrollDown();
@@ -1484,6 +1573,31 @@ function memoryDialog(){
         var v=$("#mNew").value.trim(); if(!v) return;
         T.memory.push({id:uid(),text:v,when:today()});
         $("#mNew").value=""; saveTalk(); fill(); pageHead();};
+    });
+}
+function chatPersonaDialog(){
+  var c=cur(); if(!c) return;
+  var presets={
+    "":"Use my normal one",
+    "vent":"He wants to think out loud. Listen, reflect it back, ask one question at a time. Do not offer solutions unless he asks. Keep your replies short.",
+    "plan":"He is trying to get organised. Be practical and brisk. Help him break things into steps and put real dates on them. Suggest actions freely.",
+    "practice":"He is working on music. Be a patient practice coach — ask what is going wrong, suggest slow drills and specific bars to work, and keep him honest about whether he actually practised.",
+    "money":"He is thinking about money. Be plain and non-judgemental about amounts. Help him see what is actually coming up rather than reassure him."
+  };
+  openDlg("How it talks in this chat",
+    '<p class="foot-note" style="margin-top:0">Just for "'+esc(c.title)+'". Leave it blank to use your normal one.</p>'+
+    '<label><span>Start from</span><select id="cpP">'+
+      Object.keys(presets).map(function(k){
+        return '<option value="'+esc(k)+'">'+esc(k?k:"blank")+'</option>';}).join("")+
+    '</select></label>'+
+    '<label><span>Instructions for this chat</span><textarea id="cpT" style="min-height:200px;font-size:13px">'+esc(c.persona||"")+'</textarea></label>'+
+    '<div class="row-btns"><button class="btn" id="cpS" style="flex:1">Save</button>'+
+    '<button class="btn ghost sm" id="cpC">Clear it</button></div>',
+    function(){
+      $("#cpP").onchange=function(){ if(presets[this.value]&&this.value) $("#cpT").value=presets[this.value]; };
+      $("#cpS").onclick=function(){ c.persona=$("#cpT").value; saveTalk(); dlg.close();
+        toast(c.persona.trim()?"This chat has its own style now":"Back to your normal one"); };
+      $("#cpC").onclick=function(){ c.persona=""; saveTalk(); dlg.close(); toast("Cleared"); };
     });
 }
 function personaDialog(){
@@ -1549,6 +1663,7 @@ function pageAction(a){
   }
   else if(a==="remember") memoryDialog();
   else if(a==="persona") personaDialog();
+  else if(a==="chatpersona") chatPersonaDialog();
   else if(a==="settings") settingsDialog();
 }
 function pageBoot(){

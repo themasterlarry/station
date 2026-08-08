@@ -337,9 +337,30 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div id="pExtra"></div>
     </header>
     <section class="pane" id="pane">
+      <style>
+      .mbars{display:flex;gap:3px;align-items:flex-end;height:110px;margin-bottom:6px}
+      .mbars .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;height:100%}
+      .mbars .up{background:var(--pos);border-radius:1px 1px 0 0;min-height:1px}
+      .mbars .dn{background:var(--stamp);border-radius:0 0 1px 1px;min-height:1px}
+      .mlabels{display:flex;gap:3px}
+      .mlabels div{flex:1;text-align:center;font-family:var(--mono);font-size:9px;color:var(--dim)}
+      .cmp{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.06);font-size:13.5px}
+      .cmp:nth-child(odd){background:var(--bar)}
+      .cmp .n{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px}
+      .cmp .ar{font-family:var(--mono);font-size:11.5px;font-weight:600;min-width:52px;text-align:right}
+      .cmp .ar.up{color:var(--stamp)}
+      .cmp .ar.dn{color:var(--pos)}
+      .fc{display:grid;grid-template-columns:auto 1fr auto auto;gap:9px;align-items:center;padding:8px 10px;border-bottom:1px solid rgba(0,0,0,.06)}
+      .fc:nth-child(odd){background:var(--bar)}
+      .fc .dt{font-family:var(--mono);font-size:11px;color:var(--dim);min-width:46px}
+      .fc .amt2{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+      .fc .bal{font-family:var(--mono);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+      .fc.neg .bal{color:var(--stamp)}
+      </style>
       <div class="seg" id="tabs">
         <button type="button" data-t="ledger" aria-pressed="true">Ledger</button>
         <button type="button" data-t="tickets" aria-pressed="false">Tickets</button>
+        <button type="button" data-t="trends" aria-pressed="false">Trends</button>
         <button type="button" data-t="history" aria-pressed="false">History</button>
       </div>
 
@@ -384,6 +405,15 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
         <div id="tOpen"></div>
         <h2 class="sec">Closed</h2>
         <div id="tClosed"></div>
+      </div>
+
+      <div id="v-trends" style="display:none">
+        <h2 class="sec">Last 12 months</h2>
+        <div id="mBars"></div>
+        <h2 class="sec"><span>Where it went</span><span class="r" id="cmpLbl"></span></h2>
+        <div id="catCmp"></div>
+        <h2 class="sec">Next 30 days</h2>
+        <div id="fcast"></div>
       </div>
 
       <div id="v-history" style="display:none">
@@ -434,8 +464,15 @@ var DB={
   }
 };
 
-var APP_VERSION="1.8";
+var APP_VERSION="1.9";
 var CHANGELOG=[
+ {v:"1.9",d:"2026-08-08",t:"Money trends and a sharper AI",
+  items:["Trends tab in Money — twelve months of in and out, and this month's spending against last month by category",
+         "A thirty day forecast: what's already scheduled to leave and arrive, and the lowest your balance would get",
+         "Log straight from a receipt photo, with a rough read of the total; the photo stays attached to the entry",
+         "The AI can now look things up in your system instead of guessing",
+         "It flags anything it wasn't sure about before doing it",
+         "Each conversation can have its own style — venting, planning, practice, money"]},
  {v:"1.8",d:"2026-08-08",t:"Tasks and calendar",
   items:["Steps inside a task, with a progress bar on the row",
          "Someday — park a task without it cluttering your open list",
@@ -1273,6 +1310,8 @@ function txnLine(t){
   var cls=t.type==="in"?"amt in":t.type==="out"?"amt out":"amt";
   var pre=t.type==="in"?"+":t.type==="out"?"−":t.type==="count"?"=":"";
   r.appendChild(el("div",cls,pre+money(t.cents).replace("-","")));
+  Ld.style.cursor="pointer";
+  Ld.onclick=function(){txnDialog(t);};
   var k=el("button","kill","×");
   k.onclick=function(){if(confirm("Delete this entry? Balances go back.")) removeTxn(t.id);};
   r.appendChild(k);
@@ -1388,10 +1427,12 @@ function printTicket(t){
 function pageRender(){
   $("#v-ledger").style.display=tab==="ledger"?"":"none";
   $("#v-tickets").style.display=tab==="tickets"?"":"none";
+  $("#v-trends").style.display=tab==="trends"?"":"none";
   $("#v-history").style.display=tab==="history"?"":"none";
   $("#tabs").querySelectorAll("button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.t===tab);});
   if(tab==="ledger") renderLedger();
   else if(tab==="tickets") renderTickets();
+  else if(tab==="trends") renderTrends();
   else renderHistory();
 }
 function renderLedger(){
@@ -1603,6 +1644,22 @@ function ticketDialog(prefill){
         L.tickets.push(t); saveL(); tab="tickets"; refresh(); dlg.close(); showTicket(t);};
     });
 }
+function txnDialog(t){
+  openDlg(t.who||"Entry",
+    '<div class="kv" style="margin-bottom:12px">'+
+      '<dt>Amount</dt><dd>'+esc(money(t.cents))+'</dd>'+
+      '<dt>When</dt><dd>'+esc(prettyFull(t.date))+'</dd>'+
+      '<dt>Account</dt><dd>'+esc(acctName(t.accountId))+'</dd>'+
+      (t.cat?'<dt>For</dt><dd>'+esc(t.cat)+'</dd>':'')+
+      (t.method?'<dt>Paid by</dt><dd>'+esc(t.method)+'</dd>':'')+
+      (t.note?'<dt>Note</dt><dd>'+esc(t.note)+'</dd>':'')+
+    '</div><div id="rcHost"></div>'+
+    '<button class="btn ghost sm" id="rcClose" style="width:100%">Close</button>',
+    function(){
+      attachBar($("#rcHost"),"txn",t.id,"Receipts");
+      $("#rcClose").onclick=function(){dlg.close();};
+    });
+}
 function showTicket(t){
   openDlg("Ticket "+t.code,'<div id="tHost"></div><div id="attachHost"></div>'+
     '<p class="foot-note">Send it as a text, or print it as a two-part slip — they take one half, you keep the stub. When they bring the code back, hit "Redeem a code." They can take it in pieces; the code stays good until it\'s paid off.</p>',
@@ -1659,6 +1716,7 @@ function pageAction(a){
   if(a==="in"||a==="out") moneyDialog(a);
   else if(a==="move") moveDialog();
   else if(a==="count") countDialog();
+  else if(a==="receipt") receiptDialog();
   else if(a==="newacct") acctDialog();
   else if(a==="cats") catsDialog();
   else if(a==="newticket") ticketDialog("");
@@ -1674,10 +1732,234 @@ function pageBoot(){
   $("#monthPick").onchange=function(){curMonth=this.value;renderLedger();};
   $("#hFilter").onchange=renderHistory;
   $("#hSearch").oninput=renderHistory;
+  if(qparam("tab")) tab=qparam("tab");
+  if(qparam("new")==="receipt") setTimeout(receiptDialog,120);
   var n=qparam("new");
   if(n==="in"||n==="out") setTimeout(function(){moneyDialog(n);},120);
   var code=qparam("t");
   if(code){tab="tickets";setTimeout(function(){redeemDialog(code.toUpperCase());},120);}
+}
+
+/* ============================================================
+   TRENDS + FORECAST
+   ============================================================ */
+function monthsBack(n){
+  var out=[], d=parseD(today()+"");
+  d.setDate(1);
+  for(var i=0;i<n;i++){
+    out.unshift(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"));
+    d.setMonth(d.getMonth()-1);
+  }
+  return out;
+}
+function monthTotals(mk){
+  var i=0,o=0;
+  L.txns.forEach(function(t){
+    if(String(t.date).slice(0,7)!==mk) return;
+    if(t.type==="in") i+=t.cents;
+    if(t.type==="out") o+=t.cents;});
+  return {in:i,out:o};
+}
+function catTotals(mk){
+  var r={};
+  L.txns.forEach(function(t){
+    if(t.type!=="out"||String(t.date).slice(0,7)!==mk) return;
+    var k=t.cat||"Uncategorized";
+    r[k]=(r[k]||0)+t.cents;});
+  return r;
+}
+function renderTrends(){
+  var ms=monthsBack(12);
+  var data=ms.map(monthTotals);
+  var max=1;
+  data.forEach(function(d){ max=Math.max(max,d.in,d.out); });
+
+  var host=$("#mBars"); host.innerHTML="";
+  var bars=el("div","mbars");
+  data.forEach(function(d){
+    var c=el("div","col");
+    var u=el("div","up"); u.style.height=Math.round(d.in/max*52)+"px";
+    var n=el("div","dn"); n.style.height=Math.round(d.out/max*52)+"px";
+    c.title=d.in+" in, "+d.out+" out";
+    c.appendChild(u); c.appendChild(n);
+    bars.appendChild(c);});
+  host.appendChild(bars);
+  var labs=el("div","mlabels");
+  ms.forEach(function(m){ labs.appendChild(el("div",null,MON[(+m.slice(5))-1])); });
+  host.appendChild(labs);
+  var avgIn=Math.round(data.reduce(function(t,d){return t+d.in;},0)/12);
+  var avgOut=Math.round(data.reduce(function(t,d){return t+d.out;},0)/12);
+  var sum=el("p","foot-note");
+  sum.textContent="Green is money in, red is money out. Averaging "+money(avgIn)+
+    " in and "+money(avgOut)+" out a month"+
+    (avgIn>avgOut?", so you're up "+money(avgIn-avgOut)+" a month on average."
+                 :avgOut>avgIn?", so you're down "+money(avgOut-avgIn)+" a month on average.":".");
+  host.appendChild(sum);
+
+  // this month against last
+  var thisM=today().slice(0,7);
+  var d=parseD(today()); d.setDate(1); d.setMonth(d.getMonth()-1);
+  var lastM=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+  $("#cmpLbl").textContent=MONL[(+thisM.slice(5))-1]+" vs "+MONL[(+lastM.slice(5))-1];
+  var a=catTotals(thisM), b=catTotals(lastM);
+  var keys=Object.keys(a).concat(Object.keys(b)).filter(function(v,i,arr){return arr.indexOf(v)===i;});
+  var ch=$("#catCmp"); ch.innerHTML="";
+  if(!keys.length){ ch.appendChild(emptyBox("Nothing to compare","Log a couple of months of spending first.")); }
+  else{
+    var box=el("div","bar-list");
+    keys.sort(function(x,y){return (a[y]||0)-(a[x]||0);}).forEach(function(k){
+      var now=a[k]||0, then=b[k]||0, diff=now-then;
+      var r=el("div","cmp");
+      r.appendChild(el("div",null,k));
+      r.appendChild(el("div","n",money(now)));
+      r.appendChild(el("div","n",money(then)));
+      var pct=then?Math.round(diff/then*100):(now?100:0);
+      var ar=el("div","ar"+(diff>0?" up":diff<0?" dn":""),
+        diff===0?"same":(diff>0?"+":"")+(then?pct+"%":money(diff)));
+      r.appendChild(ar);
+      box.appendChild(r);});
+    ch.appendChild(box);
+  }
+
+  renderForecast();
+}
+function forecastEvents(){
+  var out=[], end=addDays(today(),30);
+  (H.subs||[]).filter(function(s){return s.active!==false&&s.next;}).forEach(function(s){
+    var d=s.next;
+    while(d<=end){
+      if(d>=today()) out.push({date:d,label:s.name+(s.trial?" (trial ends)":""),cents:-s.cents,kind:"SB"});
+      if(s.cycle==="weekly") d=addDays(d,7);
+      else if(s.cycle==="monthly") d=addMonth(d);
+      else if(s.cycle==="quarterly") d=addMonth(addMonth(addMonth(d)));
+      else { var y=parseD(d); y.setFullYear(y.getFullYear()+1); d=ymd(y); }
+    }});
+  L.tickets.filter(function(t){return t.status==="open"&&t.due&&t.due<=end;}).forEach(function(t){
+    var rem=remaining(t);
+    out.push({date:t.due<today()?today():t.due,
+      label:(t.dir==="owe"?"Pay "+t.name:"Collect from "+t.name)+" ("+t.code+")",
+      cents:t.dir==="owe"?-rem:rem,kind:"$$"});});
+  return out.sort(function(x,y){return x.date.localeCompare(y.date);});
+}
+function renderForecast(){
+  var host=$("#fcast"); host.innerHTML="";
+  var lt=ledgerTotals(), bal=lt.total;
+  var ev=forecastEvents();
+  if(!ev.length){
+    host.appendChild(emptyBox("Nothing scheduled",
+      "Add due dates to subscriptions and tickets and this fills in."));
+    return;}
+  var box=el("div","bar-list");
+  var start=el("div","fc");
+  start.appendChild(el("div","dt","now"));
+  start.appendChild(el("div",null,"What you have today"));
+  start.appendChild(el("div","amt2",""));
+  start.appendChild(el("div","bal",money(bal)));
+  box.appendChild(start);
+  var low=bal, lowDate="";
+  ev.forEach(function(x){
+    bal+=x.cents;
+    if(bal<low){ low=bal; lowDate=x.date; }
+    var r=el("div","fc"+(bal<0?" neg":""));
+    r.appendChild(el("div","dt",pretty(x.date)));
+    r.appendChild(el("div",null,x.label));
+    r.appendChild(el("div","amt2 "+(x.cents<0?"out":"in"),
+      (x.cents<0?"−":"+")+money(x.cents).replace("-","")));
+    r.appendChild(el("div","bal",money(bal)));
+    box.appendChild(r);});
+  host.appendChild(box);
+  var note=el("p","foot-note");
+  note.textContent = low<0
+    ? "You'd go below zero around "+prettyFull(lowDate)+", down to "+money(low)+
+      ". That's only counting what's already scheduled — not day-to-day spending."
+    : "Lowest you'd get is "+money(low)+". This only counts scheduled things, not day-to-day spending.";
+  host.appendChild(note);
+}
+
+/* ---------- receipts ---------- */
+function receiptDialog(){
+  openDlg("Log from a receipt",
+    '<p class="foot-note" style="margin-top:0">Photograph the receipt, then check the amount. It stays attached to the entry.</p>'+
+    '<div id="rcPick"></div>'+
+    '<img id="rcPrev" class="preview" style="display:none" alt="">'+
+    '<div class="two">'+
+      '<label><span>Amount</span><input type="number" step="0.01" min="0" id="rcAmt" inputmode="decimal" placeholder="0.00"></label>'+
+      '<label><span>Date</span><input type="date" id="rcDate" value="'+today()+'"></label></div>'+
+    '<label><span>Where</span><input id="rcWho" list="dlPeople" placeholder="Shop or person"></label>'+peopleDatalist()+
+    '<div class="two">'+
+      '<label><span>What for</span><input id="rcCat" list="dlCats" placeholder="Food, gas…">'+catList()+'</label>'+
+      '<label><span>Paid with</span><select id="rcMethod">'+methodOptions()+'</select></label></div>'+
+    '<button class="btn" id="rcSave" style="width:100%">Log it</button>',
+    function(){
+      var file=null;
+      var host=$("#rcPick");
+      var pick=el("input"); pick.type="file"; pick.accept="image/*"; pick.capture="environment";
+      pick.style.display="none";
+      var b=el("button","btn ghost sm","Take or choose a photo"); b.style.width="100%";
+      b.onclick=function(e){ e.preventDefault(); pick.click(); };
+      host.appendChild(b); host.appendChild(pick);
+      var scan=el("button","btn ghost sm","Try to read the total"); scan.style.cssText="width:100%;margin-top:6px;display:none";
+      host.appendChild(scan);
+      pick.onchange=function(){
+        file=pick.files[0]; if(!file) return;
+        var img=$("#rcPrev");
+        img.src=URL.createObjectURL(file); img.style.display="block";
+        b.textContent="Photo chosen — tap to change";
+        scan.style.display="block";};
+      scan.onclick=function(e){
+        e.preventDefault();
+        if(!file) return;
+        scan.disabled=true; scan.textContent="Reading… this takes a moment";
+        readTotal(file).then(function(v){
+          scan.disabled=false;
+          if(v){ $("#rcAmt").value=v.toFixed(2); scan.textContent="Read "+money(Math.round(v*100))+" — check it"; }
+          else scan.textContent="Couldn't read it — type the amount";
+        }).catch(function(){
+          scan.disabled=false;
+          scan.textContent="Reading isn't available — type the amount";});
+      };
+      $("#rcSave").onclick=async function(){
+        var c=cents($("#rcAmt").value);
+        if(c<=0) return toast("What was the amount?");
+        var who=$("#rcWho").value.trim();
+        var p=who?ensureContact(who):null;
+        var t={type:"out",cents:c,date:$("#rcDate").value||today(),accountId:firstAccount().id,
+          who:who||"Money out",personId:p?p.id:null,method:$("#rcMethod").value||"",
+          cat:$("#rcCat").value.trim(),note:"from a receipt"};
+        if(t.cat&&L.categories.indexOf(t.cat)<0) L.categories.push(t.cat);
+        var txn=addTxn(t);
+        if(file){
+          try{ await fileUpload(file,"txn",txn.id,"Receipt "+prettyFull(txn.date)); }
+          catch(e){ toast("Logged, but the photo didn't upload"); }
+        }
+        dlg.close(); toast("Logged "+money(c));};
+    });
+}
+/* OCR is loaded only if you ask for it, and only works with internet */
+function readTotal(file){
+  return new Promise(function(resolve,reject){
+    function run(){
+      Tesseract.recognize(file,"eng").then(function(res){
+        var txt=(res.data&&res.data.text)||"";
+        var nums=(txt.match(/\d+[.,]\d{2}/g)||[])
+          .map(function(x){return parseFloat(x.replace(",","."));})
+          .filter(function(n){return n>0&&n<100000;});
+        if(!nums.length) return resolve(null);
+        var line=txt.split("\n").filter(function(l){return /total/i.test(l)&&/\d+[.,]\d{2}/.test(l);});
+        if(line.length){
+          var m=line[line.length-1].match(/(\d+[.,]\d{2})/g);
+          if(m) return resolve(parseFloat(m[m.length-1].replace(",",".")));
+        }
+        resolve(Math.max.apply(null,nums));
+      }).catch(reject);
+    }
+    if(window.Tesseract) return run();
+    var s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    s.onload=run;
+    s.onerror=function(){ reject(new Error("no internet for the reader")); };
+    document.head.appendChild(s);
+  });
 }
 })();
 </script>
