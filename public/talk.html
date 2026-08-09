@@ -413,8 +413,13 @@ var DB={
   }
 };
 
-var APP_VERSION="2.1";
+var APP_VERSION="2.2";
 var CHANGELOG=[
+ {v:"2.2",d:"2026-08-08",t:"The AI actually does things now",
+  items:["Fixed: it was printing its instructions instead of carrying them out. Small models never format things exactly as told, so it now understands however they write it",
+         "Handles wrong fences, missing quotes, single quotes, curly quotes, trailing commas, dollar signs on amounts and different field names",
+         "If it says it did something but didn't, you get a button to make it happen",
+         "If it asks for something that isn't a real action, it says so instead of going quiet"]},
  {v:"2.1",d:"2026-08-08",t:"Proper invoices, tied to your tickets",
   items:["Invoices now look like real invoices — monogram, ruled line table, totals block, an amount-due panel and a PAID stamp",
          "Preview one on screen before you print it or save it as a PDF",
@@ -1210,7 +1215,10 @@ var DEFAULT_PERSONA =
 "If he's ever in real danger — talking about ending his life or badly hurting himself — drop everything else, "+
 "stay with him, be direct that you want him safe, and say plainly that a person should know tonight "+
 "(988 by call or text in the US, or someone he trusts). Don't be clinical and don't leave the conversation.\n\n"+
-"DOING THINGS: when he asks you to record, add, or change something, put a fenced block at the end of your reply:\n"+
+"DOING THINGS — READ THIS CAREFULLY. Saying you did something does NOT do it. "+
+"The ONLY thing that changes anything is the block below. If you say \"I've added that\" without "+
+"the block, nothing happens and he will be annoyed.\n"+
+"When he asks you to record, add, or change something, end your reply with exactly this:\n"+
 "```action\n[{\"do\":\"add_task\",\"title\":\"call the landlord\",\"due\":\"2026-08-09\"}]\n```\n"+
 "It is a JSON array, so you can do several at once. Available:\n"+
 "  add_task {title, due?, list?}          complete_task {title}\n"+
@@ -1231,7 +1239,8 @@ var DEFAULT_PERSONA =
 "```action\n[{\"do\":\"look_up\",\"about\":\"trumpet\"}]\n```\n"+
 "The results come straight back to you and then you answer him properly. Use it instead of guessing.\n"+
 "Use remember for anything worth carrying into future conversations. "+
-"Only act when he actually asked. Describe what you did in your own words too — never mention the block itself.";
+"Only act when he actually asked. Say what you did in plain words too, then the block last. "+
+"Never mention the block itself and never put anything after it.";
 
 function persona(){
   var c=cur();
@@ -1580,6 +1589,13 @@ async function doLookup(a){
   await ask();
 }
 function offerAction(a){
+  if(a._unknown){
+    var u=el("div","act");
+    u.appendChild(el("div","t","It asked for something I don't know"));
+    u.appendChild(el("div","d",'"'+a.do+'" isn\'t one of the things it can do here.'));
+    $("#chat").appendChild(u); scrollDown();
+    return;
+  }
   if(a.do==="look_up"){ doLookup(a); return; }
   var w=el("div","act");
   var head=el("div","t","It wants to do this");
@@ -1620,15 +1636,114 @@ function drawChat(){
   else c.msgs.forEach(function(m){ bubble(m.role,m.content); });
   scrollDown();
 }
+var KNOWN_ACTIONS={add_task:1,complete_task:1,add_journal:1,add_note:1,add_event:1,
+  add_contact:1,lend_item:1,return_item:1,add_subscription:1,mark_habit:1,log_money:1,
+  write_ticket:1,add_piece:1,draft_invoice:1,remember:1,forget:1,look_up:1};
+var ALIASES={
+  addtask:"add_task",task:"add_task",new_task:"add_task",create_task:"add_task",
+  completetask:"complete_task",finish_task:"complete_task",done_task:"complete_task",
+  journal:"add_journal",addjournal:"add_journal",journal_entry:"add_journal",
+  note:"add_note",addnote:"add_note",new_note:"add_note",
+  event:"add_event",addevent:"add_event",calendar:"add_event",new_event:"add_event",
+  contact:"add_contact",addcontact:"add_contact",
+  lend:"lend_item",borrow:"lend_item",
+  ret:"return_item",returned:"return_item",
+  subscription:"add_subscription",sub:"add_subscription",
+  habit:"mark_habit",markhabit:"mark_habit",
+  money:"log_money",logmoney:"log_money",spend:"log_money",expense:"log_money",
+  ticket:"write_ticket",iou:"write_ticket",
+  piece:"add_piece",music:"add_piece",
+  invoice:"draft_invoice",bill:"draft_invoice",
+  memory:"remember",save_memory:"remember",
+  search:"look_up",find:"look_up",lookup:"look_up"};
+
+function normaliseAction(a){
+  if(!a||typeof a!=="object") return null;
+  var name=a.do||a.action||a.type||a.name||a.tool||a.command;
+  if(!name) return null;
+  name=String(name).toLowerCase().trim().replace(/[\s-]+/g,"_");
+  if(!KNOWN_ACTIONS[name]&&ALIASES[name]) name=ALIASES[name];
+  if(!KNOWN_ACTIONS[name]) return {do:name,_unknown:true};
+  var o=a.args&&typeof a.args==="object"?Object.assign({},a.args,a):a;
+  var out={do:name};
+  ["title","text","name","who","for","about","due","date","time","place","list","cycle",
+   "next","note","body","phone","how","direction","category","method","composer","arranger",
+   "grade","tempo","unsure"].forEach(function(k){ if(o[k]!=null&&o[k]!=="") out[k]=o[k]; });
+  if(o.amount!=null&&o.amount!=="") out.amount=parseFloat(String(o.amount).replace(/[^0-9.\-]/g,""));
+  if(o.minutes!=null&&out.amount==null) out.minutes=o.minutes;
+  // things small models get wrong
+  if(out.do==="add_task"&&!out.title&&out.text) out.title=out.text;
+  if(out.do==="add_journal"&&!out.text&&out.body) out.text=out.body;
+  if(out.do==="add_journal"&&!out.text&&out.title) out.text=out.title;
+  if(out.do==="remember"&&!out.text&&out.title) out.text=out.title;
+  if(out.do==="look_up"&&!out.about) out.about=out.text||out.title||out.name||"";
+  if(out.do==="log_money"&&!out.direction) out.direction="out";
+  if(out.do==="write_ticket"&&!out.direction) out.direction="owe";
+  return out;
+}
+function repairJSON(t){
+  return t.replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"')
+          .replace(/'/g,'"')
+          .replace(/,\s*([}\]])/g,"$1")
+          .replace(/([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:/g,'$1"$2":')
+          .trim();
+}
+function tryParse(chunk){
+  var v=null;
+  try{ v=JSON.parse(chunk); }
+  catch(e){ try{ v=JSON.parse(repairJSON(chunk)); }catch(e2){ return []; } }
+  var arr=Array.isArray(v)?v:[v];
+  return arr.map(normaliseAction).filter(Boolean);
+}
+/* Small models fence things however they like. Take anything that looks like an action. */
 function parseActions(text){
-  var m=text.match(/```action\s*([\s\S]*?)```/);
-  if(!m) return {clean:text,actions:[]};
-  var acts=[];
-  try{
-    var p=JSON.parse(m[1].trim());
-    acts=Array.isArray(p)?p:[p];
-  }catch(e){}
-  return {clean:text.replace(m[0],"").trim(),actions:acts};
+  var acts=[], clean=text;
+  // 1. any fenced block at all
+  var fence=/```[a-zA-Z]*\s*([\s\S]*?)```/g, m;
+  var blocks=[];
+  while((m=fence.exec(text))!==null){
+    var inner=m[1].trim();
+    if(/["'\u201C\u201D\u2018\u2019]?(do|action|tool|command)["'\u201C\u201D\u2018\u2019]?\s*:/i.test(inner)){
+      var got=tryParse(inner);
+      if(got.length){ acts=acts.concat(got); blocks.push(m[0]); }
+    }
+  }
+  blocks.forEach(function(b){ clean=clean.replace(b,""); });
+  // 2. unfenced JSON sitting in the text
+  if(!acts.length){
+    var bare=text.match(/(\[\s*\{[\s\S]*?\}\s*\]|\{[^{}]*["']?(?:do|action)["']?\s*:[\s\S]*?\})/);
+    if(bare){
+      var got2=tryParse(bare[1]);
+      if(got2.length){ acts=got2; clean=clean.replace(bare[1],""); }
+    }
+  }
+  clean=clean.replace(/^\s*(here('| i)s the action[^\n]*|action:)\s*$/gim,"").trim();
+  return {clean:clean,actions:acts};
+}
+/* It sometimes says it did something without emitting anything */
+var CLAIM=/\b(i(?:'ve| have)?\s+(?:just\s+)?(?:added|logged|created|noted|saved|put|written|recorded|scheduled|marked|set)|added it|logged it|done that|noted that|it(?:'s| is) (?:added|logged|saved|on the calendar))\b/i;
+function claimedWithoutDoing(text,actions){
+  return !actions.length && CLAIM.test(text);
+}
+function offerRetry(){
+  var w=el("div","act");
+  w.appendChild(el("div","t","It said it did something"));
+  w.appendChild(el("div","d","But nothing was actually changed. Small models sometimes forget the bit that makes it happen."));
+  var row=el("div","row-btns");
+  var go=el("button","btn sm","Make it happen");
+  go.onclick=function(){
+    w.remove();
+    var c=cur();
+    c.msgs.push({role:"user",content:
+      "You said you did that but you did not send the action block, so nothing changed. "+
+      "Reply with NOTHING except the block, exactly like this and nothing else:\n"+
+      "```action\n[{\"do\":\"add_task\",\"title\":\"example\"}]\n```"});
+    saveTalk(); ask();
+  };
+  var no=el("button","btn ghost sm","Leave it");
+  no.onclick=function(){ w.remove(); };
+  row.appendChild(go); row.appendChild(no); w.appendChild(row);
+  $("#chat").appendChild(w); scrollDown();
 }
 
 async function send(){
@@ -1657,9 +1772,10 @@ async function askWithSeed(seed){
     if(!r.ok||!j.text){ bubble("system",j.error||"The model didn't answer."); }
     else{
       var p=parseActions(j.text);
-      c.msgs.push({role:"assistant",content:p.clean});
-      bubble("assistant",p.clean);
+      c.msgs.push({role:"assistant",content:p.clean||j.text});
+      bubble("assistant",p.clean||j.text);
       p.actions.forEach(offerAction);
+      if(claimedWithoutDoing(j.text,p.actions)) offerRetry();
       saveTalk();
     }
   }catch(e){ think.remove(); bubble("system","Couldn't reach the model. Is the ollama container up?"); }

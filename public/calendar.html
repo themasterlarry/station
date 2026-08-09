@@ -410,8 +410,13 @@ var DB={
   }
 };
 
-var APP_VERSION="2.1";
+var APP_VERSION="2.2";
 var CHANGELOG=[
+ {v:"2.2",d:"2026-08-08",t:"The AI actually does things now",
+  items:["Fixed: it was printing its instructions instead of carrying them out. Small models never format things exactly as told, so it now understands however they write it",
+         "Handles wrong fences, missing quotes, single quotes, curly quotes, trailing commas, dollar signs on amounts and different field names",
+         "If it says it did something but didn't, you get a button to make it happen",
+         "If it asks for something that isn't a real action, it says so instead of going quiet"]},
  {v:"2.1",d:"2026-08-08",t:"Proper invoices, tied to your tickets",
   items:["Invoices now look like real invoices — monogram, ruled line table, totals block, an amount-due panel and a PAID stamp",
          "Preview one on screen before you print it or save it as a PDF",
