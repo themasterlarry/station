@@ -339,6 +339,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
     <section class="pane" id="pane">
       <div class="seg mini" id="pgtabs">
         <button type="button" data-t="contacts" aria-pressed="true">Contacts</button>
+        <button type="button" data-t="meets">Together</button>
         <button type="button" data-t="items">Lent out</button>
       </div>
 
@@ -356,6 +357,29 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
         <button class="btn ghost sm" data-act="import">Import contacts</button>
       </div>
       <div id="contacts_list"></div>
+      </div>
+<style>
+      .mt{border:1px solid var(--rule);border-left:4px solid var(--pos);background:var(--card);
+        border-radius:2px;padding:11px 12px;margin-bottom:9px;cursor:pointer}
+      .mt:hover{background:var(--card2)}
+      .mt.thin{border-left-color:var(--rule)}
+      .mt .t3{font-family:var(--disp);text-transform:uppercase;letter-spacing:.04em;font-size:15px;font-weight:700}
+      .mt .w2{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:2px}
+      .mt .who4{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+      </style>
+      <div class="pgview" id="view_meets" style="display:none">
+      
+      <div class="tally" style="margin-bottom:12px">
+        <div><div class="lbl">Logged</div><div class="val" id="meets_gN">0</div></div>
+        <div><div class="lbl">This month</div><div class="val" id="meets_gM">0</div></div>
+        <div><div class="lbl">Seen most</div><div class="val" id="meets_gTop" style="font-size:15px">—</div></div>
+        <div><div class="lbl">Last one</div><div class="val" id="meets_gLast" style="font-size:15px">—</div></div>
+      </div>
+      <div class="row-btns" style="margin-bottom:12px">
+        <button class="btn" data-act="new">Log something</button>
+      </div>
+      <label style="margin-bottom:12px"><span>Search</span><input id="meets_gQ" placeholder="Who, where, what"></label>
+      <div id="meets_gList"></div>
       </div>
 
       <div class="pgview" id="view_items" style="display:none">
@@ -409,8 +433,16 @@ var DB={
   }
 };
 
-var APP_VERSION="2.4";
+var APP_VERSION="2.5";
 var CHANGELOG=[
+ {v:"2.5",d:"2026-08-08",t:"People, properly",
+  items:["Anywhere you name somebody — money, tickets, invoices, lent items, events — you now pick them from your contacts instead of typing a name",
+         "Adding a new person is a deliberate step with a proper little form, so you stop ending up with three spellings of the same name",
+         "It warns you if you are about to add somebody you already have",
+         "Together — log a hangout, a call, a meal, a gig, and who was there",
+         "Everyone at the same thing gets connected to each other automatically",
+         "Contacts now suggest connections it worked out from who keeps turning up together, and you can make any of them permanent with one tap",
+         "Hangouts count towards when you last spoke to somebody"]},
  {v:"2.4",d:"2026-08-08",t:"Eight pages instead of eighteen",
   items:["Everything is grouped now: Plan holds tasks, calendar and habits; Money holds the ledger, wallet, invoices and subscriptions; People holds contacts and lent items; Desk holds notes, journal, documents and sheet music",
          "The vault stays on its own page on purpose — it locks itself when you leave the page, and tabs would not do that",
@@ -529,6 +561,7 @@ function migrateH(){
   H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];
   H.templates=H.templates||[];H.invoices=H.invoices||[];
   H.wallet=H.wallet||{counts:{},accountId:null,lastCounted:""};H.walletCounts=H.walletCounts||[];
+  H.meets=H.meets||[];H.drafts=H.drafts||{};
   H.lists=(H.lists&&H.lists.length)?H.lists:DEF_LISTS.slice();
   H.version=H.version||1;
 }
@@ -816,6 +849,195 @@ function attachBar(host,kind,id,heading){
   return wrap;
 }
 
+
+/* ---------- choosing people ----------
+   Names are never free text any more. You either pick somebody who
+   already exists, or you deliberately create them. */
+function personPicker(opts){
+  opts=opts||{};
+  var chosen=(opts.value||[]).slice();
+  openDlg(opts.title||"Who?",
+    '<label><span>Search</span><input id="ppQ" placeholder="Type a name"></label>'+
+    '<div id="ppChosen"></div>'+
+    '<div id="ppList"></div>'+
+    '<div id="ppNew"></div>'+
+    '<div class="row-btns" style="margin-top:12px">'+
+      '<button class="btn" id="ppOK" style="flex:1">Done</button>'+
+      '<button class="btn ghost sm" id="ppCancel">Cancel</button></div>',
+    function(){
+      function drawChosen(){
+        var h=$("#ppChosen"); h.innerHTML="";
+        if(!opts.multi||!chosen.length) return;
+        var w=el("div","web"); w.style.marginBottom="8px";
+        chosen.forEach(function(id){
+          var p=contactRec(id); if(!p) return;
+          var c=el("span","pill warm",p.name+" ×");
+          c.style.cursor="pointer";
+          c.onclick=function(){ chosen=chosen.filter(function(x){return x!==id;}); drawChosen(); drawList(); };
+          w.appendChild(c);});
+        h.appendChild(w);
+      }
+      function pick(p){
+        if(opts.multi){
+          if(chosen.indexOf(p.id)<0) chosen.push(p.id);
+          $("#ppQ").value=""; drawChosen(); drawList();
+        } else { dlg.close(); if(opts.onPick) opts.onPick(p); }
+      }
+      function drawList(){
+        var q=$("#ppQ").value.trim().toLowerCase();
+        var all=allPeople().filter(function(p){
+          if(opts.multi&&chosen.indexOf(p.id)>=0) return false;
+          if(!q) return true;
+          return (p.name+" "+(p.how||"")+" "+(p.phone||"")).toLowerCase().indexOf(q)>=0;});
+        var h=$("#ppList"); h.innerHTML="";
+        if(all.length){
+          var box=el("div","bar-list");
+          all.slice(0,40).forEach(function(p){
+            var r=el("div","bar-row ctrow tap");
+            r.appendChild(el("div","initial",initials(p.name)));
+            var L2=el("div");
+            L2.appendChild(el("div","who",p.name));
+            var bits=[];
+            if(p.how) bits.push(p.how);
+            if(p.phone) bits.push(p.phone);
+            L2.appendChild(el("div","meta",bits.join(" · ")||"no details yet"));
+            r.appendChild(L2); r.appendChild(el("span","pill","pick")); r.appendChild(el("div"));
+            r.onclick=function(){ pick(p); };
+            box.appendChild(r);});
+          h.appendChild(box);
+        } else h.appendChild(emptyBox(q?"Nobody by that name":"No contacts yet",
+          q?"Add them below.":"Add your first person below."));
+        // explicit creation
+        var n=$("#ppNew"); n.innerHTML="";
+        if(q){
+          var b=el("button","btn tick sm","Add \""+q+"\" as a new contact");
+          b.style.cssText="width:100%;margin-top:10px";
+          b.onclick=function(){ newPersonForm(q,pick); };
+          n.appendChild(b);
+        } else {
+          var b2=el("button","btn ghost sm","Add somebody new");
+          b2.style.cssText="width:100%;margin-top:10px";
+          b2.onclick=function(){ newPersonForm("",pick); };
+          n.appendChild(b2);
+        }
+      }
+      $("#ppQ").oninput=drawList;
+      $("#ppCancel").onclick=function(){ dlg.close(); };
+      $("#ppOK").onclick=function(){
+        dlg.close();
+        if(opts.multi&&opts.onPickMany) opts.onPickMany(chosen);
+      };
+      if(!opts.multi) $("#ppOK").style.display="none";
+      drawChosen(); drawList();
+      setTimeout(function(){ $("#ppQ").focus(); },40);
+    });
+}
+function newPersonForm(name,then){
+  dlg.close();
+  setTimeout(function(){
+    openDlg("New contact",
+      '<label><span>Name</span><input id="npN" value="'+esc(name||"")+'"></label>'+
+      '<div class="two">'+
+        '<label><span>How you know them</span><input id="npH" placeholder="Cousin, from band"></label>'+
+        '<label><span>Phone</span><input id="npP" type="tel"></label></div>'+
+      '<label><span>Anything worth remembering</span><input id="npNo" placeholder="Optional"></label>'+
+      '<button class="btn" id="npS" style="width:100%">Add them</button>',
+      function(){
+        $("#npS").onclick=function(){
+          var nm=$("#npN").value.trim();
+          if(!nm) return toast("They need a name");
+          var dupe=allPeople().filter(function(p){return p.name.toLowerCase()===nm.toLowerCase();})[0];
+          if(dupe&&!confirm("You already have a "+dupe.name+". Add another anyway?")){
+            dlg.close(); if(then) then(contactRec(dupe.id)); return;
+          }
+          var c={id:uid(),name:nm,how:$("#npH").value.trim(),phone:$("#npP").value.trim(),
+            notes:$("#npNo").value.trim(),tags:[],knows:[],log:[]};
+          H.contacts.push(c);
+          if(L){ L.people=L.people||[]; L.people.push({id:c.id,name:c.name}); saveL(); }
+          save(); dlg.close();
+          toast(nm+" added");
+          if(then) then(c);
+        };
+        setTimeout(function(){ $("#npN").focus(); },40);
+      });
+  },60);
+}
+/* Turns an existing text input into a chooser. Keeps the input's value as
+   the name, so older code that reads .value still works. */
+function bindPersonField(sel,opts){
+  opts=opts||{};
+  var inp=$(sel); if(!inp) return;
+  inp.readOnly=true;
+  inp.style.cursor="pointer";
+  inp.placeholder=opts.multi?"Tap to choose people":"Tap to choose somebody";
+  function open(){
+    if(opts.multi){
+      var ids=inp.value.split(",").map(function(x){return x.trim();}).filter(Boolean)
+        .map(function(n){ var p=allPeople().filter(function(x){
+          return x.name.toLowerCase()===n.toLowerCase();})[0]; return p?p.id:null;}).filter(Boolean);
+      personPicker({title:opts.title||"Who is involved",multi:true,value:ids,
+        onPickMany:function(list){
+          inp.value=list.map(personName).filter(Boolean).join(", ");
+          if(opts.onChange) opts.onChange(list);
+        }});
+    } else {
+      personPicker({title:opts.title||"Who?",onPick:function(p){
+        inp.value=p.name; inp._pid=p.id;
+        if(opts.onChange) opts.onChange(p);
+      }});
+    }
+  }
+  inp.onclick=open; inp.onfocus=function(){ inp.blur(); open(); };
+  var wrap=inp.parentNode;
+  if(wrap&&!wrap.querySelector(".clrp")){
+    var c=el("button","btn ghost sm clrp","Clear");
+    c.style.cssText="margin-top:5px";
+    c.onclick=function(e){ e.preventDefault(); inp.value=""; inp._pid=null; };
+    wrap.appendChild(c);
+  }
+}
+
+/* ---------- time spent together ---------- */
+function meets(){ H.meets=H.meets||[]; return H.meets; }
+function meetsFor(id){
+  return meets().filter(function(m){return (m.personIds||[]).indexOf(id)>=0;})
+    .sort(function(a,b){return (b.date||"").localeCompare(a.date||"");});
+}
+/* Who has turned up alongside this person, without anybody typing it in */
+function inferredLinks(id){
+  var seen={};
+  function note(otherId,why,when){
+    if(otherId===id) return;
+    if(!seen[otherId]) seen[otherId]={id:otherId,times:0,why:why,last:when||""};
+    seen[otherId].times++;
+    if((when||"")>seen[otherId].last){ seen[otherId].last=when||""; seen[otherId].why=why; }
+  }
+  meets().forEach(function(m){
+    var ids=m.personIds||[];
+    if(ids.indexOf(id)<0) return;
+    ids.forEach(function(o){ note(o,m.title||"together",m.date); });
+  });
+  (H.events||[]).forEach(function(e){
+    var ids=e.personIds||[];
+    if(ids.indexOf(id)<0) return;
+    ids.forEach(function(o){ note(o,e.title||"same event",e.date); });
+  });
+  var manual=((contactRec(id)||{}).knows||[]).map(function(k){return k.id;});
+  return Object.keys(seen).map(function(k){return seen[k];})
+    .filter(function(x){ return manual.indexOf(x.id)<0 && contactRec(x.id); })
+    .sort(function(a,b){ return b.times-a.times; });
+}
+function promoteLink(aId,bId,how){
+  var a=contactRec(aId), b=contactRec(bId);
+  if(!a||!b) return;
+  if(!H.contacts.some(function(c){return c.id===a.id;})) H.contacts.push(a);
+  if(!H.contacts.some(function(c){return c.id===b.id;})) H.contacts.push(b);
+  a.knows=a.knows||[]; b.knows=b.knows||[];
+  if(!a.knows.some(function(k){return k.id===bId;})) a.knows.push({id:bId,how:how||""});
+  if(!b.knows.some(function(k){return k.id===aId;})) b.knows.push({id:aId,how:how||""});
+  save();
+}
+
 /* ---------- navigation ---------- */
 var MODULES=[
   {id:"index",cd:"//",label:"Today",file:"index.html"},
@@ -841,6 +1063,13 @@ function navCounts(){
     return x.active!==false&&x.next&&daysBetween(ts,x.next)<=3;}).length;
   c.money=(lt?lt.late.length:0)+invLate+subSoon+((!wl||daysBetween(wl,ts)>=7)?1:0);
   c.people=H.things.filter(function(t){return !t.back&&t.due&&t.due<ts;}).length;
+  c.people+=allPeople().filter(function(p){
+    var d="";
+    (H.events||[]).forEach(function(e){
+      if((e.personIds||[]).indexOf(p.id)>=0&&e.date<=ts&&e.date>d) d=e.date;});
+    (H.meets||[]).forEach(function(m){
+      if((m.personIds||[]).indexOf(p.id)>=0&&m.date>d) d=m.date;});
+    return d&&daysBetween(d,ts)>90;}).length;
   c.desk=(H.scores||[]).reduce(function(t,p){
     return t+((p.spots||[]).filter(function(x){return !x.fixed;}).length?1:0);},0);
   c.settings=unseenCount();
@@ -1214,6 +1443,7 @@ function lastTouch(id){
   (H.things||[]).forEach(function(t){ if(t.personId===id&&t.date>d) d=t.date; });
   var c=contactRec(id)||{};
   (c.log||[]).forEach(function(l){ if(l.date>d) d=l.date; });
+  meetsFor(id).forEach(function(m){ if(m.date&&m.date<=today()&&m.date>d) d=m.date; });
   return d;
 }
 function quietDays(id){
@@ -1246,6 +1476,9 @@ function everythingFor(id){
     if((t.personIds||[]).indexOf(id)>=0) out.push({cd:"TK",t:t.title,s:t.done?"finished":"open task",d:t.due||""});});
   (H.events||[]).forEach(function(e){
     if((e.personIds||[]).indexOf(id)>=0) out.push({cd:"CL",t:e.title,s:prettyFull(e.date),d:e.date});});
+  meets().forEach(function(m){
+    if((m.personIds||[]).indexOf(id)>=0)
+      out.push({cd:"TG",t:m.title||"Together",s:(m.place||"")||"time together",d:m.date});});
   (H.things||[]).forEach(function(x){
     if(x.personId===id) out.push({cd:"TH",t:x.name,
       s:(x.dir==="lent"?"lent to them":"borrowed from them")+(x.back?" · back":""),d:x.date});});
@@ -1431,6 +1664,44 @@ function drawRelated(rec){
   var add=el("button","btn ghost sm","Link someone");
   add.onclick=function(e){ e.preventDefault(); linkDialog(rec); };
   row.appendChild(add); host.appendChild(row);
+
+  var inf=inferredLinks(rec.id);
+  if(inf.length){
+    var h2=el("div");
+    h2.style.cssText="font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--dim);margin:12px 0 4px";
+    h2.textContent="Worked out from who turns up together";
+    host.appendChild(h2);
+    var w2=el("div","web");
+    inf.slice(0,10).forEach(function(x){
+      var p=el("span","pill",(personName(x.id)||"?")+" · "+x.times+"×");
+      p.style.cursor="pointer";
+      p.title="add this connection";
+      p.onclick=function(){
+        promoteLink(rec.id,x.id,x.why);
+        drawRelated(rec); toast("Connected");};
+      w2.appendChild(p);});
+    host.appendChild(w2);
+    var note=el("p","foot-note");
+    note.textContent="Tap one to make it a real connection.";
+    host.appendChild(note);
+  }
+
+  var ms=meetsFor(rec.id);
+  if(ms.length){
+    var h3=el("div");
+    h3.style.cssText="font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--dim);margin:12px 0 4px";
+    h3.textContent="Times together";
+    host.appendChild(h3);
+    var box2=el("div","bar-list");
+    ms.slice(0,6).forEach(function(m){
+      var r=el("div","bar-row"),L3=el("div");
+      L3.appendChild(el("div","who",m.title||"Together"));
+      L3.appendChild(el("div","meta",prettyFull(m.date)+" · "+relDay(m.date)+
+        ((m.personIds||[]).length>1?" · with "+(m.personIds.length-1)+" other"+(m.personIds.length===2?"":"s"):"")));
+      r.appendChild(L3); r.appendChild(el("span","pill","TG"));
+      box2.appendChild(r);});
+    host.appendChild(box2);
+  }
 }
 function linkDialog(rec){
   dlg.close();
@@ -1440,6 +1711,7 @@ function linkDialog(rec){
       '<label><span>How they know each other</span><input id="contacts_lH" placeholder="brother, bandmate, neighbour"></label>'+
       '<button class="btn" id="contacts_lS" style="width:100%">Link them</button>',
       function(){
+        bindPersonField("#contacts_lW",{title:"Link who"});
         $("#contacts_lS").onclick=function(){
           var nm=$("#contacts_lW").value.trim();
           if(!nm) return toast("Who?");
@@ -1558,6 +1830,118 @@ function pageBoot(){
 
 return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
 })();
+MODS["meets"]=(function(){
+var KINDS=[["hangout","Hung out"],["call","Phone call"],["message","Messaged"],
+           ["meal","Ate together"],["gig","Played together"],["work","Worked together"],
+           ["other","Something else"]];
+function kindLabel(k){ var f=KINDS.filter(function(x){return x[0]===k;})[0]; return f?f[1]:"Together"; }
+
+function pageHead(){
+  var all=meets(), mk=today().slice(0,7);
+  var mo=all.filter(function(m){return (m.date||"").slice(0,7)===mk;}).length;
+  setHead("TG · together","Together",
+    all.length+" logged"+(mo?"  ·  "+mo+" this month":"")+
+    (all.length?"  ·  last "+relDay(all.slice().sort(function(a,b){
+      return (b.date||"").localeCompare(a.date||"");})[0].date):""));
+}
+function pageRender(){
+  var all=meets().slice().sort(function(a,b){return (b.date||"").localeCompare(a.date||"");});
+  var mk=today().slice(0,7);
+  $("#meets_gN").textContent=all.length;
+  $("#meets_gM").textContent=all.filter(function(m){return (m.date||"").slice(0,7)===mk;}).length;
+  var tally={};
+  all.forEach(function(m){(m.personIds||[]).forEach(function(p){tally[p]=(tally[p]||0)+1;});});
+  var top=Object.keys(tally).sort(function(a,b){return tally[b]-tally[a];})[0];
+  $("#meets_gTop").textContent=top?(personName(top)||"—"):"—";
+  $("#meets_gLast").textContent=all.length?relDay(all[0].date):"—";
+
+  var q=($("#meets_gQ").value||"").trim().toLowerCase();
+  var list=all.filter(function(m){
+    if(!q) return true;
+    var names=(m.personIds||[]).map(personName).join(" ");
+    return [m.title,m.place,m.notes,names,kindLabel(m.kind)].join(" ").toLowerCase().indexOf(q)>=0;});
+  var host=$("#meets_gList"); host.innerHTML="";
+  if(!list.length){
+    host.appendChild(emptyBox(all.length?"Nothing matches":"Nothing logged yet",
+      all.length?"Try another word."
+        :"Log the times you actually see people. It keeps track of who you have gone quiet on, and works out who knows who."));
+    return;}
+  var lastMonth="";
+  list.forEach(function(m){
+    var mk2=(m.date||"").slice(0,7);
+    if(mk2!==lastMonth){
+      lastMonth=mk2;
+      var p=mk2.split("-");
+      host.appendChild(el("h2","sec",MONL[(+p[1])-1]+" "+p[0]));
+    }
+    var d=el("div","mt"+((m.personIds||[]).length>1?"":" thin"));
+    d.appendChild(el("div","t3",m.title||kindLabel(m.kind)));
+    var bits=[prettyFull(m.date),relDay(m.date)];
+    if(m.place) bits.push(m.place);
+    if(m.kind&&m.kind!=="hangout") bits.push(kindLabel(m.kind).toLowerCase());
+    d.appendChild(el("div","w2",bits.join(" · ")));
+    var w=el("div","who4");
+    (m.personIds||[]).forEach(function(id){
+      w.appendChild(el("span","pill",personName(id)||"someone"));});
+    if(!(m.personIds||[]).length) w.appendChild(el("span","pill","nobody named"));
+    d.appendChild(w);
+    if(m.notes){
+      var n=el("div","w2",m.notes); n.style.marginTop="6px"; d.appendChild(n);
+    }
+    d.onclick=function(){ meetDialog(m); };
+    host.appendChild(d);});
+}
+
+function meetDialog(m){
+  var isNew=!m;
+  m=m||{date:today(),kind:"hangout",title:"",place:"",notes:"",personIds:[]};
+  openDlg(isNew?"Log something":(m.title||kindLabel(m.kind)),
+    '<div class="two">'+
+      '<label><span>When</span><input type="date" id="meets_gD" value="'+esc(m.date)+'" max="'+today()+'"></label>'+
+      '<label><span>What was it</span><select id="meets_gK">'+KINDS.map(function(k){
+        return '<option value="'+k[0]+'"'+(m.kind===k[0]?" selected":"")+'>'+k[1]+'</option>';}).join("")+
+      '</select></label></div>'+
+    '<label><span>Who was there</span><input id="meets_gW" value="'+
+      esc((m.personIds||[]).map(personName).filter(Boolean).join(", "))+'"></label>'+
+    '<label><span>Call it something</span><input id="meets_gT" value="'+esc(m.title||"")+'" placeholder="Optional — \\"the cookout\\""></label>'+
+    '<label><span>Where</span><input id="meets_gP" value="'+esc(m.place||"")+'" placeholder="Optional"></label>'+
+    '<label><span>Notes</span><textarea id="meets_gNo" style="min-height:56px" placeholder="What you talked about, anything worth remembering">'+esc(m.notes||"")+'</textarea></label>'+
+    '<label class="check"><input type="checkbox" id="meets_gLink" checked><span>Connect everybody who was there to each other</span></label>'+
+    '<div class="row-btns"><button class="btn" id="meets_gS" style="flex:1">'+(isNew?"Log it":"Save")+'</button>'+
+    (isNew?'':'<button class="btn ghost sm" id="meets_gX">Delete</button>')+'</div>',
+    function(){
+      var ids=(m.personIds||[]).slice();
+      bindPersonField("#meets_gW",{multi:true,title:"Who was there",
+        onChange:function(list){ ids=list; }});
+      $("#meets_gS").onclick=function(){
+        if(!ids.length) return toast("Who were you with?");
+        m.date=$("#meets_gD").value||today(); m.kind=$("#meets_gK").value;
+        m.title=$("#meets_gT").value.trim(); m.place=$("#meets_gP").value.trim();
+        m.notes=$("#meets_gNo").value.trim(); m.personIds=ids;
+        if(isNew){ m.id=uid(); meets().push(m); }
+        if($("#meets_gLink").checked&&ids.length>1){
+          var why=m.title||kindLabel(m.kind).toLowerCase();
+          for(var i=0;i<ids.length;i++)
+            for(var j=i+1;j<ids.length;j++) promoteLink(ids[i],ids[j],why);
+        }
+        save(); pageHead(); pageRender(); dlg.close();
+        toast(isNew?"Logged":"Saved");};
+      if(!isNew) $("#meets_gX").onclick=function(){
+        if(!confirm("Delete this? The people stay, only the record goes.")) return;
+        trashIt("meet",(m.title||kindLabel(m.kind))+" "+m.date,m);
+        H.meets=meets().filter(function(x){return x.id!==m.id;});
+        save(); pageHead(); pageRender(); dlg.close();};
+    });
+}
+function pageAction(a){ if(a==="new") meetDialog(null); }
+function pageBoot(){
+  H.meets=meets();
+  $("#meets_gQ").oninput=pageRender;
+  if(qparam("new")) setTimeout(function(){meetDialog(null);},120);
+}
+
+return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
+})();
 MODS["items"]=(function(){
 function pageHead(){
   var out=H.things.filter(function(t){return !t.back&&t.dir==="lent";}).length;
@@ -1642,6 +2026,7 @@ function thingDialog(){
     '<div id="items_attachHost"></div>'+
     '<button class="btn" id="items_fS" style="width:100%">Log it</button>',
     function(){
+      bindPersonField("#items_fW",{title:"Who has it"});
       $("#items_sL").onclick=function(){dir="lent";$("#items_sL").setAttribute("aria-pressed",true);$("#items_sB").setAttribute("aria-pressed",false);};
       $("#items_sB").onclick=function(){dir="borrowed";$("#items_sL").setAttribute("aria-pressed",false);$("#items_sB").setAttribute("aria-pressed",true);};
       $("#items_fS").onclick=function(){
@@ -1660,7 +2045,7 @@ function pageBoot(){ if(qparam("new")) setTimeout(thingDialog,120); }
 return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
 })();
 
-var TABS=["contacts", "items"];
+var TABS=["contacts", "meets", "items"];
 var ptab=TABS[0];
 function activeMod(){ return MODS[ptab]; }
 function setPTab(t){
@@ -1672,7 +2057,7 @@ function setPTab(t){
   document.querySelectorAll("#pgtabs button").forEach(function(b){
     b.setAttribute("aria-pressed",b.dataset.t===t);});
   var fab=document.querySelector(".fab");
-  if(fab){ var f={"contacts": "new", "items": "new"}; if(f[t]){ fab.style.display=""; fab.dataset.act=f[t]; } else fab.style.display="none"; }
+  if(fab){ var f={"contacts": "new", "meets": "new", "items": "new"}; if(f[t]){ fab.style.display=""; fab.dataset.act=f[t]; } else fab.style.display="none"; }
   try{ history.replaceState(null,"",location.pathname+"?tab="+t); }catch(e){}
   $("#pTools").innerHTML="";
   addTool("Search",commandBar); addTool("Trash",trashDialog); addTool("Theme",cycleTheme);

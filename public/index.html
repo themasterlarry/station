@@ -385,8 +385,16 @@ var DB={
   }
 };
 
-var APP_VERSION="2.4";
+var APP_VERSION="2.5";
 var CHANGELOG=[
+ {v:"2.5",d:"2026-08-08",t:"People, properly",
+  items:["Anywhere you name somebody — money, tickets, invoices, lent items, events — you now pick them from your contacts instead of typing a name",
+         "Adding a new person is a deliberate step with a proper little form, so you stop ending up with three spellings of the same name",
+         "It warns you if you are about to add somebody you already have",
+         "Together — log a hangout, a call, a meal, a gig, and who was there",
+         "Everyone at the same thing gets connected to each other automatically",
+         "Contacts now suggest connections it worked out from who keeps turning up together, and you can make any of them permanent with one tap",
+         "Hangouts count towards when you last spoke to somebody"]},
  {v:"2.4",d:"2026-08-08",t:"Eight pages instead of eighteen",
   items:["Everything is grouped now: Plan holds tasks, calendar and habits; Money holds the ledger, wallet, invoices and subscriptions; People holds contacts and lent items; Desk holds notes, journal, documents and sheet music",
          "The vault stays on its own page on purpose — it locks itself when you leave the page, and tabs would not do that",
@@ -505,6 +513,7 @@ function migrateH(){
   H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];
   H.templates=H.templates||[];H.invoices=H.invoices||[];
   H.wallet=H.wallet||{counts:{},accountId:null,lastCounted:""};H.walletCounts=H.walletCounts||[];
+  H.meets=H.meets||[];H.drafts=H.drafts||{};
   H.lists=(H.lists&&H.lists.length)?H.lists:DEF_LISTS.slice();
   H.version=H.version||1;
 }
@@ -792,6 +801,195 @@ function attachBar(host,kind,id,heading){
   return wrap;
 }
 
+
+/* ---------- choosing people ----------
+   Names are never free text any more. You either pick somebody who
+   already exists, or you deliberately create them. */
+function personPicker(opts){
+  opts=opts||{};
+  var chosen=(opts.value||[]).slice();
+  openDlg(opts.title||"Who?",
+    '<label><span>Search</span><input id="ppQ" placeholder="Type a name"></label>'+
+    '<div id="ppChosen"></div>'+
+    '<div id="ppList"></div>'+
+    '<div id="ppNew"></div>'+
+    '<div class="row-btns" style="margin-top:12px">'+
+      '<button class="btn" id="ppOK" style="flex:1">Done</button>'+
+      '<button class="btn ghost sm" id="ppCancel">Cancel</button></div>',
+    function(){
+      function drawChosen(){
+        var h=$("#ppChosen"); h.innerHTML="";
+        if(!opts.multi||!chosen.length) return;
+        var w=el("div","web"); w.style.marginBottom="8px";
+        chosen.forEach(function(id){
+          var p=contactRec(id); if(!p) return;
+          var c=el("span","pill warm",p.name+" ×");
+          c.style.cursor="pointer";
+          c.onclick=function(){ chosen=chosen.filter(function(x){return x!==id;}); drawChosen(); drawList(); };
+          w.appendChild(c);});
+        h.appendChild(w);
+      }
+      function pick(p){
+        if(opts.multi){
+          if(chosen.indexOf(p.id)<0) chosen.push(p.id);
+          $("#ppQ").value=""; drawChosen(); drawList();
+        } else { dlg.close(); if(opts.onPick) opts.onPick(p); }
+      }
+      function drawList(){
+        var q=$("#ppQ").value.trim().toLowerCase();
+        var all=allPeople().filter(function(p){
+          if(opts.multi&&chosen.indexOf(p.id)>=0) return false;
+          if(!q) return true;
+          return (p.name+" "+(p.how||"")+" "+(p.phone||"")).toLowerCase().indexOf(q)>=0;});
+        var h=$("#ppList"); h.innerHTML="";
+        if(all.length){
+          var box=el("div","bar-list");
+          all.slice(0,40).forEach(function(p){
+            var r=el("div","bar-row ctrow tap");
+            r.appendChild(el("div","initial",initials(p.name)));
+            var L2=el("div");
+            L2.appendChild(el("div","who",p.name));
+            var bits=[];
+            if(p.how) bits.push(p.how);
+            if(p.phone) bits.push(p.phone);
+            L2.appendChild(el("div","meta",bits.join(" · ")||"no details yet"));
+            r.appendChild(L2); r.appendChild(el("span","pill","pick")); r.appendChild(el("div"));
+            r.onclick=function(){ pick(p); };
+            box.appendChild(r);});
+          h.appendChild(box);
+        } else h.appendChild(emptyBox(q?"Nobody by that name":"No contacts yet",
+          q?"Add them below.":"Add your first person below."));
+        // explicit creation
+        var n=$("#ppNew"); n.innerHTML="";
+        if(q){
+          var b=el("button","btn tick sm","Add \""+q+"\" as a new contact");
+          b.style.cssText="width:100%;margin-top:10px";
+          b.onclick=function(){ newPersonForm(q,pick); };
+          n.appendChild(b);
+        } else {
+          var b2=el("button","btn ghost sm","Add somebody new");
+          b2.style.cssText="width:100%;margin-top:10px";
+          b2.onclick=function(){ newPersonForm("",pick); };
+          n.appendChild(b2);
+        }
+      }
+      $("#ppQ").oninput=drawList;
+      $("#ppCancel").onclick=function(){ dlg.close(); };
+      $("#ppOK").onclick=function(){
+        dlg.close();
+        if(opts.multi&&opts.onPickMany) opts.onPickMany(chosen);
+      };
+      if(!opts.multi) $("#ppOK").style.display="none";
+      drawChosen(); drawList();
+      setTimeout(function(){ $("#ppQ").focus(); },40);
+    });
+}
+function newPersonForm(name,then){
+  dlg.close();
+  setTimeout(function(){
+    openDlg("New contact",
+      '<label><span>Name</span><input id="npN" value="'+esc(name||"")+'"></label>'+
+      '<div class="two">'+
+        '<label><span>How you know them</span><input id="npH" placeholder="Cousin, from band"></label>'+
+        '<label><span>Phone</span><input id="npP" type="tel"></label></div>'+
+      '<label><span>Anything worth remembering</span><input id="npNo" placeholder="Optional"></label>'+
+      '<button class="btn" id="npS" style="width:100%">Add them</button>',
+      function(){
+        $("#npS").onclick=function(){
+          var nm=$("#npN").value.trim();
+          if(!nm) return toast("They need a name");
+          var dupe=allPeople().filter(function(p){return p.name.toLowerCase()===nm.toLowerCase();})[0];
+          if(dupe&&!confirm("You already have a "+dupe.name+". Add another anyway?")){
+            dlg.close(); if(then) then(contactRec(dupe.id)); return;
+          }
+          var c={id:uid(),name:nm,how:$("#npH").value.trim(),phone:$("#npP").value.trim(),
+            notes:$("#npNo").value.trim(),tags:[],knows:[],log:[]};
+          H.contacts.push(c);
+          if(L){ L.people=L.people||[]; L.people.push({id:c.id,name:c.name}); saveL(); }
+          save(); dlg.close();
+          toast(nm+" added");
+          if(then) then(c);
+        };
+        setTimeout(function(){ $("#npN").focus(); },40);
+      });
+  },60);
+}
+/* Turns an existing text input into a chooser. Keeps the input's value as
+   the name, so older code that reads .value still works. */
+function bindPersonField(sel,opts){
+  opts=opts||{};
+  var inp=$(sel); if(!inp) return;
+  inp.readOnly=true;
+  inp.style.cursor="pointer";
+  inp.placeholder=opts.multi?"Tap to choose people":"Tap to choose somebody";
+  function open(){
+    if(opts.multi){
+      var ids=inp.value.split(",").map(function(x){return x.trim();}).filter(Boolean)
+        .map(function(n){ var p=allPeople().filter(function(x){
+          return x.name.toLowerCase()===n.toLowerCase();})[0]; return p?p.id:null;}).filter(Boolean);
+      personPicker({title:opts.title||"Who is involved",multi:true,value:ids,
+        onPickMany:function(list){
+          inp.value=list.map(personName).filter(Boolean).join(", ");
+          if(opts.onChange) opts.onChange(list);
+        }});
+    } else {
+      personPicker({title:opts.title||"Who?",onPick:function(p){
+        inp.value=p.name; inp._pid=p.id;
+        if(opts.onChange) opts.onChange(p);
+      }});
+    }
+  }
+  inp.onclick=open; inp.onfocus=function(){ inp.blur(); open(); };
+  var wrap=inp.parentNode;
+  if(wrap&&!wrap.querySelector(".clrp")){
+    var c=el("button","btn ghost sm clrp","Clear");
+    c.style.cssText="margin-top:5px";
+    c.onclick=function(e){ e.preventDefault(); inp.value=""; inp._pid=null; };
+    wrap.appendChild(c);
+  }
+}
+
+/* ---------- time spent together ---------- */
+function meets(){ H.meets=H.meets||[]; return H.meets; }
+function meetsFor(id){
+  return meets().filter(function(m){return (m.personIds||[]).indexOf(id)>=0;})
+    .sort(function(a,b){return (b.date||"").localeCompare(a.date||"");});
+}
+/* Who has turned up alongside this person, without anybody typing it in */
+function inferredLinks(id){
+  var seen={};
+  function note(otherId,why,when){
+    if(otherId===id) return;
+    if(!seen[otherId]) seen[otherId]={id:otherId,times:0,why:why,last:when||""};
+    seen[otherId].times++;
+    if((when||"")>seen[otherId].last){ seen[otherId].last=when||""; seen[otherId].why=why; }
+  }
+  meets().forEach(function(m){
+    var ids=m.personIds||[];
+    if(ids.indexOf(id)<0) return;
+    ids.forEach(function(o){ note(o,m.title||"together",m.date); });
+  });
+  (H.events||[]).forEach(function(e){
+    var ids=e.personIds||[];
+    if(ids.indexOf(id)<0) return;
+    ids.forEach(function(o){ note(o,e.title||"same event",e.date); });
+  });
+  var manual=((contactRec(id)||{}).knows||[]).map(function(k){return k.id;});
+  return Object.keys(seen).map(function(k){return seen[k];})
+    .filter(function(x){ return manual.indexOf(x.id)<0 && contactRec(x.id); })
+    .sort(function(a,b){ return b.times-a.times; });
+}
+function promoteLink(aId,bId,how){
+  var a=contactRec(aId), b=contactRec(bId);
+  if(!a||!b) return;
+  if(!H.contacts.some(function(c){return c.id===a.id;})) H.contacts.push(a);
+  if(!H.contacts.some(function(c){return c.id===b.id;})) H.contacts.push(b);
+  a.knows=a.knows||[]; b.knows=b.knows||[];
+  if(!a.knows.some(function(k){return k.id===bId;})) a.knows.push({id:bId,how:how||""});
+  if(!b.knows.some(function(k){return k.id===aId;})) b.knows.push({id:aId,how:how||""});
+  save();
+}
+
 /* ---------- navigation ---------- */
 var MODULES=[
   {id:"index",cd:"//",label:"Today",file:"index.html"},
@@ -817,6 +1015,13 @@ function navCounts(){
     return x.active!==false&&x.next&&daysBetween(ts,x.next)<=3;}).length;
   c.money=(lt?lt.late.length:0)+invLate+subSoon+((!wl||daysBetween(wl,ts)>=7)?1:0);
   c.people=H.things.filter(function(t){return !t.back&&t.due&&t.due<ts;}).length;
+  c.people+=allPeople().filter(function(p){
+    var d="";
+    (H.events||[]).forEach(function(e){
+      if((e.personIds||[]).indexOf(p.id)>=0&&e.date<=ts&&e.date>d) d=e.date;});
+    (H.meets||[]).forEach(function(m){
+      if((m.personIds||[]).indexOf(p.id)>=0&&m.date>d) d=m.date;});
+    return d&&daysBetween(d,ts)>90;}).length;
   c.desk=(H.scores||[]).reduce(function(t,p){
     return t+((p.spots||[]).filter(function(x){return !x.fixed;}).length?1:0);},0);
   c.settings=unseenCount();
