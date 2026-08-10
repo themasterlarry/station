@@ -832,6 +832,11 @@ function navCounts(){
   c.settings=unseenCount();
   return c;
 }
+function visibleModules(){
+  var hid=(H.settings&&H.settings.hidden)||[];
+  return MODULES.filter(function(m){
+    return m.id===PAGE||m.id==="index"||m.id==="settings"||hid.indexOf(m.id)<0;});
+}
 function buildNav(){
   var c=navCounts();
   var MODS=visibleModules();

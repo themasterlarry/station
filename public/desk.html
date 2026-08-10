@@ -985,6 +985,11 @@ function navCounts(){
   c.settings=unseenCount();
   return c;
 }
+function visibleModules(){
+  var hid=(H.settings&&H.settings.hidden)||[];
+  return MODULES.filter(function(m){
+    return m.id===PAGE||m.id==="index"||m.id==="settings"||hid.indexOf(m.id)<0;});
+}
 function buildNav(){
   var c=navCounts();
   var MODS=visibleModules();
@@ -1337,7 +1342,8 @@ document.addEventListener("keydown",function(e){
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();
-var MOD_NOTES=(function(){
+var MODS={};
+MODS["notes"]=(function(){
 function pageHead(){
   if($("#notes_edWrap")&&$("#notes_edWrap").classList.contains("on")){
     setHead("NT · writing",edNote?(edNote.title||"Editing"):"New note",
@@ -1612,7 +1618,7 @@ function editorBoot(){
 
 return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
 })();
-var MOD_JOURNAL=(function(){
+MODS["journal"]=(function(){
 function entries(){ return (H.journal||[]).slice().sort(function(a,b){return b.date.localeCompare(a.date);}); }
 function entryFor(d){ return (H.journal||[]).filter(function(e){return e.date===d;})[0]; }
 function journalStreak(){
@@ -1761,7 +1767,7 @@ function pageBoot(){
 
 return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
 })();
-var MOD_DOCS=(function(){
+MODS["docs"]=(function(){
 var FILES=[], filter="all";
 function pageHead(){
   var n=FILES.length, mb=FILES.reduce(function(t,f){return t+f.size;},0);
@@ -1895,7 +1901,7 @@ function pageBoot(){ $("#docs_q").oninput=draw; wireDrop(); reload(); }
 
 return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
 })();
-var MOD_MUSIC=(function(){
+MODS["music"]=(function(){
 var BAND=["Full Score","Piccolo","Flute 1","Flute 2","Oboe","Bassoon",
   "Clarinet 1","Clarinet 2","Clarinet 3","Bass Clarinet",
   "Alto Sax 1","Alto Sax 2","Tenor Sax","Bari Sax",
@@ -2430,7 +2436,7 @@ return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?
 
 var TABS=["notes", "journal", "docs", "music"];
 var ptab=TABS[0];
-function activeMod(){ return window["MOD_"+ptab.toUpperCase()]; }
+function activeMod(){ return MODS[ptab]; }
 function setPTab(t){
   if(TABS.indexOf(t)<0) t=TABS[0];
   ptab=t;
@@ -2455,7 +2461,7 @@ function pageBoot(){
   document.querySelectorAll("#pgtabs button").forEach(function(b){
     b.onclick=function(){ setPTab(b.dataset.t); };});
   TABS.forEach(function(x){
-    var m=window["MOD_"+x.toUpperCase()];
+    var m=MODS[x];
     if(m&&m.boot){ try{ m.boot(); }catch(e){ console.error("boot "+x,e); } }});
   var want=qparam("tab");
   if(want&&TABS.indexOf(want)>=0) ptab=want;

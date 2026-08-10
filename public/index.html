@@ -822,6 +822,11 @@ function navCounts(){
   c.settings=unseenCount();
   return c;
 }
+function visibleModules(){
+  var hid=(H.settings&&H.settings.hidden)||[];
+  return MODULES.filter(function(m){
+    return m.id===PAGE||m.id==="index"||m.id==="settings"||hid.indexOf(m.id)<0;});
+}
 function buildNav(){
   var c=navCounts();
   var MODS=visibleModules();
@@ -1234,29 +1239,24 @@ function pageRender(){
   var t=$("#tiles"); t.innerHTML="";
   var lateTasks=H.tasks.filter(function(x){return !x.done&&x.due&&x.due<ts;});
   t.appendChild(tileEl("TK",String(H.tasks.filter(function(x){return !x.done;}).length),
-    "tasks open","tasks.html",lateTasks.length>0));
+    "tasks open","plan.html?tab=tasks",lateTasks.length>0));
   t.appendChild(tileEl("CL",String(H.events.filter(function(e){return e.date>=ts;}).length),
-    "upcoming","calendar.html",false));
+    "upcoming","plan.html?tab=calendar",false));
   if(lt){
-    t.appendChild(tileEl("$$",moneyShort(lt.total),"on hand","money.html",false));
-    t.appendChild(tileEl("$$",moneyShort(lt.owe),"you owe","money.html",lt.late.length>0));
+    t.appendChild(tileEl("$$",moneyShort(lt.total),"on hand","money.html?tab=ledger",false));
+    t.appendChild(tileEl("$$",moneyShort(lt.owe),"you owe","money.html?tab=ledger",lt.late.length>0));
   }
   var outThings=H.things.filter(function(x){return !x.back;});
-  var wl=(H.wallet&&H.wallet.lastCounted)||"";
-  if(!wl||daysBetween(wl,ts)>=7){
-    deck.push(lineItem("WL","Count your wallet",
-      wl?"last counted "+relDay(wl):"never counted",false,"wallet.html","open"));
-  }
   var openInv=(H.invoices||[]).filter(function(i){return i.status!=="paid"&&i.status!=="draft";});
   if(openInv.length){
     var owed=openInv.reduce(function(t2,i){
       var sub=(i.items||[]).reduce(function(a,l){return a+Math.round((+l.qty||0)*Math.round((+l.rate||0)*100));},0);
       var afterD=sub-(i.discount?Math.round(sub*(+i.discount)/100):0);
       return t2+afterD+(i.taxPct?Math.round(afterD*(+i.taxPct)/100):0);},0);
-    t.appendChild(tileEl("IV",moneyShort(owed),"invoiced out","invoices.html",
+    t.appendChild(tileEl("IV",moneyShort(owed),"invoiced out","money.html?tab=invoices",
       openInv.some(function(i){return i.due&&i.due<ts;})));
   }
-  t.appendChild(tileEl("TH",String(outThings.length),"items out","items.html",
+  t.appendChild(tileEl("TH",String(outThings.length),"items out","people.html?tab=items",
     outThings.some(function(x){return x.due&&x.due<ts;})));
 
   var host=$("#sheets"); host.innerHTML="";
@@ -1270,14 +1270,14 @@ function pageRender(){
     .sort(function(a,b){return (a.time||"").localeCompare(b.time||"");})
     .forEach(function(e){
       deck.push(lineItem("CL",e.title,[ampm(e.time),e.place].filter(Boolean).join(" · ")||"today",
-        false,"calendar.html?d="+e.date,"open"));});
+        false,"plan.html?tab=calendar&d="+e.date,"open"));});
   if(lt) lt.late.forEach(function(x){
     deck.push(lineItem("$$",(x.dir==="owe"?"Pay ":"Collect from ")+x.name+" — "+money(remaining(x)),
-      "ticket "+x.code+" · due "+pretty(x.due),true,"money.html?t="+x.code,"open"));});
+      "ticket "+x.code+" · due "+pretty(x.due),true,"money.html?tab=ledger&t="+x.code,"open"));});
   H.things.filter(function(x){return !x.back&&x.due&&x.due<=ts;}).forEach(function(x){
     deck.push(lineItem("TH",(x.dir==="lent"?"Get back: ":"Return: ")+x.name,
       (x.dir==="lent"?"with ":"from ")+(personName(x.personId)||"someone")+" · due "+pretty(x.due),
-      x.due<ts,"items.html","open"));});
+      x.due<ts,"people.html?tab=items","open"));});
   (H.invoices||[]).filter(function(i){
     return i.status!=="paid"&&i.status!=="draft"&&i.due&&i.due<=ts;}).forEach(function(i){
     var sub=(i.items||[]).reduce(function(t,l){return t+Math.round((+l.qty||0)*Math.round((+l.rate||0)*100));},0);
@@ -1285,7 +1285,12 @@ function pageRender(){
     var tot=afterD+(i.taxPct?Math.round(afterD*(+i.taxPct)/100):0);
     deck.push(lineItem("IV","Chase "+(i.name||"")+" — "+money(tot),
       i.number+" · "+(i.due<ts?"was due "+pretty(i.due):"due today"),
-      i.due<ts,"invoices.html","open"));});
+      i.due<ts,"money.html?tab=invoices","open"));});
+  var wl=(H.wallet&&H.wallet.lastCounted)||"";
+  if(!wl||daysBetween(wl,ts)>=7){
+    deck.push(lineItem("WL","Count your wallet",
+      wl?"last counted "+relDay(wl):"never counted",false,"money.html?tab=wallet","open"));
+  }
   H.habits.filter(function(h){return !(h.days||{})[ts];}).forEach(function(h){
     deck.push(lineItem("HB",h.name,"not marked yet today",false,null,"mark",
       function(){toggleHabit(h.id,ts);}));});
@@ -1297,17 +1302,17 @@ function pageRender(){
     .sort(function(a,b){return (a.date+(a.time||"")).localeCompare(b.date+(b.time||""));})
     .slice(0,6).forEach(function(e){
       soon.push(lineItem("CL",e.title,relDay(e.date)+(e.time?" · "+ampm(e.time):""),
-        false,"calendar.html?d="+e.date,"open"));});
+        false,"plan.html?tab=calendar&d="+e.date,"open"));});
   H.tasks.filter(function(x){return !x.done&&x.due&&x.due>ts&&daysBetween(ts,x.due)<=14;})
     .sort(function(a,b){return a.due.localeCompare(b.due);})
     .slice(0,6).forEach(function(x){
-      soon.push(lineItem("TK",x.title,"due "+relDay(x.due),false,"tasks.html","open"));});
+      soon.push(lineItem("TK",x.title,"due "+relDay(x.due),false,"plan.html?tab=tasks","open"));});
   host.appendChild(sheetEl("Next two weeks",soon.length?String(soon.length):"clear",soon,
     "Nothing on the books yet."));
 
   var pins=H.notes.filter(function(n){return n.pinned;}).slice(0,4).map(function(n){
     return lineItem("NT",n.title||"Untitled",(n.body||"").split("\n")[0].slice(0,70),
-      false,"notes.html?n="+n.id,"open");});
+      false,"desk.html?tab=notes&n="+n.id,"open");});
   if(pins.length) host.appendChild(sheetEl("Pinned",String(pins.length),pins,""));
 }
 function capture(kind){

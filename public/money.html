@@ -1102,6 +1102,11 @@ function navCounts(){
   c.settings=unseenCount();
   return c;
 }
+function visibleModules(){
+  var hid=(H.settings&&H.settings.hidden)||[];
+  return MODULES.filter(function(m){
+    return m.id===PAGE||m.id==="index"||m.id==="settings"||hid.indexOf(m.id)<0;});
+}
 function buildNav(){
   var c=navCounts();
   var MODS=visibleModules();
@@ -1454,7 +1459,8 @@ document.addEventListener("keydown",function(e){
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();
-var MOD_LEDGER=(function(){
+var MODS={};
+MODS["ledger"]=(function(){
 var tab="ledger", curMonth=today().slice(0,7), bMode="out";
 function acct(id){for(var i=0;i<L.accounts.length;i++) if(L.accounts[i].id===id) return L.accounts[i]; return null;}
 function acctName(id){var a=acct(id);return a?a.name:"closed account";}
@@ -2211,7 +2217,7 @@ function readTotal(file){
 
 return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
 })();
-var MOD_WALLET=(function(){
+MODS["wallet"]=(function(){
 /* each denomination needs its own key — a $1 note and a $1 coin are both 100 cents */
 var NOTES=[["n100",10000,"$100","hundred"],["n50",5000,"$50","fifty"],["n20",2000,"$20","twenty"],
            ["n10",1000,"$10","ten"],["n5",500,"$5","five"],["n2",200,"$2","two"],["n1",100,"$1","one"]];
@@ -2517,7 +2523,7 @@ function pageBoot(){
 
 return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
 })();
-var MOD_INVOICES=(function(){
+MODS["invoices"]=(function(){
 var ifilter="open";
 function invoices(){ H.invoices=H.invoices||[]; return H.invoices; }
 function biz(){ H.settings=H.settings||{}; H.settings.biz=H.settings.biz||{}; return H.settings.biz; }
@@ -3044,7 +3050,7 @@ function pageBoot(){
 
 return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
 })();
-var MOD_SUBS=(function(){
+MODS["subs"]=(function(){
 function perYear(s){
   var c=s.cents||0;
   if(s.cycle==="weekly") return Math.round(c*52);
@@ -3221,7 +3227,7 @@ return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?
 
 var TABS=["ledger", "wallet", "invoices", "subs"];
 var ptab=TABS[0];
-function activeMod(){ return window["MOD_"+ptab.toUpperCase()]; }
+function activeMod(){ return MODS[ptab]; }
 function setPTab(t){
   if(TABS.indexOf(t)<0) t=TABS[0];
   ptab=t;
@@ -3246,7 +3252,7 @@ function pageBoot(){
   document.querySelectorAll("#pgtabs button").forEach(function(b){
     b.onclick=function(){ setPTab(b.dataset.t); };});
   TABS.forEach(function(x){
-    var m=window["MOD_"+x.toUpperCase()];
+    var m=MODS[x];
     if(m&&m.boot){ try{ m.boot(); }catch(e){ console.error("boot "+x,e); } }});
   var want=qparam("tab");
   if(want&&TABS.indexOf(want)>=0) ptab=want;
