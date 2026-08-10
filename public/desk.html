@@ -1,4 +1,4 @@
-<title>Settings — Station</title>
+<title>Desk — Station</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -337,18 +337,177 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div id="pExtra"></div>
     </header>
     <section class="pane" id="pane">
-      <div class="seg mini" id="stabs">
-        <button type="button" data-t="look" aria-pressed="true">Appearance</button>
-        <button type="button" data-t="you" aria-pressed="false">You</button>
-        <button type="button" data-t="mods" aria-pressed="false">Modules</button>
-        <button type="button" data-t="data" aria-pressed="false">Data</button>
-        <button type="button" data-t="log" aria-pressed="false">What's new</button>
+      <div class="seg mini" id="pgtabs">
+        <button type="button" data-t="notes" aria-pressed="true">Notes</button>
+        <button type="button" data-t="journal">Journal</button>
+        <button type="button" data-t="docs">Documents</button>
+        <button type="button" data-t="music">Sheet music</button>
       </div>
-      <div id="v-look"></div>
-      <div id="v-you" style="display:none"></div>
-      <div id="v-mods" style="display:none"></div>
-      <div id="v-data" style="display:none"></div>
-      <div id="v-log" style="display:none"></div>
+<style>
+      .edwrap{display:none}
+      .edwrap.on{display:block}
+      .edbar{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+      .edbar button{background:var(--card);border:1px solid var(--rule);border-radius:2px;
+        padding:6px 9px;font-family:var(--mono);font-size:12px;cursor:pointer;color:var(--text)}
+      .edbar button:hover{background:var(--bar)}
+      .edbar button[aria-pressed=true]{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+      .edbar .sp{flex:1}
+      .edstate{font-family:var(--mono);font-size:11px;color:var(--dim);white-space:nowrap}
+      .edstate.dirty{color:var(--tick-deep)}
+      .edstate.saved{color:var(--pos)}
+      #edBody{width:100%;min-height:52vh;resize:vertical;font-family:var(--body);font-size:16px;
+        line-height:1.65;padding:14px;border:1px solid var(--rule);border-radius:2px;background:var(--card)}
+      #edBody.mono{font-family:var(--mono);font-size:14px}
+      .edprev{min-height:52vh;padding:14px;border:1px solid var(--rule);border-radius:2px;
+        background:var(--card);font-size:15.5px;line-height:1.65}
+      .edprev h2{font-family:var(--disp);text-transform:uppercase;letter-spacing:.06em;font-size:19px;margin:14px 0 6px}
+      .edprev h3{font-size:16px;margin:12px 0 5px}
+      .edprev ul{margin:6px 0 6px 18px;padding:0}
+      .edprev li{margin:2px 0}
+      .edprev code{font-family:var(--mono);font-size:13px;background:var(--bar);padding:1px 4px;border-radius:2px}
+      .edprev blockquote{border-left:3px solid var(--rule);margin:8px 0;padding:2px 0 2px 12px;color:var(--dim)}
+      .edmeta{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap}
+      body.zen .rail,body.zen .mobilebar,body.zen .phead,body.zen .fab{display:none!important}
+      body.zen #edBody,body.zen .edprev{min-height:78vh}
+      .draftnote{background:var(--warm);border:1px solid var(--tick);border-radius:2px;
+        padding:9px 11px;margin-bottom:10px;font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+      </style>
+      <div class="pgview" id="view_notes">
+      
+      <div id="notes_ntList2">
+      <label style="margin-bottom:12px"><span>Find a note</span><input id="notes_q" placeholder="Title, text, tag…"></label>
+      <div class="row-btns" style="margin-bottom:14px">
+        <button class="btn" data-act="new">Write a note</button>
+      </div>
+      <div id="notes_list"></div>
+      </div>
+      <div class="edwrap" id="notes_edWrap">
+        <div id="notes_edDraft"></div>
+        <label style="margin-bottom:8px"><span>Title</span><input id="notes_edTitle" placeholder="What is this"></label>
+        <div class="edbar">
+          <button type="button" data-md="h2">H</button>
+          <button type="button" data-md="b"><b>B</b></button>
+          <button type="button" data-md="i"><i>i</i></button>
+          <button type="button" data-md="li">&bull; list</button>
+          <button type="button" data-md="quote">&rdquo;</button>
+          <button type="button" id="notes_edPrev">Preview</button>
+          <button type="button" id="notes_edMono">Mono</button>
+          <button type="button" id="notes_edZen">Full screen</button>
+          <span class="sp"></span>
+          <span class="edstate" id="notes_edState">saved</span>
+        </div>
+        <textarea id="notes_edBody" placeholder="Start writing. It keeps a draft as you go, so nothing is lost if you close it."></textarea>
+        <div class="edprev" id="notes_edPreview" style="display:none"></div>
+        <div class="edmeta" id="notes_edMeta"></div>
+        <label style="margin-top:10px"><span>Tags</span><input id="notes_edTags" placeholder="Comma separated"></label>
+        <label class="check"><input type="checkbox" id="notes_edPin"><span>Pin it to the day sheet</span></label>
+        <div class="row-btns" style="margin-top:10px">
+          <button class="btn" id="notes_edSave" style="flex:1">Save it</button>
+          <button class="btn ghost sm" id="notes_edFile">Save as a document</button>
+          <button class="btn ghost sm" id="notes_edClose">Close</button>
+        </div>
+      </div>
+      </div>
+
+      <div class="pgview" id="view_journal" style="display:none">
+      <div class="row-btns" style="margin-bottom:14px">
+        <button class="btn" data-act="new">Write today's entry</button>
+        <button class="btn ghost sm" data-act="backdate">Write for another day</button>
+      </div>
+      <div id="journal_onthisday"></div>
+      <label style="margin-bottom:12px"><span>Search your entries</span><input id="journal_q" placeholder="A word, a name, a tag…"></label>
+      <div id="journal_list"></div>
+      </div>
+
+      <div class="pgview" id="view_docs" style="display:none">
+
+      <div class="drop" id="docs_drop">
+        <b>Add a document</b>
+        Tap here, or drag files in. Photos, PDFs, scans — 25 MB each.
+        <input type="file" id="docs_pick" multiple style="display:none" accept="image/*,application/pdf,.txt,.heic">
+      </div>
+      <label style="margin-bottom:12px"><span>Find a document</span><input id="docs_q" placeholder="Name, label, tag…"></label>
+      <div class="grp" id="docs_filters"></div>
+      <div id="docs_grid"></div>
+      </div>
+<style>
+      .mrow2{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:10px 11px;border-bottom:1px solid rgba(0,0,0,.06)}
+      .mrow2:nth-child(odd){background:var(--bar)}
+      .mrow2:last-child{border-bottom:0}
+      .mrow2:hover{background:var(--hover);cursor:pointer}
+      .gr{font-family:var(--mono);font-size:12px;font-weight:600;border:1px solid var(--ink-3);border-radius:2px;padding:3px 6px;min-width:30px;text-align:center}
+      .gr.g5{border-color:var(--stamp);color:var(--stamp)}
+      .mrow2 .ti{font-weight:600;font-size:14.5px}
+      .mrow2 .by{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:1px}
+      .parts{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+      .prt{font-family:var(--mono);font-size:11px;border:1px solid var(--rule);background:var(--card);border-radius:2px;padding:3px 7px;display:flex;align-items:center;gap:5px}
+      .prt a{color:inherit;text-decoration:none}
+      .prt a:hover{text-decoration:underline}
+      .prt.mine{border-color:var(--tick-deep);background:var(--warm);font-weight:600}
+      .prt .x{cursor:pointer;color:var(--dim);font-size:13px;line-height:1}
+      .miss{font-family:var(--mono);font-size:11px;border:1px dashed var(--stamp);color:var(--stamp);border-radius:2px;padding:3px 7px}
+      .spot{display:grid;grid-template-columns:auto 1fr auto auto;gap:9px;align-items:center;padding:8px 10px;border-bottom:1px solid rgba(0,0,0,.06)}
+      .spot:nth-child(odd){background:var(--bar)}
+      .spot .mm{font-family:var(--mono);font-size:12px;font-weight:600;border:1px solid var(--rule);border-radius:2px;padding:2px 6px;white-space:nowrap}
+      .spot.fixed .mm{border-color:var(--pos);color:var(--pos)}
+      .spot.fixed .w{text-decoration:line-through;color:var(--dim)}
+      .spot .w{font-size:13.5px}
+      .spot .p{font-family:var(--mono);font-size:11px;color:var(--dim)}
+      .bars{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0}
+      .bars div{text-align:center}
+      .bars .bar{height:56px;display:flex;align-items:flex-end;justify-content:center}
+      .bars .bar i{display:block;width:70%;background:var(--pos);border-radius:1px 1px 0 0;min-height:2px}
+      .bars .lb{font-family:var(--mono);font-size:9.5px;color:var(--dim);margin-top:3px}
+      .bars .mn{font-family:var(--mono);font-size:10px;font-weight:600}
+      audio{width:100%;margin-top:6px}
+      </style>
+      <div class="pgview" id="view_music" style="display:none">
+      
+      <div class="seg mini" id="music_mtabs">
+        <button type="button" data-t="lib" aria-pressed="true">Library</button>
+        <button type="button" data-t="prac" aria-pressed="false">Practice</button>
+        <button type="button" data-t="work" aria-pressed="false">Needs work</button>
+      </div>
+      <div id="music_v-lib">
+        <div class="tally" style="margin-bottom:12px">
+          <div><div class="lbl">Pieces</div><div class="val" id="music_nPieces">0</div></div>
+          <div><div class="lbl">Parts filed</div><div class="val" id="music_nParts">0</div></div>
+          <div><div class="lbl">Missing parts</div><div class="val amt out" id="music_nMiss">0</div></div>
+          <div><div class="lbl">Your part</div><div class="val" id="music_myPart" style="font-size:14px">—</div></div>
+        </div>
+        <div class="row-btns" style="margin-bottom:12px">
+          <button class="btn" data-act="newpiece">Add a piece</button>
+          <button class="btn ghost sm" data-act="setmine">Set your instrument</button>
+        </div>
+        <label style="margin-bottom:10px"><span>Find a piece</span><input id="music_mq" placeholder="Title, composer, arranger, folder…"></label>
+        <div class="grp" id="music_mfilters"></div>
+        <div id="music_mlist"></div>
+      </div>
+      <div id="music_v-prac" style="display:none">
+        <div class="tally" style="margin-bottom:12px">
+          <div><div class="lbl">This week</div><div class="val" id="music_pWeek">0m</div></div>
+          <div><div class="lbl">Streak</div><div class="val" id="music_pStreak">0</div></div>
+          <div><div class="lbl">Sessions logged</div><div class="val" id="music_pCount">0</div></div>
+          <div><div class="lbl">All time</div><div class="val" id="music_pAll">0h</div></div>
+        </div>
+        <div class="bars" id="music_pBars"></div>
+        <div class="row-btns" style="margin-bottom:12px">
+          <button class="btn" data-act="logpractice">Log a session</button>
+          <button class="btn ghost sm" data-act="schedule">Schedule practice</button>
+        </div>
+        <h2 class="sec">Time on each piece</h2>
+        <div id="music_pPieces"></div>
+        <h2 class="sec">Recent sessions</h2>
+        <div id="music_pList"></div>
+      </div>
+      <div id="music_v-work" style="display:none">
+        <p class="foot-note" style="margin-top:0">Every spot you've marked across every piece. Tick one off when it stops being a problem.</p>
+        <div class="row-btns" style="margin-bottom:12px">
+          <button class="btn ghost sm" data-act="showfixed">Show sorted ones too</button>
+        </div>
+        <div id="music_wList"></div>
+      </div>
+      </div>
     </section>
   </div>
 </div>
@@ -358,10 +517,11 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
   <div class="dlg-head"><span id="dlgTitle">—</span><button type="button" id="dlgX" aria-label="Close">×</button></div>
   <div class="dlg-body" id="dlgBody"></div>
 </dialog>
+<button class="btn tick fab" data-act="new">+ New</button>
 <script>
 (function(){
 "use strict";
-var PAGE="settings";
+var PAGE="desk";
 /* ============================================================
    STATION CORE — shared by every page.
    Storage goes through DB only. Swap DB to move to a server.
@@ -1177,262 +1337,1129 @@ document.addEventListener("keydown",function(e){
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();
-var stab="look";
-function S(){ H.settings=H.settings||{}; return H.settings; }
+var MOD_NOTES=(function(){
+function pageHead(){
+  if($("#notes_edWrap")&&$("#notes_edWrap").classList.contains("on")){
+    setHead("NT · writing",edNote?(edNote.title||"Editing"):"New note",
+      "drafts keep themselves as you type");
+    return;
+  }
+  var tags={}; H.notes.forEach(function(n){(n.tags||[]).forEach(function(t){tags[t]=1;});});
+  setHead("NT · notes","Notes",
+    H.notes.length+" saved  ·  "+H.notes.filter(function(n){return n.pinned;}).length+
+    " pinned  ·  "+Object.keys(tags).length+" tags");
+}
+function pageRender(){
+  var q=($("#notes_q").value||"").trim().toLowerCase();
+  var list=H.notes.filter(function(n){
+    if(!q) return true;
+    return [n.title,n.body,(n.tags||[]).join(" ")].join(" ").toLowerCase().indexOf(q)>=0;})
+    .slice().sort(function(a,b){
+      if(!!b.pinned!==!!a.pinned) return b.pinned?1:-1;
+      return (b.updated||"").localeCompare(a.updated||"");});
+  var host=$("#notes_list"); host.innerHTML="";
+  if(!list.length){
+    host.appendChild(emptyBox(q?"No matches":"No notes yet",
+      q?"Try a different word.":"Write down anything you want to keep."));
+    return;}
+  list.forEach(function(n){
+    var d=el("div","note"+(n.pinned?" pin":""));
+    d.appendChild(el("div","nt",n.title||"Untitled"));
+    if(n.body) d.appendChild(el("div","nb",n.body));
+    var f=el("div","nf");
+    f.appendChild(el("span",null,(n.pinned?"pinned · ":"")+"updated "+relDay(n.updated||today())));
+    (n.tags||[]).forEach(function(t){f.appendChild(el("span","pill",t));});
+    d.appendChild(f);
+    d.onclick=function(){openEditor(n);};
+    host.appendChild(d);});
+}
+function noteDialog(n){
+  var isNew=!n;
+  n=n||{title:"",body:"",tags:[],pinned:false};
+  openDlg(isNew?"Write a note":"Note",
+    '<label><span>Title</span><input id="notes_fT" value="'+esc(n.title||"")+'" placeholder="What is this about"></label>'+
+    '<label><span>Body</span><textarea id="notes_fB" placeholder="Write it out…">'+esc(n.body||"")+'</textarea></label>'+
+    '<label><span>Tags</span><input id="notes_fG" value="'+esc((n.tags||[]).join(", "))+'" placeholder="Comma separated"></label>'+
+    '<label><span>Who it involves</span><input id="notes_fW" list="dlPeople" value="'+
+      esc((n.personIds||[]).map(personName).filter(Boolean).join(", "))+'" placeholder="Optional"></label>'+peopleDatalist()+
+    '<label class="check"><input type="checkbox" id="notes_fP"'+(n.pinned?" checked":"")+'><span>Pin it to the day sheet</span></label>'+
+    '<div class="row-btns"><button class="btn" id="notes_fS" style="flex:1">'+(isNew?"Save note":"Save")+'</button>'+
+    (isNew?'':'<button class="btn ghost" id="notes_fC">Copy</button><button class="btn ghost" id="notes_fX">Delete</button>')+'</div>',
+    function(){
+      $("#notes_fS").onclick=function(){
+        var ti=$("#notes_fT").value.trim(),bo=$("#notes_fB").value;
+        if(!ti&&!bo.trim()){toast("Write something first");return;}
+        n.title=ti;n.body=bo;n.pinned=$("#notes_fP").checked;
+        n.tags=$("#notes_fG").value.split(",").map(function(s){return s.trim();}).filter(Boolean);
+        n.personIds=$("#notes_fW").value.split(",").map(function(x){return x.trim();}).filter(Boolean)
+          .map(function(x){var c=ensureContact(x);return c?c.id:null;}).filter(Boolean);
+        n.updated=today();
+        if(isNew){n.id=uid();n.created=today();H.notes.push(n);}
+        save();pageHead();pageRender();dlg.close();toast(isNew?"Note saved":"Saved");};
+      if(!isNew){
+        $("#notes_fC").onclick=function(){
+          var txt=(n.title?n.title+"\n\n":"")+(n.body||"");
+          if(navigator.clipboard&&navigator.clipboard.writeText)
+            navigator.clipboard.writeText(txt).then(function(){toast("Copied");},function(){toast("Copy didn't work");});
+          else toast("Copy isn't available here");};
+        $("#notes_fX").onclick=function(){
+          if(!confirm("Delete this note?")) return;
+          trashIt("note",n.title||"Untitled",n);
+          H.notes=H.notes.filter(function(x){return x.id!==n.id;});
+          save();pageHead();pageRender();dlg.close();};
+      }
+    });
+}
+function pageAction(a){ if(a==="new") openEditor(null); }
+function pageBoot(){
+  $("#notes_q").oninput=pageRender;
+  editorBoot();
+  var d=(H.drafts||{}).scratch;
+  if(qparam("new")) setTimeout(function(){openEditor(null);},120);
+  var nid=qparam("n");
+  if(nid) setTimeout(function(){
+    var n=H.notes.filter(function(x){return x.id===nid;})[0];
+    if(n) openEditor(n);},120);
+}
+
+/* ============================================================
+   THE EDITOR
+   Keeps a draft as you type, on the server, so closing the tab
+   or losing the page never loses what you wrote.
+   ============================================================ */
+var edNote=null, edTimer=null, edClean="", edPreviewOn=false;
+function drafts(){ H.drafts=H.drafts||{}; return H.drafts; }
+function draftKey(){ return edNote&&edNote.id?("n_"+edNote.id):"scratch"; }
+
+function wordCount(t){ return (t||"").trim().split(/\s+/).filter(Boolean).length; }
+function mdRender(t){
+  var out=esc(t||"");
+  out=out.replace(/^### (.+)$/gm,"<h3>$1</h3>")
+         .replace(/^## (.+)$/gm,"<h2>$1</h2>")
+         .replace(/^# (.+)$/gm,"<h2>$1</h2>")
+         .replace(/^&gt; (.+)$/gm,"<blockquote>$1</blockquote>")
+         .replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>")
+         .replace(/(^|[^*])\*([^*\n]+)\*/g,"$1<i>$2</i>")
+         .replace(/`([^`]+)`/g,"<code>$1</code>");
+  var lines=out.split("\n"), html="", inList=false;
+  lines.forEach(function(l){
+    if(/^\s*[-*]\s+/.test(l)){
+      if(!inList){ html+="<ul>"; inList=true; }
+      html+="<li>"+l.replace(/^\s*[-*]\s+/,"")+"</li>";
+    } else {
+      if(inList){ html+="</ul>"; inList=false; }
+      if(/^<(h2|h3|blockquote)/.test(l)) html+=l;
+      else if(l.trim()==="") html+="<br>";
+      else html+="<div>"+l+"</div>";
+    }
+  });
+  if(inList) html+="</ul>";
+  return html;
+}
+function edState(s){
+  var e=$("#notes_edState");
+  e.className="edstate "+(s==="saving"?"dirty":s==="saved"?"saved":"dirty");
+  e.textContent = s==="saving"?"draft saving…" : s==="saved"?"saved" :
+    s==="draft"?"draft kept" : "unsaved changes";
+}
+function edMeta(){
+  var t=$("#notes_edBody").value;
+  var w=wordCount(t);
+  $("#notes_edMeta").textContent=w+" word"+(w===1?"":"s")+" · "+t.length+" characters"+
+    (w>60?" · about "+Math.max(1,Math.round(w/200))+" min to read":"");
+}
+function edCurrent(){
+  return {title:$("#notes_edTitle").value,body:$("#notes_edBody").value,
+    tags:$("#notes_edTags").value,pinned:$("#notes_edPin").checked};
+}
+function edTouch(){
+  edMeta();
+  if(edPreviewOn) $("#notes_edPreview").innerHTML=mdRender($("#notes_edBody").value);
+  var now=JSON.stringify(edCurrent());
+  if(now===edClean){ edState("saved"); return; }
+  edState("editing");
+  clearTimeout(edTimer);
+  edTimer=setTimeout(function(){
+    drafts()[draftKey()]={when:Date.now(),data:edCurrent()};
+    save(); edState("draft");
+  },1200);
+}
+function openEditor(n){
+  edNote=n||null;
+  $("#notes_ntList2").style.display="none";
+  $("#notes_edWrap").classList.add("on");
+  $("#notes_edTitle").value=n?(n.title||""):"";
+  $("#notes_edBody").value=n?(n.body||""):"";
+  $("#notes_edTags").value=n?((n.tags||[]).join(", ")):"";
+  $("#notes_edPin").checked=n?!!n.pinned:false;
+  edClean=JSON.stringify(edCurrent());
+  edState("saved"); edMeta();
+  var d=drafts()[draftKey()];
+  var host=$("#notes_edDraft"); host.innerHTML="";
+  if(d&&JSON.stringify(d.data)!==edClean){
+    var box=el("div","draftnote");
+    var when=new Date(d.when);
+    box.appendChild(el("span",null,"There's an unsaved draft from "+when.toLocaleString()+"."));
+    var yes=el("button","btn sm","Bring it back");
+    yes.onclick=function(){
+      $("#notes_edTitle").value=d.data.title||""; $("#notes_edBody").value=d.data.body||"";
+      $("#notes_edTags").value=d.data.tags||""; $("#notes_edPin").checked=!!d.data.pinned;
+      host.innerHTML=""; edTouch(); toast("Draft restored");};
+    var no=el("button","btn ghost sm","Throw it away");
+    no.onclick=function(){ delete drafts()[draftKey()]; save(); host.innerHTML=""; };
+    box.appendChild(yes); box.appendChild(no);
+    host.appendChild(box);
+  }
+  setTimeout(function(){ (n?$("#notes_edBody"):$("#notes_edTitle")).focus(); },40);
+  pageHead();
+}
+function closeEditor(force){
+  var now=JSON.stringify(edCurrent());
+  if(!force&&now!==edClean&&$("#notes_edBody").value.trim()){
+    if(!confirm("You have changes that aren't saved as a note. The draft is kept either way — close anyway?")) return;
+  }
+  document.body.classList.remove("zen");
+  $("#notes_edWrap").classList.remove("on");
+  $("#notes_ntList2").style.display="";
+  edNote=null; pageHead(); pageRender();
+}
+function saveEditor(){
+  var t=$("#notes_edTitle").value.trim(), b=$("#notes_edBody").value;
+  if(!t&&!b.trim()) return toast("Write something first");
+  var n=edNote;
+  if(!n){ n={id:uid(),created:today()}; H.notes.push(n); edNote=n; }
+  n.title=t||b.trim().split("\n")[0].slice(0,60);
+  n.body=b;
+  n.tags=$("#notes_edTags").value.split(",").map(function(x){return x.trim();}).filter(Boolean);
+  n.pinned=$("#notes_edPin").checked;
+  n.updated=today();
+  delete drafts()[draftKey()];
+  edClean=JSON.stringify(edCurrent());
+  save(); edState("saved"); pageHead();
+  toast("Saved");
+}
+async function saveAsFile(){
+  var t=$("#notes_edTitle").value.trim()||"Untitled";
+  var b=$("#notes_edBody").value;
+  if(!b.trim()) return toast("Nothing to save yet");
+  var name=t.replace(/[^A-Za-z0-9 _.-]/g,"").slice(0,60)+".md";
+  var blob=new Blob([(t?"# "+t+"\n\n":"")+b],{type:"text/markdown"});
+  blob.name=name;
+  try{
+    await fileUpload(blob,"","",t);
+    toast("Saved to Documents as "+name);
+  }catch(e){ toast(e.message||"Couldn't save it as a file"); }
+}
+function wrapSel(before,after,linePrefix){
+  var ta=$("#notes_edBody"), s=ta.selectionStart, e=ta.selectionEnd;
+  var v=ta.value, sel=v.slice(s,e);
+  var ins;
+  if(linePrefix){
+    var lines=(sel||"item").split("\n");
+    ins=lines.map(function(l){return linePrefix+l;}).join("\n");
+  } else ins=before+(sel||"text")+after;
+  ta.value=v.slice(0,s)+ins+v.slice(e);
+  ta.focus();
+  ta.selectionStart=s+(linePrefix?linePrefix.length:before.length);
+  ta.selectionEnd=ta.selectionStart+(sel?sel.length:4);
+  edTouch();
+}
+function editorBoot(){
+  $("#notes_edBody").addEventListener("input",edTouch);
+  $("#notes_edTitle").addEventListener("input",edTouch);
+  $("#notes_edTags").addEventListener("input",edTouch);
+  $("#notes_edPin").addEventListener("change",edTouch);
+  $("#notes_edSave").onclick=saveEditor;
+  $("#notes_edFile").onclick=saveAsFile;
+  $("#notes_edClose").onclick=function(){ closeEditor(false); };
+  $("#notes_edPrev").onclick=function(){
+    edPreviewOn=!edPreviewOn;
+    $("#notes_edPrev").setAttribute("aria-pressed",edPreviewOn);
+    $("#notes_edBody").style.display=edPreviewOn?"none":"";
+    $("#notes_edPreview").style.display=edPreviewOn?"block":"none";
+    if(edPreviewOn) $("#notes_edPreview").innerHTML=mdRender($("#notes_edBody").value);
+  };
+  $("#notes_edMono").onclick=function(){
+    var on=$("#notes_edBody").classList.toggle("mono");
+    $("#notes_edMono").setAttribute("aria-pressed",on);};
+  $("#notes_edZen").onclick=function(){
+    var on=document.body.classList.toggle("zen");
+    $("#notes_edZen").setAttribute("aria-pressed",on);
+    if(on) $("#notes_edBody").focus();};
+  document.querySelectorAll("[data-md]").forEach(function(b){
+    b.onclick=function(e){
+      e.preventDefault();
+      var k=b.dataset.md;
+      if(k==="h2") wrapSel("","","## ");
+      else if(k==="b") wrapSel("**","**");
+      else if(k==="i") wrapSel("*","*");
+      else if(k==="li") wrapSel("","","- ");
+      else if(k==="quote") wrapSel("","","> ");
+    };});
+  document.addEventListener("keydown",function(e){
+    if(!$("#notes_edWrap").classList.contains("on")) return;
+    if((e.metaKey||e.ctrlKey)&&e.key==="s"){ e.preventDefault(); saveEditor(); }
+    if(e.key==="Escape"&&document.body.classList.contains("zen")){
+      document.body.classList.remove("zen");
+      $("#notes_edZen").setAttribute("aria-pressed",false);}
+  });
+  window.addEventListener("beforeunload",function(){
+    if($("#notes_edWrap").classList.contains("on")){
+      var now=JSON.stringify(edCurrent());
+      if(now!==edClean){ drafts()[draftKey()]={when:Date.now(),data:edCurrent()}; save(); }
+    }});
+}
+
+return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
+})();
+var MOD_JOURNAL=(function(){
+function entries(){ return (H.journal||[]).slice().sort(function(a,b){return b.date.localeCompare(a.date);}); }
+function entryFor(d){ return (H.journal||[]).filter(function(e){return e.date===d;})[0]; }
+function journalStreak(){
+  var n=0,d=today();
+  if(!entryFor(d)) d=addDays(d,-1);
+  while(entryFor(d)){ n++; d=addDays(d,-1); }
+  return n;
+}
+function wordCount(){
+  return (H.journal||[]).reduce(function(t,e){
+    return t+((e.body||"").trim().split(/\s+/).filter(Boolean).length);},0);
+}
+function pageHead(){
+  var n=(H.journal||[]).length, st=journalStreak();
+  var w=wordCount();
+  setHead("JR · journal","Journal",
+    n+" entr"+(n===1?"y":"ies")+(st?"  ·  "+st+" day streak":"")+
+    (w?"  ·  "+w.toLocaleString("en-US")+" words":""));
+}
+function onThisDay(){
+  var host=$("#journal_onthisday"); host.innerHTML="";
+  var md=today().slice(5);
+  var hits=(H.journal||[]).filter(function(e){
+    return e.date.slice(5)===md && e.date!==today();});
+  if(!hits.length) return;
+  host.appendChild(el("h2","sec","On this day"));
+  var box=el("div","bar-list");
+  hits.sort(function(a,b){return b.date.localeCompare(a.date);}).forEach(function(e){
+    var yrs=Math.round(daysBetween(e.date,today())/365);
+    var r=el("div","bar-row trio tap"),L=el("div");
+    L.appendChild(el("div","who",yrs>=1?(yrs+" year"+(yrs===1?"":"s")+" ago"):pretty(e.date)));
+    L.appendChild(el("div","meta",(e.body||"").slice(0,80).replace(/\n/g," ")));
+    r.appendChild(L); r.appendChild(el("span","pill",prettyFull(e.date))); r.appendChild(el("div"));
+    r.onclick=function(){entryDialog(e);};
+    box.appendChild(r);});
+  host.appendChild(box);
+}
+function pageRender(){
+  onThisDay();
+  var q=($("#journal_q").value||"").trim().toLowerCase();
+  var list=entries().filter(function(e){
+    if(!q) return true;
+    return [e.body,e.title,(e.tags||[]).join(" ")].join(" ").toLowerCase().indexOf(q)>=0;});
+  var host=$("#journal_list"); host.innerHTML="";
+  if(!list.length){
+    host.appendChild(emptyBox(q?"No entries match":"Nothing written yet",
+      q?"Try a different word.":"Write down how today went. Even a sentence counts."));
+    return;
+  }
+  if(!q&&!entryFor(today())){
+    var hint=el("div","empty"); hint.style.marginBottom="12px";
+    hint.appendChild(el("b",null,"Nothing for today"));
+    var b=el("button","btn sm","Write today's entry");
+    b.onclick=function(){entryDialog(null,today());};
+    hint.appendChild(b);
+    host.appendChild(hint);
+  }
+  var lastMonth="";
+  list.forEach(function(e){
+    var mk=e.date.slice(0,7);
+    if(mk!==lastMonth){
+      lastMonth=mk;
+      var p=mk.split("-");
+      host.appendChild(el("h2","sec",MONL[(+p[1])-1]+" "+p[0]));
+    }
+    var d=el("div","note"+(e.date===today()?" pin":""));
+    d.appendChild(el("div","nt",dowOf(e.date)+", "+prettyFull(e.date)));
+    if(e.title) d.appendChild(el("div","nb",e.title));
+    if(e.body) d.appendChild(el("div","nb",e.body));
+    var f=el("div","nf");
+    var wc=(e.body||"").trim().split(/\s+/).filter(Boolean).length;
+    f.appendChild(el("span",null,wc+" word"+(wc===1?"":"s")));
+    (e.tags||[]).forEach(function(t){f.appendChild(el("span","pill",t));});
+    d.appendChild(f);
+    d.onclick=function(){entryDialog(e);};
+    host.appendChild(d);});
+}
+var PROMPTS=[
+  "What actually happened today?",
+  "What went better than you expected?",
+  "What is still bothering you?",
+  "Who did you talk to, and how did it go?",
+  "What would you do differently tomorrow?",
+  "What are you putting off, and why?",
+  "What was the best part of today?"
+];
+function entryDialog(e,forDate){
+  var isNew=!e;
+  var d=forDate||today();
+  if(isNew){
+    var existing=entryFor(d);
+    if(existing){ e=existing; isNew=false; }
+  }
+  e=e||{date:d,title:"",body:"",tags:[]};
+  var prompt=PROMPTS[parseD(e.date).getDate()%PROMPTS.length];
+  openDlg(dowOf(e.date)+", "+prettyFull(e.date),
+    '<label><span>Date</span><input type="date" id="journal_fD" value="'+esc(e.date)+'"></label>'+
+    '<label><span>Headline (optional)</span><input id="journal_fT" value="'+esc(e.title||"")+'" placeholder="One line for what today was"></label>'+
+    '<label><span>'+esc(prompt)+'</span><textarea id="journal_fB" style="min-height:180px" placeholder="However much or little you want.">'+esc(e.body||"")+'</textarea></label>'+
+    '<label><span>Tags</span><input id="journal_fG" value="'+esc((e.tags||[]).join(", "))+'" placeholder="work, family, good day"></label>'+
+    '<div id="journal_attachHost"></div>'+
+    '<div class="row-btns"><button class="btn" id="journal_fS" style="flex:1">Save</button>'+
+    (isNew?'':'<button class="btn ghost" id="journal_fX">Delete</button>')+'</div>'+
+    '<p class="foot-note">Entries are stored on your own server, same as everything else here. They are not encrypted the way the password vault is — anyone with access to the machine can read them.</p>',
+    function(){
+      if(!isNew&&e.id) attachBar($("#journal_attachHost"),"journal",e.id,"Photos from that day");
+      $("#journal_fS").onclick=function(){
+        var body=$("#journal_fB").value;
+        if(!body.trim()&&!$("#journal_fT").value.trim()){toast("Write something first");return;}
+        var newDate=$("#journal_fD").value||today();
+        if(newDate!==e.date){
+          var clash=entryFor(newDate);
+          if(clash&&clash!==e){toast("There's already an entry for that day");return;}
+        }
+        e.date=newDate; e.title=$("#journal_fT").value.trim(); e.body=body;
+        e.tags=$("#journal_fG").value.split(",").map(function(s){return s.trim();}).filter(Boolean);
+        e.updated=today();
+        if(isNew){e.id=uid();H.journal.push(e);}
+        save();pageHead();pageRender();dlg.close();toast("Saved");};
+      if(!isNew) $("#journal_fX").onclick=function(){
+        if(!confirm("Delete the entry for "+prettyFull(e.date)+"? It can't be undone.")) return;
+        trashIt("journal","Journal "+e.date,e);
+        H.journal=H.journal.filter(function(x){return x.id!==e.id;});
+        save();pageHead();pageRender();dlg.close();};
+    });
+}
+function backdateDialog(){
+  openDlg("Write for another day",
+    '<label><span>Which day</span><input type="date" id="journal_fD" value="'+addDays(today(),-1)+'" max="'+today()+'"></label>'+
+    '<button class="btn" id="journal_fG" style="width:100%">Open that day</button>',
+    function(){
+      $("#journal_fG").onclick=function(){
+        var d=$("#journal_fD").value||today();
+        dlg.close();
+        setTimeout(function(){ entryDialog(entryFor(d)||null,d); },80);};
+    });
+}
+function pageAction(a){
+  if(a==="new") entryDialog(null,today());
+  else if(a==="backdate") backdateDialog();
+}
+function pageBoot(){
+  $("#journal_q").oninput=pageRender;
+  if(qparam("new")) setTimeout(function(){entryDialog(null,today());},120);
+}
+
+return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
+})();
+var MOD_DOCS=(function(){
+var FILES=[], filter="all";
+function pageHead(){
+  var n=FILES.length, mb=FILES.reduce(function(t,f){return t+f.size;},0);
+  setHead("DC · documents","Documents",
+    n+" file"+(n===1?"":"s")+(n?"  ·  "+fileSize(mb)+" stored":"  ·  nothing yet"));
+}
+function extOf(f){
+  var p=(f.name||"").split("."); 
+  return (p.length>1?p[p.length-1]:"?").toUpperCase().slice(0,4);
+}
+function linkLabel(f){
+  if(!f.linkKind) return "";
+  if(f.linkKind==="contact") return personName(f.linkId)||"a contact";
+  if(f.linkKind==="ticket") return "ticket "+f.linkId;
+  if(f.linkKind==="score"){
+    var sc=(H.scores||[]).filter(function(p){return p.id===f.linkId;})[0];
+    return sc?("part of "+sc.title):"sheet music";
+  }
+  if(f.linkKind==="recording"){
+    var rc=(H.scores||[]).filter(function(p){return p.id===f.linkId;})[0];
+    return rc?("recording of "+rc.title):"recording";
+  }
+  if(f.linkKind==="item") return "a lent item";
+  if(f.linkKind==="journal") return "journal "+f.linkId;
+  return f.linkKind;
+}
+async function reload(){ FILES=await fileList(); pageHead(); draw(); }
+function draw(){
+  var q=($("#docs_q").value||"").trim().toLowerCase();
+  var fl=$("#docs_filters");
+  var kinds={all:FILES.length};
+  FILES.forEach(function(f){
+    var k=isImage(f)?"images":(/pdf/.test(f.type)?"pdfs":"other");
+    kinds[k]=(kinds[k]||0)+1;
+    if(f.linkKind) kinds.attached=(kinds.attached||0)+1;
+  });
+  fl.innerHTML=Object.keys(kinds).map(function(k){
+    return '<button data-f="'+k+'"'+(k===filter?' aria-pressed="true"':'')+'>'+k+' ('+kinds[k]+')</button>';}).join("");
+  fl.querySelectorAll("button").forEach(function(b){
+    b.onclick=function(){filter=b.dataset.f;draw();};});
+
+  var list=FILES.filter(function(f){
+    if((f.linkKind==="score"||f.linkKind==="recording")&&filter!=="all"&&filter!=="attached") return false;
+    if(filter==="images"&&!isImage(f)) return false;
+    if(filter==="pdfs"&&!/pdf/.test(f.type)) return false;
+    if(filter==="other"&&(isImage(f)||/pdf/.test(f.type))) return false;
+    if(filter==="attached"&&!f.linkKind) return false;
+    if(!q) return true;
+    return [f.name,f.label,(f.tags||[]).join(" "),linkLabel(f)].join(" ").toLowerCase().indexOf(q)>=0;});
+
+  var host=$("#docs_grid"); host.innerHTML="";
+  if(!list.length){
+    host.appendChild(emptyBox(q||filter!=="all"?"Nothing matches":"No documents yet",
+      q||filter!=="all"?"Try another word or filter.":"Photograph your lease, your ID, a receipt — anything you'd hate to lose."));
+    return;
+  }
+  var grid=el("div","docgrid");
+  list.forEach(function(f){
+    var d=el("div","doc");
+    var t=el("div","thumb");
+    if(isImage(f)){
+      var img=el("img"); img.src="/api/files/"+f.id; img.alt=f.label||f.name; img.loading="lazy";
+      t.appendChild(img);
+    } else t.appendChild(el("div","ext",extOf(f)));
+    d.appendChild(t);
+    var i=el("div","info");
+    i.appendChild(el("div","n",f.label||f.name));
+    var bits=[fileSize(f.size)];
+    if(f.linkKind) bits.push(linkLabel(f));
+    i.appendChild(el("div","m",bits.join(" · ")));
+    d.appendChild(i);
+    d.onclick=function(){docDialog(f);};
+    grid.appendChild(d);});
+  host.appendChild(grid);
+}
+function docDialog(f){
+  openDlg(f.label||f.name,
+    (isImage(f)?'<img class="preview" src="/api/files/'+f.id+'" alt="">':'')+
+    '<label><span>Label</span><input id="docs_fL" value="'+esc(f.label||"")+'" placeholder="What is this"></label>'+
+    '<label><span>Tags</span><input id="docs_fT" value="'+esc((f.tags||[]).join(", "))+'" placeholder="legal, receipts, ID"></label>'+
+    '<div class="kv" style="margin-bottom:12px">'+
+      '<dt>File</dt><dd>'+esc(f.name)+'</dd>'+
+      '<dt>Size</dt><dd>'+fileSize(f.size)+'</dd>'+
+      '<dt>Added</dt><dd>'+new Date(f.added).toLocaleDateString()+'</dd>'+
+      (f.linkKind?'<dt>Attached to</dt><dd>'+esc(linkLabel(f))+'</dd>':'')+
+    '</div>'+
+    '<div class="row-btns">'+
+      '<a class="btn ghost sm" href="/api/files/'+f.id+'" target="_blank">Open</a>'+
+      '<a class="btn ghost sm" href="/api/files/'+f.id+'?dl=1">Download</a>'+
+      '<button class="btn" id="docs_fS" style="flex:1">Save</button>'+
+      '<button class="btn ghost sm" id="docs_fX">Delete</button>'+
+    '</div>',
+    function(){
+      $("#docs_fS").onclick=async function(){
+        await fileEdit(f.id,{label:$("#docs_fL").value.trim(),
+          tags:$("#docs_fT").value.split(",").map(function(s){return s.trim();}).filter(Boolean)});
+        dlg.close(); toast("Saved"); reload();};
+      $("#docs_fX").onclick=async function(){
+        if(!confirm("Delete "+(f.label||f.name)+"? This cannot be undone.")) return;
+        await fileDelete(f.id); dlg.close(); toast("Deleted"); reload();};
+    });
+}
+async function upload(files){
+  var d=$("#docs_drop"), n=0;
+  for(var i=0;i<files.length;i++){
+    d.innerHTML="<b>Uploading</b>"+(i+1)+" of "+files.length+"…";
+    try{ await fileUpload(files[i],"","",""); n++; }
+    catch(e){ toast(e.message||"One file failed"); }
+  }
+  d.innerHTML='<b>Add a document</b>Tap here, or drag files in. Photos, PDFs, scans — 25 MB each.'+
+    '<input type="file" id="docs_pick" multiple style="display:none" accept="image/*,application/pdf,.txt,.heic">';
+  wireDrop();
+  if(n) toast(n+" file"+(n===1?"":"s")+" added");
+  reload();
+}
+function wireDrop(){
+  var d=$("#docs_drop"), p=$("#docs_pick");
+  d.onclick=function(){p.click();};
+  p.onchange=function(){ if(p.files.length) upload(p.files); };
+  ["dragenter","dragover"].forEach(function(e){
+    d.addEventListener(e,function(ev){ev.preventDefault();d.classList.add("over");});});
+  ["dragleave","drop"].forEach(function(e){
+    d.addEventListener(e,function(ev){ev.preventDefault();d.classList.remove("over");});});
+  d.addEventListener("drop",function(ev){
+    if(ev.dataTransfer&&ev.dataTransfer.files.length) upload(ev.dataTransfer.files);});
+}
+function pageRender(){ draw(); }
+function pageAction(a){ if(a==="new") $("#docs_pick").click(); }
+function pageBoot(){ $("#docs_q").oninput=draw; wireDrop(); reload(); }
+
+
+return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
+})();
+var MOD_MUSIC=(function(){
+var BAND=["Full Score","Piccolo","Flute 1","Flute 2","Oboe","Bassoon",
+  "Clarinet 1","Clarinet 2","Clarinet 3","Bass Clarinet",
+  "Alto Sax 1","Alto Sax 2","Tenor Sax","Bari Sax",
+  "Trumpet 1","Trumpet 2","Trumpet 3","Horn 1","Horn 2",
+  "Trombone 1","Trombone 2","Bass Trombone","Euphonium","Tuba","String Bass",
+  "Timpani","Percussion 1","Percussion 2","Mallets"];
+var JAZZ=["Full Score","Alto Sax 1","Alto Sax 2","Tenor Sax 1","Tenor Sax 2","Bari Sax",
+  "Trumpet 1","Trumpet 2","Trumpet 3","Trumpet 4",
+  "Trombone 1","Trombone 2","Trombone 3","Bass Trombone",
+  "Guitar","Piano","Bass","Drums"];
+var FILES=[], mtab="lib", mq="", mfilter="all", showFixed=false;
+
+function scores(){ H.scores=H.scores||[]; return H.scores; }
+function sessions(){ H.practice=H.practice||[]; return H.practice; }
+function partsOf(id){ return FILES.filter(function(f){return f.linkKind==="score"&&f.linkId===id;}); }
+function recsOf(id){ return FILES.filter(function(f){return f.linkKind==="recording"&&f.linkId===id;}); }
+function expectedOf(p){ return (p.expected&&p.expected.length)?p.expected:(p.ensemble==="jazz"?JAZZ:BAND); }
+function missingOf(p){
+  var have=partsOf(p.id).map(function(f){return (f.label||f.name).toLowerCase().trim();});
+  return expectedOf(p).filter(function(i){
+    return !have.some(function(h){return h===i.toLowerCase()||h.indexOf(i.toLowerCase())>=0;});});
+}
+function myPart(){ return (H.settings&&H.settings.instrument)||""; }
+function spotsOf(p){ return p.spots||[]; }
+function openSpots(p){ return spotsOf(p).filter(function(s){return !s.fixed;}); }
+function pieceById(id){ return scores().filter(function(p){return p.id===id;})[0]; }
+
+/* ---------- practice maths ---------- */
+function minutesOn(day){
+  return sessions().filter(function(s){return s.date===day;})
+    .reduce(function(t,s){return t+(+s.minutes||0);},0);
+}
+function weekMinutes(){
+  var t=0; for(var i=0;i<7;i++) t+=minutesOn(addDays(today(),-i));
+  return t;
+}
+function practiceStreak(){
+  var n=0,d=today();
+  if(!minutesOn(d)) d=addDays(d,-1);
+  while(minutesOn(d)){ n++; d=addDays(d,-1); }
+  return n;
+}
+function minutesForPiece(id){
+  return sessions().filter(function(s){return (s.scoreIds||[]).indexOf(id)>=0;})
+    .reduce(function(t,s){
+      var n=(s.scoreIds||[]).length||1;
+      return t+Math.round((+s.minutes||0)/n);},0);
+}
+function hoursText(m){
+  if(m<60) return m+"m";
+  var h=Math.floor(m/60), r=m%60;
+  return h+"h"+(r?" "+r+"m":"");
+}
 
 function pageHead(){
-  var n=unseenCount();
-  setHead("SE · settings","Settings",
-    "Version "+APP_VERSION+(n?"  ·  "+n+" update"+(n===1?"":"s")+" you haven't read":"  ·  up to date"));
-}
-function sec(host,title){ host.appendChild(el("h2","sec",title)); }
-function line(host,label,control,note){
-  var l=el("label");
-  l.appendChild(el("span",null,label));
-  l.appendChild(control);
-  if(note) l.appendChild(el("div","foot-note",note));
-  host.appendChild(l);
-  return control;
-}
-function selectOf(opts,val){
-  var s=el("select");
-  opts.forEach(function(o){
-    var op=el("option",null,o[1]); op.value=o[0];
-    if(o[0]===val) op.selected=true;
-    s.appendChild(op);});
-  return s;
-}
-function saveBtn(host,fn,label){
-  var b=el("button","btn",label||"Save");
-  b.style.width="100%"; b.onclick=fn; host.appendChild(b); return b;
-}
-
-/* ---------- appearance ---------- */
-function drawLook(){
-  var h=$("#v-look"); h.innerHTML="";
-  sec(h,"Colour");
-  var t=line(h,"Theme",selectOf([["auto","Follow my phone"],["light","Always light"],["dark","Always dark"]],
-    S().theme||"auto"),"Auto switches with your device, so it goes dark at night on its own.");
-  t.onchange=function(){ S().theme=t.value; save(); applyTheme(); toast("Theme: "+t.value); };
-
-  sec(h,"Density");
-  var d=line(h,"Text size",selectOf([["normal","Normal"],["large","Larger"],["xl","Largest"]],
-    S().textSize||"normal"),"Bumps everything up if the phone screen is hard to read.");
-  d.onchange=function(){ S().textSize=d.value; save(); applyTextSize(); };
-
-  sec(h,"Start page");
-  var sp=line(h,"Open Station on",selectOf(MODULES.map(function(m){return [m.file,m.label];}),
-    S().home||"index.html"),"Which page the Station logo takes you to.");
-  sp.onchange=function(){ S().home=sp.value; save(); toast("Saved"); };
-
-  sec(h,"Preview");
-  var prev=el("div"); prev.style.cssText="border:1px solid var(--rule);border-radius:2px;padding:12px;background:var(--card)";
-  prev.appendChild(el("div","who","This is a row of text"));
-  prev.appendChild(el("div","meta","and this is the small print under it"));
-  var pr=el("div","row-btns"); pr.style.marginTop="8px";
-  pr.appendChild(el("span","pill","tag"));
-  pr.appendChild(el("span","pill hot","overdue"));
-  pr.appendChild(el("span","pill warm","soon"));
-  prev.appendChild(pr);
-  h.appendChild(prev);
-}
-function applyTextSize(){
-  var m={normal:"15px",large:"16.5px",xl:"18px"};
-  document.body.style.fontSize=m[S().textSize||"normal"];
-}
-
-/* ---------- you ---------- */
-function drawYou(){
-  var h=$("#v-you"); h.innerHTML="";
-  sec(h,"About you");
-  var nm=line(h,"Your name",el("input"),"Used when the AI talks to you.");
-  nm.value=S().name||"";
-  var ins=el("input"); ins.setAttribute("list","dlIns");
-  var inst=line(h,"Instrument you play",ins,"Highlights your own parts in the music library.");
-  inst.value=S().instrument||"";
-  var dl=el("datalist"); dl.id="dlIns";
-  ["Full Score","Flute 1","Clarinet 1","Alto Sax 1","Trumpet 1","Trumpet 2","Trumpet 3",
-   "Horn 1","Trombone 1","Euphonium","Tuba","Percussion 1","Mallets"].forEach(function(i){
-    var o=el("option"); o.value=i; dl.appendChild(o);});
-  h.appendChild(dl);
-  saveBtn(h,function(){
-    S().name=nm.value.trim(); S().instrument=inst.value.trim();
-    save(); toast("Saved");});
-
-  sec(h,"The AI");
-  var ai=el("div");
-  ai.innerHTML='<p class="foot-note" style="margin-top:0" id="aiState">checking…</p>';
-  h.appendChild(ai);
-  fetch("/api/ai/status").then(function(r){return r.json();}).then(function(j){
-    $("#aiState").textContent=j.ok
-      ? "Running "+j.model+" on your own machine."
-      : "No model running. In the container: bash ai-setup.sh";
-  }).catch(function(){ $("#aiState").textContent="Couldn't check."; });
-  var row=el("div","row-btns");
-  var a1=el("a","btn ghost sm","How it talks"); a1.href="talk.html"; row.appendChild(a1);
-  var a2=el("a","btn ghost sm","Its memory"); a2.href="talk.html"; row.appendChild(a2);
-  h.appendChild(row);
-
-  sec(h,"Capture from your phone");
-  var cap=el("div"); cap.id="capHost";
-  cap.appendChild(el("p","foot-note","Point a phone shortcut here to add things without opening the app."));
-  h.appendChild(cap);
-  fetch("/api/token").then(function(r){return r.json();}).then(function(j){
-    var url=window.location.origin+"/api/capture?token="+j.token+"&text=YOUR+TEXT";
-    var pre=el("div");
-    pre.style.cssText="font-family:var(--mono);font-size:11px;background:var(--bar);border:1px solid var(--rule);border-radius:2px;padding:8px;word-break:break-all;margin-bottom:8px";
-    pre.textContent=url;
-    cap.appendChild(pre);
-    var b=el("button","btn ghost sm","Copy it");
-    b.onclick=function(){ if(navigator.clipboard) navigator.clipboard.writeText(url).then(function(){toast("Copied");}); };
-    cap.appendChild(b);
-    cap.appendChild(el("p","foot-note","Add &kind=note or &kind=journal to change where it lands. Keep it private."));
-  }).catch(function(){});
-}
-
-/* ---------- modules ---------- */
-function listEditor(host,title,getArr,setArr,placeholder,note){
-  sec(host,title);
-  if(note) host.appendChild(el("p","foot-note",note));
-  var box=el("div","bar-list"); host.appendChild(box);
-  function fill(){
-    box.innerHTML="";
-    var arr=getArr();
-    if(!arr.length){ box.appendChild(emptyBox("Empty","Add one below.")); return; }
-    arr.forEach(function(v){
-      var r=el("div","bar-row"); r.appendChild(el("div","who",v));
-      var k=el("button","kill","×");
-      k.onclick=function(){ setArr(getArr().filter(function(x){return x!==v;})); fill(); };
-      r.appendChild(k); box.appendChild(r);});
+  if(mtab==="prac"){
+    var wk=weekMinutes(), st=practiceStreak();
+    setHead("MU · practice","Practice",
+      hoursText(wk)+" this week"+(st?"  ·  "+st+" day streak":"")+"  ·  "+sessions().length+" sessions logged");
+  } else if(mtab==="work"){
+    var n=scores().reduce(function(t,p){return t+openSpots(p).length;},0);
+    setHead("MU · trouble spots","Needs work",
+      n?n+" spot"+(n===1?"":"s")+" still to sort out":"nothing marked");
+  } else {
+    var sc=scores().length;
+    var miss=scores().reduce(function(t,p){return t+missingOf(p).length;},0);
+    setHead("MU · music","Music library",
+      sc+" piece"+(sc===1?"":"s")+"  ·  "+FILES.filter(function(f){return f.linkKind==="score";}).length+
+      " parts"+(miss?"  ·  "+miss+" missing":""));
   }
-  fill();
-  var inp=el("input"); inp.placeholder=placeholder;
-  var l=el("label"); l.style.marginTop="10px";
-  l.appendChild(el("span",null,"Add one")); l.appendChild(inp);
-  host.appendChild(l);
-  var b=el("button","btn ghost sm","Add"); b.style.width="100%";
-  b.onclick=function(){
-    var v=inp.value.trim(); if(!v) return;
-    var arr=getArr(); if(arr.indexOf(v)<0) arr.push(v);
-    setArr(arr); inp.value=""; fill();};
+}
+async function reload(){ FILES=await fileList(); pageHead(); drawTab(); }
+
+/* ---------- library ---------- */
+function folders(){
+  var f={}; scores().forEach(function(p){ if(p.folder) f[p.folder]=(f[p.folder]||0)+1; });
+  return f;
+}
+function drawLib(){
+  var sc=scores();
+  $("#music_nPieces").textContent=sc.length;
+  $("#music_nParts").textContent=sc.reduce(function(t,p){return t+partsOf(p.id).length;},0);
+  $("#music_nMiss").textContent=sc.reduce(function(t,p){return t+missingOf(p).length;},0);
+  $("#music_myPart").textContent=myPart()||"not set";
+
+  var fo=folders(), fl=$("#music_mfilters");
+  var opts=[["all","All ("+sc.length+")"]];
+  Object.keys(fo).sort().forEach(function(k){opts.push(["f:"+k,k+" ("+fo[k]+")"]);});
+  opts.push(["incomplete","Missing parts"],["work","Has trouble spots"]);
+  if(myPart()) opts.push(["mine","Has my part"]);
+  fl.innerHTML=opts.map(function(o){
+    return '<button data-f="'+esc(o[0])+'"'+(o[0]===mfilter?' aria-pressed="true"':'')+'>'+esc(o[1])+'</button>';}).join("");
+  fl.querySelectorAll("button").forEach(function(b){
+    b.onclick=function(){mfilter=b.dataset.f;drawLib();};});
+
+  var q=mq.toLowerCase();
+  var list=sc.filter(function(p){
+    if(mfilter.indexOf("f:")===0&&p.folder!==mfilter.slice(2)) return false;
+    if(mfilter==="incomplete"&&!missingOf(p).length) return false;
+    if(mfilter==="work"&&!openSpots(p).length) return false;
+    if(mfilter==="mine"){
+      var mine=myPart().toLowerCase();
+      if(!mine||!partsOf(p.id).some(function(f){return (f.label||"").toLowerCase().indexOf(mine)>=0;})) return false;}
+    if(!q) return true;
+    return [p.title,p.composer,p.arranger,p.folder,p.notes].join(" ").toLowerCase().indexOf(q)>=0;
+  }).sort(function(a,b){return (a.title||"").localeCompare(b.title||"");});
+
+  var host=$("#music_mlist"); host.innerHTML="";
+  if(!list.length){
+    host.appendChild(emptyBox(sc.length?"Nothing matches":"No pieces yet",
+      sc.length?"Try another word or filter.":"Add a piece, then upload parts as you get them."));
+    return;}
+  var box=el("div","bar-list");
+  list.forEach(function(p){
+    var pts=partsOf(p.id), miss=missingOf(p), sp=openSpots(p), mins=minutesForPiece(p.id);
+    var r=el("div","mrow2");
+    r.appendChild(el("div","gr"+((+p.grade)>=5?" g5":""),p.grade||"–"));
+    var L2=el("div");
+    L2.appendChild(el("div","ti",p.title||"Untitled"));
+    var by=[];
+    if(p.composer) by.push(p.composer);
+    if(p.arranger) by.push("arr. "+p.arranger);
+    if(p.tempo) by.push(p.tempo+" bpm");
+    if(mins) by.push(hoursText(mins)+" practised");
+    if(p.folder) by.push(p.folder);
+    L2.appendChild(el("div","by",by.join(" · ")||"no details yet"));
+    r.appendChild(L2);
+    r.appendChild(el("span","pill",pts.length+" part"+(pts.length===1?"":"s")));
+    r.appendChild(sp.length?el("span","pill hot",sp.length+" to fix")
+      :(miss.length?el("span","pill warm",miss.length+" missing"):el("span","pill","ready")));
+    r.onclick=function(){pieceDialog(p);};
+    box.appendChild(r);});
+  host.appendChild(box);
+}
+
+/* ---------- practice ---------- */
+function drawPrac(){
+  $("#music_pWeek").textContent=hoursText(weekMinutes());
+  $("#music_pStreak").textContent=practiceStreak();
+  $("#music_pCount").textContent=sessions().length;
+  $("#music_pAll").textContent=hoursText(sessions().reduce(function(t,s){return t+(+s.minutes||0);},0));
+
+  var bars=$("#music_pBars"); bars.innerHTML="";
+  var max=1;
+  for(var i=6;i>=0;i--) max=Math.max(max,minutesOn(addDays(today(),-i)));
+  for(var j=6;j>=0;j--){
+    var d=addDays(today(),-j), m=minutesOn(d);
+    var c=el("div");
+    var b=el("div","bar"), fill=el("i");
+    fill.style.height=Math.round(m/max*56)+"px";
+    if(!m) fill.style.background="var(--rule)";
+    b.appendChild(fill); c.appendChild(b);
+    c.appendChild(el("div","mn",m?m+"":""));
+    c.appendChild(el("div","lb",DOWL[parseD(d).getDay()].slice(0,1)));
+    bars.appendChild(c);}
+
+  var ph=$("#music_pPieces"); ph.innerHTML="";
+  var withTime=scores().map(function(p){return {p:p,m:minutesForPiece(p.id)};})
+    .filter(function(x){return x.m>0;}).sort(function(a,b){return b.m-a.m;});
+  if(!withTime.length) ph.appendChild(emptyBox("Nothing logged against a piece yet",
+    "Pick which pieces you worked on when you log a session."));
+  else{
+    var top=withTime[0].m, box=el("div");
+    withTime.forEach(function(x){
+      var d=el("div","cat"),l=el("div","cl");
+      l.appendChild(el("b",null,x.p.title));
+      l.appendChild(el("span",null,hoursText(x.m)));
+      d.appendChild(l);
+      var tr=el("div","track"),f=el("div","fill");
+      f.style.width=Math.max(3,Math.round(x.m/top*100))+"%";
+      f.style.background="var(--pos)";
+      tr.appendChild(f); d.appendChild(tr); box.appendChild(d);});
+    ph.appendChild(box);}
+
+  var host=$("#music_pList"); host.innerHTML="";
+  var list=sessions().slice().sort(function(a,b){return b.date.localeCompare(a.date);}).slice(0,20);
+  if(!list.length){ host.appendChild(emptyBox("No sessions yet","Log one after you next play.")); return; }
+  var box2=el("div","bar-list");
+  list.forEach(function(s){
+    var r=el("div","bar-row trio tap"),L2=el("div");
+    var names=(s.scoreIds||[]).map(function(id){var p=pieceById(id);return p?p.title:null;}).filter(Boolean);
+    L2.appendChild(el("div","who",s.minutes+" minutes"+(names.length?" · "+names.join(", "):"")));
+    L2.appendChild(el("div","meta",prettyFull(s.date)+" · "+relDay(s.date)+(s.what?" · "+s.what:"")));
+    r.appendChild(L2);
+    r.appendChild(el("span","pill","MU"));
+    var k=el("button","kill","×");
+    k.onclick=function(e){e.stopPropagation();
+      if(!confirm("Delete this session?")) return;
+      H.practice=sessions().filter(function(x){return x.id!==s.id;});
+      save();pageHead();drawPrac();};
+    r.appendChild(k);
+    r.onclick=function(){sessionDialog(s);};
+    box2.appendChild(r);});
+  host.appendChild(box2);
+}
+
+/* ---------- needs work ---------- */
+function drawWork(){
+  var host=$("#music_wList"); host.innerHTML="";
+  var any=false;
+  scores().forEach(function(p){
+    var sp=spotsOf(p).filter(function(s){return showFixed||!s.fixed;});
+    if(!sp.length) return;
+    any=true;
+    host.appendChild(el("h2","sec",p.title+(p.tempo?" · "+p.tempo+" bpm":"")));
+    var box=el("div","bar-list");
+    sp.sort(function(a,b){return (+a.measure||0)-(+b.measure||0);}).forEach(function(s){
+      box.appendChild(spotRow(p,s,function(){drawWork();pageHead();}));});
+    host.appendChild(box);});
+  if(!any) host.appendChild(emptyBox("Nothing marked",
+    "Open a piece and mark the bars that keep tripping you up."));
+}
+function spotRow(p,s,after){
+  var r=el("div","spot"+(s.fixed?" fixed":""));
+  r.appendChild(el("div","mm","m."+(s.measure||"?")));
+  var L2=el("div");
+  L2.appendChild(el("div","w",s.what||"—"));
+  if(s.part) L2.appendChild(el("div","p",s.part));
+  r.appendChild(L2);
+  var b=el("button","btn ghost sm",s.fixed?"Unfix":"Sorted");
+  b.onclick=function(){ s.fixed=!s.fixed; s.fixedOn=s.fixed?today():""; save(); after&&after(); };
+  r.appendChild(b);
+  var k=el("button","kill","×");
+  k.onclick=function(){
+    p.spots=spotsOf(p).filter(function(x){return x.id!==s.id;});
+    save(); after&&after();};
+  r.appendChild(k);
+  return r;
+}
+
+/* ---------- dialogs ---------- */
+function pieceDialog(p){
+  var isNew=!p;
+  p=p||{title:"",composer:"",arranger:"",grade:"",ensemble:"band",key:"",tempo:"",
+        duration:"",publisher:"",folder:"",notes:"",spots:[],expected:[]};
+  openDlg(isNew?"Add a piece":(p.title||"Piece"),
+    '<label><span>Title</span><input id="music_pT" value="'+esc(p.title)+'" placeholder="Keep on Running"></label>'+
+    '<div class="two">'+
+      '<label><span>Composer</span><input id="music_pC" value="'+esc(p.composer||"")+'"></label>'+
+      '<label><span>Arranger</span><input id="music_pA" value="'+esc(p.arranger||"")+'"></label></div>'+
+    '<div class="two">'+
+      '<label><span>Grade</span><input id="music_pG" value="'+esc(p.grade||"")+'" inputmode="decimal" placeholder="4"></label>'+
+      '<label><span>Ensemble</span><select id="music_pE">'+
+        '<option value="band"'+(p.ensemble!=="jazz"?" selected":"")+'>Concert band</option>'+
+        '<option value="jazz"'+(p.ensemble==="jazz"?" selected":"")+'>Jazz band</option></select></label></div>'+
+    '<div class="two">'+
+      '<label><span>Tempo (bpm)</span><input id="music_pB" value="'+esc(p.tempo||"")+'" inputmode="numeric"></label>'+
+      '<label><span>Key</span><input id="music_pK" value="'+esc(p.key||"")+'"></label></div>'+
+    '<div class="two">'+
+      '<label><span>Length</span><input id="music_pD" value="'+esc(p.duration||"")+'" placeholder="6:30"></label>'+
+      '<label><span>Folder / concert</span><input id="music_pF" value="'+esc(p.folder||"")+'" list="music_dlFolders"></label></div>'+
+    '<datalist id="music_dlFolders">'+Object.keys(folders()).map(function(f){
+      return '<option value="'+esc(f)+'">';}).join("")+'</datalist>'+
+    '<label><span>Publisher</span><input id="music_pP" value="'+esc(p.publisher||"")+'"></label>'+
+    '<label><span>Notes</span><textarea id="music_pN" style="min-height:52px" placeholder="Cuts, repeats, tempo changes">'+esc(p.notes||"")+'</textarea></label>'+
+    (isNew?'':'<div id="music_pParts"></div><div id="music_pSpots"></div><div id="music_pRecs"></div><div id="music_pHist"></div>')+
+    '<div class="row-btns"><button class="btn" id="music_pS" style="flex:1">'+(isNew?"Add it":"Save")+'</button>'+
+    (isNew?'':'<button class="btn ghost sm" id="music_pI">Instrumentation</button><button class="btn ghost sm" id="music_pX">Delete</button>')+'</div>',
+    function(){
+      if(!isNew){ drawParts(p); drawSpots(p); drawRecs(p); drawHist(p); }
+      $("#music_pS").onclick=function(){
+        var t=$("#music_pT").value.trim();
+        if(!t) return toast("What's the piece called?");
+        p.title=t;p.composer=$("#music_pC").value.trim();p.arranger=$("#music_pA").value.trim();
+        p.grade=$("#music_pG").value.trim();p.ensemble=$("#music_pE").value;p.tempo=$("#music_pB").value.trim();
+        p.key=$("#music_pK").value.trim();p.duration=$("#music_pD").value.trim();
+        p.folder=$("#music_pF").value.trim();p.publisher=$("#music_pP").value.trim();p.notes=$("#music_pN").value;
+        if(isNew){p.id=uid();p.added=today();p.spots=[];scores().push(p);}
+        save();pageHead();drawTab();dlg.close();
+        toast(isNew?"Added — open it to upload parts":"Saved");};
+      if(!isNew){
+        $("#music_pI").onclick=function(){ dlg.close(); setTimeout(function(){instrDialog(p);},60); };
+        $("#music_pX").onclick=function(){
+          var n=partsOf(p.id).length;
+          if(!confirm("Delete "+p.title+"?"+(n?" Its "+n+" file(s) stay in Documents.":""))) return;
+          trashIt("piece",p.title,p);
+          H.scores=scores().filter(function(x){return x.id!==p.id;});
+          save();pageHead();drawTab();dlg.close();};
+      }
+    });
+}
+function drawParts(p){
+  var host=$("#music_pParts"); if(!host) return;
+  host.innerHTML="";
+  host.appendChild(el("h2","sec","Parts"));
+  var pts=partsOf(p.id).sort(function(a,b){
+    return expectedOf(p).indexOf(a.label||"")-expectedOf(p).indexOf(b.label||"");});
+  var wrap=el("div","parts"), mine=myPart().toLowerCase();
+  pts.forEach(function(f){
+    var d=el("div","prt"+(mine&&(f.label||"").toLowerCase().indexOf(mine)>=0?" mine":""));
+    var a=el("a",null,f.label||f.name); a.href="/api/files/"+f.id; a.target="_blank";
+    d.appendChild(a);
+    var x=el("span","x","×");
+    x.onclick=function(){
+      if(!confirm("Remove "+(f.label||f.name)+"?")) return;
+      fileDelete(f.id).then(function(){ reload().then(function(){drawParts(p);}); });};
+    d.appendChild(x); wrap.appendChild(d);});
+  missingOf(p).forEach(function(i){ wrap.appendChild(el("div","miss",i)); });
+  if(!pts.length&&!missingOf(p).length) wrap.appendChild(el("div","prt","nothing yet"));
+  host.appendChild(wrap);
+  uploadRow(host,p,"score","Upload a part","Which instrument",
+    "image/*,application/pdf,.heic",expectedOf(p),function(){drawParts(p);});
+}
+function drawRecs(p){
+  var host=$("#music_pRecs"); if(!host) return;
+  host.innerHTML="";
+  host.appendChild(el("h2","sec","Recordings"));
+  var rs=recsOf(p.id);
+  if(!rs.length) host.appendChild(el("p","foot-note","Record a run-through on your phone and put it here to hear it back later."));
+  rs.sort(function(a,b){return b.added-a.added;}).forEach(function(f){
+    var d=el("div"); d.style.marginBottom="10px";
+    var top=el("div"); top.style.cssText="display:flex;justify-content:space-between;gap:8px;align-items:center";
+    top.appendChild(el("div","who",(f.label||f.name)+" · "+new Date(f.added).toLocaleDateString()));
+    var k=el("button","kill","×");
+    k.onclick=function(){
+      if(!confirm("Delete this recording?")) return;
+      fileDelete(f.id).then(function(){ reload().then(function(){drawRecs(p);}); });};
+    top.appendChild(k); d.appendChild(top);
+    if(/^audio|^video/.test(f.type||"")){
+      var a=document.createElement(/^video/.test(f.type)?"video":"audio");
+      a.controls=true; a.src="/api/files/"+f.id;
+      if(/^video/.test(f.type)) a.style.width="100%";
+      d.appendChild(a);
+    } else {
+      var lnk=el("a","btn ghost sm","Open"); lnk.href="/api/files/"+f.id; lnk.target="_blank";
+      d.appendChild(lnk);
+    }
+    host.appendChild(d);});
+  uploadRow(host,p,"recording","Add a recording","Name it (e.g. run-through Aug 8)",
+    "audio/*,video/*",[],function(){drawRecs(p);});
+}
+function uploadRow(host,p,kind,btnLabel,namePlaceholder,accept,list,after){
+  var lab=el("label"); lab.style.marginTop="9px";
+  var id="music_up_"+kind;
+  lab.innerHTML='<span>'+esc(btnLabel)+'</span><input id="'+id+'" list="dl_'+kind+'" placeholder="'+esc(namePlaceholder)+'">'+
+    (list.length?'<datalist id="dl_'+kind+'">'+list.map(function(i){
+      return '<option value="'+esc(i)+'">';}).join("")+'</datalist>':'');
+  host.appendChild(lab);
+  var pick=el("input"); pick.type="file"; pick.style.display="none"; pick.accept=accept;
+  var btn=el("button","btn ghost sm","Choose the file"); btn.style.width="100%";
+  btn.onclick=function(e){
+    e.preventDefault();
+    if(!$("#"+id).value.trim()) return toast("Give it a name first");
+    pick.click();};
+  host.appendChild(btn); host.appendChild(pick);
+  pick.onchange=function(){
+    var f=pick.files[0]; if(!f) return;
+    var name=$("#"+id).value.trim();
+    btn.disabled=true; btn.textContent="Uploading…";
+    fileUpload(f,kind,p.id,name).then(function(){
+      btn.disabled=false; btn.textContent="Choose the file";
+      pick.value=""; reload().then(function(){ after(); toast(name+" added"); });
+    }).catch(function(e2){
+      btn.disabled=false; btn.textContent="Choose the file";
+      toast(e2.message||"Upload failed");});};
+}
+function drawSpots(p){
+  var host=$("#music_pSpots"); if(!host) return;
+  host.innerHTML="";
+  host.appendChild(el("h2","sec","Trouble spots"));
+  var sp=spotsOf(p);
+  if(!sp.length) host.appendChild(el("p","foot-note","Mark the bars that keep going wrong so you know what to drill."));
+  else{
+    var box=el("div","bar-list");
+    sp.slice().sort(function(a,b){return (+a.measure||0)-(+b.measure||0);}).forEach(function(s){
+      box.appendChild(spotRow(p,s,function(){drawSpots(p);}));});
+    host.appendChild(box);}
+  var row=el("div"); row.style.marginTop="9px";
+  row.innerHTML='<div class="two">'+
+    '<label><span>Measure</span><input id="music_spM" inputmode="numeric" placeholder="47"></label>'+
+    '<label><span>Part (optional)</span><input id="music_spP" placeholder="'+esc(myPart()||"Trumpet 2")+'"></label></div>'+
+    '<label><span>What goes wrong</span><input id="music_spW" placeholder="the run into the key change"></label>';
+  host.appendChild(row);
+  var b=el("button","btn ghost sm","Mark this spot"); b.style.width="100%";
+  b.onclick=function(e){
+    e.preventDefault();
+    var w=$("#music_spW").value.trim();
+    if(!w) return toast("What goes wrong there?");
+    p.spots=spotsOf(p);
+    p.spots.push({id:uid(),measure:$("#music_spM").value.trim(),part:$("#music_spP").value.trim(),
+      what:w,fixed:false,added:today()});
+    save(); $("#music_spM").value="";$("#music_spP").value="";$("#music_spW").value="";
+    drawSpots(p); pageHead(); toast("Marked");};
   host.appendChild(b);
 }
-function drawMods(){
-  var h=$("#v-mods"); h.innerHTML="";
-  listEditor(h,"Task lists",function(){return H.lists||[];},
-    function(a){H.lists=a;save();},"Bills, Car, Job hunt","The lists tasks can be filed under.");
-  if(L){
-    listEditor(h,"Spending categories",function(){return L.categories||[];},
-      function(a){L.categories=a;saveL();},"Laundry, haircuts, tools",null);
-    listEditor(h,"Payment methods",function(){return L.methods||[];},
-      function(a){L.methods=a;saveL();},"Chime, money order",
-      "How money moves in and out — used on entries, tickets and subscriptions.");
-  }
-  sec(h,"Modules in the menu");
-  h.appendChild(el("p","foot-note","Hide the ones you don't use. They keep their data and can come back any time."));
-  var hidden=S().hidden||[];
-  var box=el("div","bar-list");
-  MODULES.forEach(function(m){
-    if(m.id==="index"||m.id==="settings") return;
-    var r=el("div","bar-row trio");
-    var L2=el("div");
-    L2.appendChild(el("div","who",m.label));
-    L2.appendChild(el("div","meta",m.cd+" · "+m.file));
-    r.appendChild(L2);
-    var on=hidden.indexOf(m.id)<0;
-    var b=el("button","btn "+(on?"ghost ":"")+"sm",on?"Showing":"Hidden");
-    b.onclick=function(){
-      hidden=S().hidden||[];
-      if(hidden.indexOf(m.id)<0) hidden.push(m.id);
-      else hidden=hidden.filter(function(x){return x!==m.id;});
-      S().hidden=hidden; save(); drawMods(); buildNav();};
-    r.appendChild(b); r.appendChild(el("div"));
-    box.appendChild(r);});
-  h.appendChild(box);
+function drawHist(p){
+  var host=$("#music_pHist"); if(!host) return;
+  host.innerHTML="";
+  var ss=sessions().filter(function(s){return (s.scoreIds||[]).indexOf(p.id)>=0;})
+    .sort(function(a,b){return b.date.localeCompare(a.date);});
+  if(!ss.length) return;
+  host.appendChild(el("h2","sec","You've practised this"));
+  host.appendChild(el("p","foot-note",hoursText(minutesForPiece(p.id))+" across "+ss.length+
+    " session"+(ss.length===1?"":"s")+", last on "+prettyFull(ss[0].date)+"."));
+}
+function instrDialog(p){
+  openDlg("Instrumentation — "+p.title,
+    '<p class="foot-note" style="margin-top:0">What this arrangement actually calls for. Missing parts are worked out from this.</p>'+
+    '<label><span>Parts needed</span><textarea id="music_iL" style="min-height:180px">'+esc(expectedOf(p).join("\n"))+'</textarea></label>'+
+    '<div class="row-btns"><button class="btn" id="music_iS" style="flex:1">Save the list</button>'+
+    '<button class="btn ghost sm" id="music_iR">Reset to standard</button></div>',
+    function(){
+      $("#music_iS").onclick=function(){
+        p.expected=$("#music_iL").value.split("\n").map(function(x){return x.trim();}).filter(Boolean);
+        save();drawTab();dlg.close();setTimeout(function(){pieceDialog(p);},60);};
+      $("#music_iR").onclick=function(){ $("#music_iL").value=(p.ensemble==="jazz"?JAZZ:BAND).join("\n"); };
+    });
+}
+function sessionDialog(s){
+  var isNew=!s;
+  s=s||{date:today(),minutes:30,scoreIds:[],what:"",notes:""};
+  openDlg(isNew?"Log a practice session":"Practice session",
+    '<div class="two">'+
+      '<label><span>When</span><input type="date" id="music_sD" value="'+esc(s.date)+'" max="'+today()+'"></label>'+
+      '<label><span>How long (minutes)</span><input type="number" id="music_sM" inputmode="numeric" min="1" value="'+(s.minutes||30)+'"></label></div>'+
+    '<label><span>What you worked on</span><input id="music_sW" value="'+esc(s.what||"")+'" placeholder="scales, the hard bit in the middle"></label>'+
+    '<div id="music_sPieces"></div>'+
+    '<label><span>Notes</span><textarea id="music_sN" style="min-height:52px" placeholder="How it went">'+esc(s.notes||"")+'</textarea></label>'+
+    '<div class="row-btns"><button class="btn" id="music_sS" style="flex:1">'+(isNew?"Log it":"Save")+'</button>'+
+    (isNew?'':'<button class="btn ghost sm" id="music_sX">Delete</button>')+'</div>',
+    function(){
+      var host=$("#music_sPieces"), chosen=(s.scoreIds||[]).slice();
+      var lab=el("div");
+      lab.style.cssText="font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--dim);margin-bottom:4px";
+      lab.textContent="Which pieces"; host.appendChild(lab);
+      var web=el("div","web");
+      if(!scores().length) web.appendChild(el("span","pill","no pieces in the library yet"));
+      scores().forEach(function(p){
+        var on=chosen.indexOf(p.id)>=0;
+        var c=el("span","pill"+(on?" warm":""),p.title);
+        c.style.cursor="pointer";
+        c.onclick=function(){
+          var i=chosen.indexOf(p.id);
+          if(i>=0){chosen.splice(i,1);c.className="pill";}
+          else{chosen.push(p.id);c.className="pill warm";}};
+        web.appendChild(c);});
+      host.appendChild(web);
+      $("#music_sS").onclick=function(){
+        var m=+$("#music_sM").value;
+        if(!m||m<1) return toast("How many minutes?");
+        s.date=$("#music_sD").value||today(); s.minutes=m;
+        s.what=$("#music_sW").value.trim(); s.notes=$("#music_sN").value.trim(); s.scoreIds=chosen;
+        if(isNew){ s.id=uid(); sessions().push(s); }
+        save(); pageHead(); drawTab(); dlg.close();
+        toast(isNew?hoursText(m)+" logged":"Saved");};
+      if(!isNew) $("#music_sX").onclick=function(){
+        if(!confirm("Delete this session?")) return;
+        H.practice=sessions().filter(function(x){return x.id!==s.id;});
+        save();pageHead();drawTab();dlg.close();};
+    });
+}
+function scheduleDialog(){
+  openDlg("Schedule practice",
+    '<p class="foot-note" style="margin-top:0">Puts it on the calendar. Practices show with an MU tag on the day.</p>'+
+    '<div class="two">'+
+      '<label><span>Day</span><input type="date" id="music_kD" value="'+today()+'"></label>'+
+      '<label><span>Time</span><input type="time" id="music_kT" value="19:00"></label></div>'+
+    '<label><span>What for</span><input id="music_kW" placeholder="Section rehearsal, run the concert set"></label>'+
+    '<div id="music_kPieces"></div>'+
+    '<button class="btn" id="music_kS" style="width:100%">Put it on the calendar</button>',
+    function(){
+      var host=$("#music_kPieces"), chosen=[];
+      var lab=el("div");
+      lab.style.cssText="font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--dim);margin:8px 0 4px";
+      lab.textContent="Pieces to work on"; host.appendChild(lab);
+      var web=el("div","web"); web.style.marginBottom="10px";
+      scores().forEach(function(p){
+        var c=el("span","pill",p.title); c.style.cursor="pointer";
+        c.onclick=function(){
+          var i=chosen.indexOf(p.id);
+          if(i>=0){chosen.splice(i,1);c.className="pill";}
+          else{chosen.push(p.id);c.className="pill warm";}};
+        web.appendChild(c);});
+      host.appendChild(web);
+      $("#music_kS").onclick=function(){
+        var names=chosen.map(function(id){var p=pieceById(id);return p?p.title:"";}).filter(Boolean);
+        H.events.push({id:uid(),title:$("#music_kW").value.trim()||"Practice",
+          date:$("#music_kD").value||today(),time:$("#music_kT").value,endTime:"",place:"",
+          notes:names.length?"Pieces: "+names.join(", "):"",personIds:[],
+          kind:"practice",scoreIds:chosen});
+        save(); dlg.close(); toast("On the calendar");};
+    });
+}
+function instrumentDialog(){
+  openDlg("Your instrument",
+    '<p class="foot-note" style="margin-top:0">Your own parts get highlighted, and you can filter to pieces you play.</p>'+
+    '<label><span>What do you play</span><input id="music_myI" list="music_dlAll" value="'+esc(myPart())+'" placeholder="Trumpet 2"></label>'+
+    '<datalist id="music_dlAll">'+BAND.concat(JAZZ).filter(function(v,i,a){return a.indexOf(v)===i;})
+      .map(function(i){return '<option value="'+esc(i)+'">';}).join("")+'</datalist>'+
+    '<button class="btn" id="music_myS" style="width:100%">Save</button>',
+    function(){
+      $("#music_myS").onclick=function(){
+        H.settings=H.settings||{};
+        H.settings.instrument=$("#music_myI").value.trim();
+        save();drawTab();dlg.close();toast(myPart()?"Set to "+myPart():"Cleared");};
+    });
 }
 
-/* ---------- data ---------- */
-function drawData(){
-  var h=$("#v-data"); h.innerHTML="";
-  sec(h,"Everything you have");
-  var counts=[["Tasks",(H.tasks||[]).length],["Events",(H.events||[]).length],
-    ["Contacts",allPeople().length],["Notes",(H.notes||[]).length],
-    ["Habits",(H.habits||[]).length],["Items out",(H.things||[]).filter(function(t){return !t.back;}).length],
-    ["Subscriptions",(H.subs||[]).filter(function(s){return s.active!==false;}).length],
-    ["Journal entries",(H.journal||[]).length],["Pieces of music",(H.scores||[]).length],
-    ["In the trash",(H.trash||[]).length]];
-  var box=el("div","bar-list");
-  counts.forEach(function(c){
-    var r=el("div","bar-row");
-    r.appendChild(el("div","who",c[0]));
-    r.appendChild(el("div","amt",String(c[1])));
-    box.appendChild(r);});
-  h.appendChild(box);
-
-  sec(h,"Tools");
-  var row=el("div","row-btns");
-  [["Backup and restore",backupDialog],["Trash",trashDialog]].forEach(function(x){
-    var b=el("button","btn ghost sm",x[0]); b.onclick=x[1]; row.appendChild(b);});
-  var a=el("a","btn ghost sm","Version history"); a.href="history.html"; row.appendChild(a);
-  h.appendChild(row);
-
-  sec(h,"Danger");
-  h.appendChild(el("p","foot-note","Empties the trash for good. Everything still in use is untouched."));
-  var d=el("button","btn ghost sm","Empty the trash"); d.style.width="100%";
-  d.onclick=function(){
-    var n=(H.trash||[]).length;
-    if(!n) return toast("Trash is already empty");
-    if(!confirm("Throw away "+n+" item"+(n===1?"":"s")+" for good?")) return;
-    H.trash=[]; save(); drawData(); toast("Emptied");};
-  h.appendChild(d);
+function drawTab(){
+  if(mtab==="lib") drawLib();
+  else if(mtab==="prac") drawPrac();
+  else drawWork();
 }
-
-/* ---------- changelog ---------- */
-function drawLog(){
-  var h=$("#v-log"); h.innerHTML="";
-  var last=S().seenVersion||"0";
-  h.appendChild(el("p","foot-note","Everything that has changed, newest first."));
-  CHANGELOG.forEach(function(c){
-    var isNew=c.v>last;
-    var box=el("div","sheet");
-    var hd=el("div","hd");
-    hd.appendChild(el("div","t",c.t));
-    hd.appendChild(el("div","c",(isNew?"NEW · ":"")+"v"+c.v+" · "+prettyFull(c.d)));
-    box.appendChild(hd);
-    var bd=el("div","bd");
-    c.items.forEach(function(it){
-      var r=el("div","line-item");
-      r.appendChild(el("div","cd",isNew?"NEW":"·"));
-      r.appendChild(el("div","tx",it));
-      r.appendChild(el("div"));
-      bd.appendChild(r);});
-    box.appendChild(bd);
-    h.appendChild(box);});
-  if(unseenCount()){
-    var b=el("button","btn","Mark all as read"); b.style.width="100%";
-    b.onclick=function(){ S().seenVersion=CHANGELOG[0].v; save(); pageHead(); drawLog(); buildNav(); toast("Caught up"); };
-    h.appendChild(b);
-  }
-}
-
 function setTab(t){
-  stab=t;
-  ["look","you","mods","data","log"].forEach(function(x){
-    $("#v-"+x).style.display=x===t?"block":"none";});
-  $("#stabs").querySelectorAll("button").forEach(function(b){
+  mtab=t;
+  $("#music_v-lib").style.display=t==="lib"?"block":"none";
+  $("#music_v-prac").style.display=t==="prac"?"block":"none";
+  $("#music_v-work").style.display=t==="work"?"block":"none";
+  $("#music_mtabs").querySelectorAll("button").forEach(function(b){
     b.setAttribute("aria-pressed",b.dataset.t===t);});
-  if(t==="look") drawLook();
-  else if(t==="you") drawYou();
-  else if(t==="mods") drawMods();
-  else if(t==="data") drawData();
-  else drawLog();
+  pageHead(); drawTab();
 }
-function pageRender(){ setTab(stab); }
+function pageRender(){ drawTab(); }
+function pageAction(a){
+  if(a==="newpiece"||a==="new") pieceDialog(null);
+  else if(a==="setmine") instrumentDialog();
+  else if(a==="logpractice") sessionDialog(null);
+  else if(a==="schedule") scheduleDialog();
+  else if(a==="showfixed"){ showFixed=!showFixed; drawWork(); }
+}
 function pageBoot(){
-  applyTextSize();
-  $("#stabs").querySelectorAll("button").forEach(function(b){
+  H.scores=H.scores||[]; H.practice=H.practice||[];
+  $("#music_mq").oninput=function(){ mq=this.value.trim(); drawLib(); };
+  $("#music_mtabs").querySelectorAll("button").forEach(function(b){
     b.onclick=function(){ setTab(b.dataset.t); };});
-  if(qparam("tab")) stab=qparam("tab");
+  if(qparam("tab")) mtab=qparam("tab");
+  reload();
+}
+
+return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
+})();
+
+var TABS=["notes", "journal", "docs", "music"];
+var ptab=TABS[0];
+function activeMod(){ return window["MOD_"+ptab.toUpperCase()]; }
+function setPTab(t){
+  if(TABS.indexOf(t)<0) t=TABS[0];
+  ptab=t;
+  TABS.forEach(function(x){
+    var v=document.getElementById("view_"+x);
+    if(v) v.style.display=(x===t)?"":"none";});
+  document.querySelectorAll("#pgtabs button").forEach(function(b){
+    b.setAttribute("aria-pressed",b.dataset.t===t);});
+  var fab=document.querySelector(".fab");
+  if(fab){ var f={"notes": "new", "journal": "new", "docs": "new", "music": "newpiece"}; if(f[t]){ fab.style.display=""; fab.dataset.act=f[t]; } else fab.style.display="none"; }
+  try{ history.replaceState(null,"",location.pathname+"?tab="+t); }catch(e){}
+  $("#pTools").innerHTML="";
+  addTool("Search",commandBar); addTool("Trash",trashDialog); addTool("Theme",cycleTheme);
+  var m=activeMod();
+  if(m){ if(m.head) m.head(); if(m.render) m.render(); }
+  window.scrollTo(0,0);
+}
+function pageHead(){ var m=activeMod(); if(m&&m.head) m.head(); }
+function pageRender(){ var m=activeMod(); if(m&&m.render) m.render(); }
+function pageAction(a){ var m=activeMod(); if(m&&m.action) m.action(a); }
+function pageBoot(){
+  document.querySelectorAll("#pgtabs button").forEach(function(b){
+    b.onclick=function(){ setPTab(b.dataset.t); };});
+  TABS.forEach(function(x){
+    var m=window["MOD_"+x.toUpperCase()];
+    if(m&&m.boot){ try{ m.boot(); }catch(e){ console.error("boot "+x,e); } }});
+  var want=qparam("tab");
+  if(want&&TABS.indexOf(want)>=0) ptab=want;
+  setTimeout(function(){ setPTab(ptab); },0);
 }
 })();
 </script>

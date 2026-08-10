@@ -395,8 +395,28 @@ var DB={
   }
 };
 
-var APP_VERSION="2.1";
+var APP_VERSION="2.4";
 var CHANGELOG=[
+ {v:"2.4",d:"2026-08-08",t:"Eight pages instead of eighteen",
+  items:["Everything is grouped now: Plan holds tasks, calendar and habits; Money holds the ledger, wallet, invoices and subscriptions; People holds contacts and lent items; Desk holds notes, journal, documents and sheet music",
+         "The vault stays on its own page on purpose — it locks itself when you leave the page, and tabs would not do that",
+         "Old links and anything you pinned to your home screen still work, they just land on the right tab",
+         "A proper writing surface in Desk — full screen, markdown, preview, word count",
+         "It keeps a draft as you type, on the server, so closing the tab never loses anything",
+         "Save a piece of writing as a note, or straight into Documents as a file",
+         "The wallet from the last update is in here too"]},
+ {v:"2.3",d:"2026-08-08",t:"Wallet",
+  items:["A Wallet page — tap through the notes and coins you actually have and it adds them up",
+         "Tells you straight away whether it matches what the books expect, and by how much you are over or short",
+         "Counting sets your cash balance and records the difference, so nothing quietly drifts",
+         "Past counts are kept with what was in there, and it works out how far off you usually are",
+         "Paying out: type an amount and it tells you which notes to hand over and what you would have left",
+         "Spend straight from the wallet and it takes those notes out of the count and logs it"]},
+ {v:"2.2",d:"2026-08-08",t:"The AI actually does things now",
+  items:["Fixed: it was printing its instructions instead of carrying them out. Small models never format things exactly as told, so it now understands however they write it",
+         "Handles wrong fences, missing quotes, single quotes, curly quotes, trailing commas, dollar signs on amounts and different field names",
+         "If it says it did something but didn't, you get a button to make it happen",
+         "If it asks for something that isn't a real action, it says so instead of going quiet"]},
  {v:"2.1",d:"2026-08-08",t:"Proper invoices, tied to your tickets",
   items:["Invoices now look like real invoices — monogram, ruled line table, totals block, an amount-due panel and a PAID stamp",
          "Preview one on screen before you print it or save it as a PDF",
@@ -494,6 +514,7 @@ function migrateH(){
   H.subs=H.subs||[];H.journal=H.journal||[];H.scores=H.scores||[];
   H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];
   H.templates=H.templates||[];H.invoices=H.invoices||[];
+  H.wallet=H.wallet||{counts:{},accountId:null,lastCounted:""};H.walletCounts=H.walletCounts||[];
   H.lists=(H.lists&&H.lists.length)?H.lists:DEF_LISTS.slice();
   H.version=H.version||1;
 }
@@ -784,42 +805,32 @@ function attachBar(host,kind,id,heading){
 /* ---------- navigation ---------- */
 var MODULES=[
   {id:"index",cd:"//",label:"Today",file:"index.html"},
-  {id:"tasks",cd:"TK",label:"Tasks",file:"tasks.html"},
-  {id:"calendar",cd:"CL",label:"Calendar",file:"calendar.html"},
-  {id:"contacts",cd:"CT",label:"Contacts",file:"contacts.html"},
-  {id:"notes",cd:"NT",label:"Notes",file:"notes.html"},
-  {id:"habits",cd:"HB",label:"Habits",file:"habits.html"},
-  {id:"items",cd:"TH",label:"Lent out",file:"items.html"},
+  {id:"plan",cd:"PL",label:"Plan",file:"plan.html"},
   {id:"money",cd:"$$",label:"Money",file:"money.html"},
-  {id:"invoices",cd:"IV",label:"Invoices",file:"invoices.html"},
-  {id:"vault",cd:"PW",label:"Passwords",file:"vault.html"},
-  {id:"subs",cd:"SB",label:"Subscriptions",file:"subs.html"},
-  {id:"journal",cd:"JR",label:"Journal",file:"journal.html"},
-  {id:"docs",cd:"DC",label:"Documents",file:"docs.html"},
-  {id:"music",cd:"MU",label:"Music",file:"music.html"},
-  {id:"history",cd:"HI",label:"History",file:"history.html"},
+  {id:"people",cd:"CT",label:"People",file:"people.html"},
+  {id:"desk",cd:"DK",label:"Desk",file:"desk.html"},
+  {id:"vault",cd:"PW",label:"Vault",file:"vault.html"},
   {id:"talk",cd:"AI",label:"Talk",file:"talk.html"},
   {id:"settings",cd:"SE",label:"Settings",file:"settings.html"}
 ];
 function navCounts(){
   var c={},ts=today();
-  c.tasks=H.tasks.filter(function(t){return !t.done&&t.due&&t.due<=ts;}).length;
-  c.calendar=H.events.filter(function(e){return e.date===ts;}).length;
-  c.items=H.things.filter(function(t){return !t.back&&t.due&&t.due<ts;}).length;
-  c.habits=H.habits.filter(function(h){return !(h.days||{})[ts];}).length;
-  var lt=ledgerTotals(); c.money=lt?lt.late.length:0;
-  c.settings=unseenCount();
-  c.invoices=(H.invoices||[]).filter(function(i){
+  var late=H.tasks.filter(function(t){return !t.done&&!t.someday&&t.due&&t.due<=ts;}).length;
+  var ev=H.events.filter(function(e){return e.date===ts;}).length;
+  var hb=H.habits.filter(function(h){return !(h.days||{})[ts];}).length;
+  c.plan=late+ev+hb;
+  var lt=ledgerTotals();
+  var wl=(H.wallet&&H.wallet.lastCounted)||"";
+  var invLate=(H.invoices||[]).filter(function(i){
     return i.status!=="paid"&&i.status!=="draft"&&i.due&&i.due<ts;}).length;
-  c.music=(H.scores||[]).reduce(function(t,p){
+  var subSoon=(H.subs||[]).filter(function(x){
+    return x.active!==false&&x.next&&daysBetween(ts,x.next)<=3;}).length;
+  c.money=(lt?lt.late.length:0)+invLate+subSoon+((!wl||daysBetween(wl,ts)>=7)?1:0);
+  c.people=H.things.filter(function(t){return !t.back&&t.due&&t.due<ts;}).length;
+  c.desk=(H.scores||[]).reduce(function(t,p){
     return t+((p.spots||[]).filter(function(x){return !x.fixed;}).length?1:0);},0);
-  c.subs=(H.subs||[]).filter(function(x){return x.active!==false&&x.next&&daysBetween(ts,x.next)<=3;}).length;
+  c.settings=unseenCount();
   return c;
-}
-function visibleModules(){
-  var hid=(H.settings&&H.settings.hidden)||[];
-  return MODULES.filter(function(m){
-    return m.id===PAGE||m.id==="index"||m.id==="settings"||hid.indexOf(m.id)<0;});
 }
 function buildNav(){
   var c=navCounts();
@@ -929,11 +940,11 @@ function commandBar(){
       function build(q){
         var out=[];
         // create commands
-        var mk=[["new task","TK","tasks.html?new=1"],["new event","CL","calendar.html?new=1"],
-                ["new note","NT","notes.html?new=1"],["new contact","CT","contacts.html?new=1"],
-                ["new journal entry","JR","journal.html?new=1"],["new item lent","TH","items.html?new=1"],
-                ["new subscription","SB","subs.html?new=1"],["log money in","$$","money.html?new=in"],
-                ["log money out","$$","money.html?new=out"],["new document","DC","docs.html?new=1"]];
+        var mk=[["new task","TK","plan.html?tab=tasks&new=1"],["new event","CL","plan.html?tab=calendar&new=1"],
+                ["new note","NT","desk.html?tab=notes&new=1"],["new contact","CT","people.html?tab=contacts&new=1"],
+                ["new journal entry","JR","desk.html?tab=journal&new=1"],["new item lent","TH","people.html?tab=items&new=1"],
+                ["new subscription","SB","money.html?tab=subs&new=1"],["log money in","$$","money.html?new=in"],
+                ["log money out","$$","money.html?new=out"],["new document","DC","desk.html?tab=docs&new=1"]];
         mk.forEach(function(m){
           if(!q||m[0].indexOf(q)>=0) out.push({cd:m[1],t:m[0],s:"create",go:m[2]});});
         // pages
@@ -943,30 +954,30 @@ function commandBar(){
         if(q&&q.length>=2){
           (H.tasks||[]).forEach(function(t){
             if(t.title.toLowerCase().indexOf(q)>=0)
-              out.push({cd:"TK",t:t.title,s:t.done?"finished task":"open task",go:"tasks.html"});});
+              out.push({cd:"TK",t:t.title,s:t.done?"finished task":"open task",go:"plan.html?tab=tasks"});});
           (H.events||[]).forEach(function(e){
             if(e.title.toLowerCase().indexOf(q)>=0)
-              out.push({cd:"CL",t:e.title,s:prettyFull(e.date),go:"calendar.html?d="+e.date});});
+              out.push({cd:"CL",t:e.title,s:prettyFull(e.date),go:"plan.html?tab=calendar&d="+e.date});});
           allPeople().forEach(function(p){
             if(p.name.toLowerCase().indexOf(q)>=0)
-              out.push({cd:"CT",t:p.name,s:p.how||"contact",go:"contacts.html?p="+p.id});});
+              out.push({cd:"CT",t:p.name,s:p.how||"contact",go:"people.html?tab=contacts&p="+p.id});});
           (H.notes||[]).forEach(function(n){
             if((n.title+" "+(n.body||"")).toLowerCase().indexOf(q)>=0)
-              out.push({cd:"NT",t:n.title||"Untitled",s:"note",go:"notes.html?n="+n.id});});
+              out.push({cd:"NT",t:n.title||"Untitled",s:"note",go:"desk.html?tab=notes&n="+n.id});});
           (H.scores||[]).forEach(function(p){
             if((p.title+" "+(p.composer||"")+" "+(p.arranger||"")).toLowerCase().indexOf(q)>=0)
-              out.push({cd:"MU",t:p.title,s:"sheet music",go:"music.html"});});
+              out.push({cd:"MU",t:p.title,s:"sheet music",go:"desk.html?tab=music"});});
           (H.subs||[]).forEach(function(x){
             if(x.name.toLowerCase().indexOf(q)>=0)
-              out.push({cd:"SB",t:x.name,s:"subscription",go:"subs.html"});});
+              out.push({cd:"SB",t:x.name,s:"subscription",go:"money.html?tab=subs"});});
           (H.invoices||[]).forEach(function(i){
             if(((i.number||"")+" "+(i.name||"")+" "+(i.forWhat||"")).toLowerCase().indexOf(q)>=0)
               out.push({cd:"IV",t:i.number+" · "+(i.name||""),
-                s:(i.status||"")+(i.due?" · due "+pretty(i.due):""),go:"invoices.html"});});
+                s:(i.status||"")+(i.due?" · due "+pretty(i.due):""),go:"money.html?tab=invoices"});});
           if(L) (L.tickets||[]).forEach(function(t){
             if((t.name+" "+t.code).toLowerCase().indexOf(q)>=0)
               out.push({cd:"$$",t:(t.dir==="owe"?"You owe ":"Owed by ")+t.name,
-                s:money(t.cents-(t.paidCents||0))+" · "+t.code,go:"money.html?t="+t.code});});
+                s:money(t.cents-(t.paidCents||0))+" · "+t.code,go:"money.html?tab=ledger&t="+t.code});});
         }
         return out.slice(0,30);
       }
@@ -1119,11 +1130,11 @@ function exportModule(kind){
 function quickDialog(){
   openDlg("What are you adding?",
     '<div class="row-btns" style="flex-direction:column">'+
-    '<a class="btn" href="tasks.html?new=1" style="width:100%">Task</a>'+
-    '<a class="btn ghost" href="calendar.html?new=1" style="width:100%">Calendar event</a>'+
-    '<a class="btn ghost" href="notes.html?new=1" style="width:100%">Note</a>'+
-    '<a class="btn ghost" href="contacts.html?new=1" style="width:100%">Contact</a>'+
-    '<a class="btn ghost" href="items.html?new=1" style="width:100%">Lent or borrowed item</a>'+
+    '<a class="btn" href="plan.html?tab=tasks&new=1" style="width:100%">Task</a>'+
+    '<a class="btn ghost" href="plan.html?tab=calendar&new=1" style="width:100%">Calendar event</a>'+
+    '<a class="btn ghost" href="desk.html?tab=notes&new=1" style="width:100%">Note</a>'+
+    '<a class="btn ghost" href="people.html?tab=contacts&new=1" style="width:100%">Contact</a>'+
+    '<a class="btn ghost" href="people.html?tab=items&new=1" style="width:100%">Lent or borrowed item</a>'+
     '<a class="btn ghost" href="habits.html?new=1" style="width:100%">Habit to track</a>'+
     '<a class="btn ghost" href="money.html?new=in" style="width:100%">Money in</a>'+
     '<a class="btn ghost" href="money.html?new=out" style="width:100%">Money out</a>'+

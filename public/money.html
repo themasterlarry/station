@@ -337,7 +337,13 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div id="pExtra"></div>
     </header>
     <section class="pane" id="pane">
-      <style>
+      <div class="seg mini" id="pgtabs">
+        <button type="button" data-t="ledger" aria-pressed="true">Ledger</button>
+        <button type="button" data-t="wallet">Wallet</button>
+        <button type="button" data-t="invoices">Invoices</button>
+        <button type="button" data-t="subs">Subscriptions</button>
+      </div>
+<style>
       .mbars{display:flex;gap:3px;align-items:flex-end;height:110px;margin-bottom:6px}
       .mbars .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;height:100%}
       .mbars .up{background:var(--pos);border-radius:1px 1px 0 0;min-height:1px}
@@ -357,28 +363,30 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       .fc .bal{font-family:var(--mono);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
       .fc.neg .bal{color:var(--stamp)}
       </style>
-      <div class="seg" id="tabs">
+      <div class="pgview" id="view_ledger">
+      
+      <div class="seg" id="ledger_tabs">
         <button type="button" data-t="ledger" aria-pressed="true">Ledger</button>
         <button type="button" data-t="tickets" aria-pressed="false">Tickets</button>
         <button type="button" data-t="trends" aria-pressed="false">Trends</button>
         <button type="button" data-t="history" aria-pressed="false">History</button>
       </div>
 
-      <div id="v-ledger">
-        <label style="margin-bottom:12px"><span>Month</span><select id="monthPick"></select></label>
+      <div id="ledger_v-ledger">
+        <label style="margin-bottom:12px"><span>Month</span><select id="ledger_monthPick"></select></label>
         <div class="tally">
-          <div><div class="lbl">Came in</div><div class="val amt in" id="tIn">$0</div></div>
-          <div><div class="lbl">Went out</div><div class="val amt out" id="tOut">$0</div></div>
-          <div><div class="lbl">You owe</div><div class="val amt out" id="tOwe">$0</div></div>
-          <div><div class="lbl">Owed to you</div><div class="val amt in" id="tOwed">$0</div></div>
+          <div><div class="lbl">Came in</div><div class="val amt in" id="ledger_tIn">$0</div></div>
+          <div><div class="lbl">Went out</div><div class="val amt out" id="ledger_tOut">$0</div></div>
+          <div><div class="lbl">You owe</div><div class="val amt out" id="ledger_tOwe">$0</div></div>
+          <div><div class="lbl">Owed to you</div><div class="val amt in" id="ledger_tOwed">$0</div></div>
         </div>
         <h2 class="sec">Breakdown</h2>
-        <div class="seg mini" id="bmode">
+        <div class="seg mini" id="ledger_bmode">
           <button type="button" data-b="out" aria-pressed="true">Where it went</button>
           <button type="button" data-b="in" aria-pressed="false">Where it came from</button>
           <button type="button" data-b="how" aria-pressed="false">How it moved</button>
         </div>
-        <div id="breakdown"></div>
+        <div id="ledger_breakdown"></div>
         <h2 class="sec">Quick actions</h2>
         <div class="row-btns">
           <button class="btn" data-act="in">Money in</button>
@@ -388,41 +396,234 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
           <button class="btn ghost" data-act="cats">Categories &amp; methods</button>
         </div>
         <h2 class="sec">Accounts</h2>
-        <div class="bar-list" id="acctList"></div>
+        <div class="bar-list" id="ledger_acctList"></div>
         <div class="row-btns" style="margin-top:10px">
           <button class="btn ghost sm" data-act="newacct">Add an account</button>
         </div>
         <h2 class="sec">Last 8 entries</h2>
-        <div id="recent"></div>
+        <div id="ledger_recent"></div>
       </div>
 
-      <div id="v-tickets" style="display:none">
+      <div id="ledger_v-tickets" style="display:none">
         <div class="row-btns" style="margin-bottom:14px">
           <button class="btn tick" data-act="newticket">Write a ticket</button>
           <button class="btn ghost" data-act="redeem">Redeem a code</button>
         </div>
         <h2 class="sec">Open</h2>
-        <div id="tOpen"></div>
+        <div id="ledger_tOpen"></div>
         <h2 class="sec">Closed</h2>
-        <div id="tClosed"></div>
+        <div id="ledger_tClosed"></div>
       </div>
 
-      <div id="v-trends" style="display:none">
+      <div id="ledger_v-trends" style="display:none">
         <h2 class="sec">Last 12 months</h2>
-        <div id="mBars"></div>
-        <h2 class="sec"><span>Where it went</span><span class="r" id="cmpLbl"></span></h2>
-        <div id="catCmp"></div>
+        <div id="ledger_mBars"></div>
+        <h2 class="sec"><span>Where it went</span><span class="r" id="ledger_cmpLbl"></span></h2>
+        <div id="ledger_catCmp"></div>
         <h2 class="sec">Next 30 days</h2>
-        <div id="fcast"></div>
+        <div id="ledger_fcast"></div>
       </div>
 
-      <div id="v-history" style="display:none">
-        <label><span>Search</span><input id="hSearch" placeholder="Name, note, category…"></label>
-        <label><span>Filter</span><select id="hFilter">
+      <div id="ledger_v-history" style="display:none">
+        <label><span>Search</span><input id="ledger_hSearch" placeholder="Name, note, category…"></label>
+        <label><span>Filter</span><select id="ledger_hFilter">
           <option value="all">Everything</option><option value="in">Money in</option>
           <option value="out">Money out</option><option value="move">Transfers</option>
           <option value="count">Cash counts</option></select></label>
-        <div id="histList"></div>
+        <div id="ledger_histList"></div>
+      </div>
+      </div>
+<style>
+      .wtot{background:var(--ink);color:var(--on-ink);border-radius:2px;padding:16px 18px;margin-bottom:12px;text-align:center}
+      .wtot .n{font-family:var(--mono);font-size:clamp(34px,10vw,46px);font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+      .wtot .l{font-family:var(--disp);text-transform:uppercase;letter-spacing:.16em;font-size:10px;color:var(--mute);margin-bottom:4px}
+      .wtot .s{font-family:var(--mono);font-size:11.5px;color:var(--mute);margin-top:6px}
+      .den{display:grid;grid-template-columns:78px 1fr auto;gap:10px;align-items:center;padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.06)}
+      .den:nth-child(odd){background:var(--bar)}
+      .den .face{font-family:var(--mono);font-size:15px;font-weight:600}
+      .den .face small{display:block;font-family:var(--disp);text-transform:uppercase;letter-spacing:.08em;font-size:8.5px;color:var(--dim);font-weight:500}
+      .cnt{display:flex;align-items:center;gap:8px;justify-content:center}
+      .cnt button{width:34px;height:34px;border:1px solid var(--rule);background:var(--card);border-radius:2px;font-size:19px;line-height:1;cursor:pointer;color:var(--text);padding:0}
+      .cnt button:active{background:var(--ink);color:var(--on-ink)}
+      .cnt input{width:52px;text-align:center;font-family:var(--mono);font-size:16px;padding:6px 2px}
+      .den .sub2{font-family:var(--mono);font-size:13px;min-width:74px;text-align:right;font-variant-numeric:tabular-nums}
+      .den.zero .sub2{color:var(--dim)}
+      .drift{border-radius:2px;padding:10px 12px;margin-bottom:12px;font-size:13.5px}
+      .drift.ok{background:var(--bar);border:1px solid var(--rule)}
+      .drift.off{background:var(--warm);border:1px solid var(--tick)}
+      .drift b{font-family:var(--mono)}
+      .brk{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+      .brk span{font-family:var(--mono);font-size:11px;border:1px solid var(--rule);border-radius:2px;padding:2px 6px}
+      </style>
+      <div class="pgview" id="view_wallet" style="display:none">
+      
+      <div class="seg mini" id="wallet_wtabs">
+        <button type="button" data-t="count" aria-pressed="true">Count it</button>
+        <button type="button" data-t="log" aria-pressed="false">Past counts</button>
+        <button type="button" data-t="pay" aria-pressed="false">Paying out</button>
+      </div>
+
+      <div id="wallet_v-count">
+        <div class="wtot">
+          <div class="l">In your wallet</div>
+          <div class="n" id="wallet_wNow">$0.00</div>
+          <div class="s" id="wallet_wSub">nothing counted yet</div>
+        </div>
+        <div id="wallet_wDrift"></div>
+        <h2 class="sec"><span>Notes</span><span class="r" id="wallet_wBills">$0.00</span></h2>
+        <div class="bar-list" id="wallet_wNotes"></div>
+        <h2 class="sec"><span>Coins</span><span class="r" id="wallet_wCoins">$0.00</span></h2>
+        <div class="bar-list" id="wallet_wCoinList"></div>
+        <div class="row-btns" style="margin-top:14px">
+          <button class="btn tick" data-act="save">That's what I have</button>
+          <button class="btn ghost sm" data-act="zero">Clear the count</button>
+          <button class="btn ghost sm" data-act="which">Which pocket</button>
+        </div>
+        <p class="foot-note">Counting sets your cash balance to the real number and logs the difference, so the books match your pocket.</p>
+      </div>
+
+      <div id="wallet_v-log" style="display:none">
+        <div class="tally" style="margin-bottom:12px">
+          <div><div class="lbl">Counts logged</div><div class="val" id="wallet_lN">0</div></div>
+          <div><div class="lbl">Last counted</div><div class="val" id="wallet_lWhen" style="font-size:15px">—</div></div>
+          <div><div class="lbl">Usually short by</div><div class="val amt out" id="wallet_lDrift">$0</div></div>
+          <div><div class="lbl">Biggest gap</div><div class="val amt out" id="wallet_lWorst">$0</div></div>
+        </div>
+        <div id="wallet_lList"></div>
+      </div>
+
+      <div id="wallet_v-pay" style="display:none">
+        <p class="foot-note" style="margin-top:0">Work out what to hand over, and what you'd have left.</p>
+        <label><span>How much do you need to pay</span><input type="number" step="0.01" min="0" id="wallet_pAmt" inputmode="decimal" placeholder="0.00"></label>
+        <div id="wallet_pOut"></div>
+      </div>
+      </div>
+<style>
+      .inv{border:1px solid var(--rule);border-left:4px solid var(--ink-3);background:var(--card);border-radius:2px;padding:11px 12px;margin-bottom:9px;cursor:pointer}
+      .inv:hover{background:var(--card2)}
+      .inv.overdue{border-left-color:var(--stamp)}
+      .inv.paid{border-left-color:var(--pos);opacity:.75}
+      .inv.draft{border-left-color:var(--rule)}
+      .inv .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+      .inv .num{font-family:var(--mono);font-size:12px;color:var(--dim)}
+      .inv .who2{font-family:var(--disp);text-transform:uppercase;letter-spacing:.04em;font-size:16px;font-weight:700}
+      .inv .tot{font-family:var(--mono);font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+      .inv .ft{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:5px;display:flex;gap:8px;flex-wrap:wrap}
+      .li{display:grid;grid-template-columns:1fr 58px 78px 84px auto;gap:7px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+      .li input{padding:7px}
+      .li .amt3{font-family:var(--mono);font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+      .lihead{display:grid;grid-template-columns:1fr 58px 78px 84px auto;gap:7px;font-family:var(--disp);text-transform:uppercase;letter-spacing:.09em;font-size:9.5px;color:var(--dim);padding-bottom:3px}
+      .totals{margin-top:10px;border-top:2px solid var(--ink);padding-top:8px}
+      .totrow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px;padding:2px 0}
+      .totrow.big{font-size:18px;font-weight:600;border-top:1px solid var(--rule);margin-top:5px;padding-top:6px}
+      @media(max-width:520px){
+        .li,.lihead{grid-template-columns:1fr 46px 66px 72px auto;gap:5px;font-size:12px}
+      }
+      /* ---- the invoice document, on screen and on paper ---- */
+      .paper{background:#fff;color:#12181d;border:1px solid var(--rule);border-radius:2px;
+        padding:26px 26px 20px;max-width:760px;margin:0 auto;font-size:13px;line-height:1.5}
+      .paper .band{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;
+        border-bottom:3px solid #12181d;padding-bottom:14px;margin-bottom:18px}
+      .paper .mono2{width:44px;height:44px;background:#12181d;color:#fff;display:flex;
+        align-items:center;justify-content:center;font-family:var(--disp);font-weight:700;
+        font-size:19px;letter-spacing:.04em;border-radius:2px;margin-bottom:8px}
+      .paper .word{font-family:var(--disp);text-transform:uppercase;letter-spacing:.3em;
+        font-size:26px;font-weight:700;line-height:1}
+      .paper .from{font-size:12px;line-height:1.6}
+      .paper .from b{font-family:var(--disp);text-transform:uppercase;letter-spacing:.06em;font-size:14px}
+      .paper .meta{text-align:right;font-size:12px;min-width:190px}
+      .paper .meta table{width:100%;border-collapse:collapse}
+      .paper .meta td{padding:2px 0;vertical-align:top}
+      .paper .meta td.k{text-align:left;font-family:var(--disp);text-transform:uppercase;
+        letter-spacing:.12em;font-size:9px;color:#6b7680;padding-right:14px;white-space:nowrap}
+      .paper .meta td.v{text-align:right;font-family:var(--mono);font-size:12px}
+      .paper .cols{display:flex;gap:30px;margin-bottom:20px}
+      .paper .cols>div{flex:1}
+      .paper .cap{font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;
+        font-size:9px;color:#6b7680;border-bottom:1px solid #d6dbd2;padding-bottom:3px;margin-bottom:6px}
+      .paper .who3{font-family:var(--disp);text-transform:uppercase;font-size:16px;font-weight:700;letter-spacing:.03em}
+      .paper table.items{width:100%;border-collapse:collapse;margin-bottom:2px}
+      .paper table.items th{font-family:var(--disp);text-transform:uppercase;letter-spacing:.12em;
+        font-size:9px;color:#6b7680;text-align:left;border-bottom:2px solid #12181d;padding:6px 8px}
+      .paper table.items td{padding:9px 8px;border-bottom:1px solid #e2e6dd;vertical-align:top}
+      .paper table.items tr:nth-child(even) td{background:#f7f9f4}
+      .paper table.items .r{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+      .paper .desc2{font-weight:600}
+      .paper .sums{display:flex;justify-content:flex-end;margin-top:14px}
+      .paper .sums table{border-collapse:collapse;min-width:260px}
+      .paper .sums td{padding:4px 0}
+      .paper .sums td.k{padding-right:22px;color:#48535c}
+      .paper .sums td.v{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+      .paper .sums tr.grand td{border-top:2px solid #12181d;padding-top:8px;font-size:17px;font-weight:700}
+      .paper .sums tr.paidrow td{color:#2C6B4C}
+      .paper .due{margin-top:16px;background:#12181d;color:#fff;padding:12px 16px;border-radius:2px;
+        display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+      .paper .due .l{font-family:var(--disp);text-transform:uppercase;letter-spacing:.16em;font-size:10px}
+      .paper .due .n{font-family:var(--mono);font-size:22px;font-weight:600}
+      .paper .due.settled{background:#2C6B4C}
+      .paper .codebox{margin-top:14px;border:2px dashed #12181d;border-radius:2px;padding:11px 14px;
+        display:flex;justify-content:space-between;align-items:center;gap:14px}
+      .paper .codebox .c{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:.12em}
+      .paper .codebox .t2{font-family:var(--disp);text-transform:uppercase;letter-spacing:.12em;font-size:9px;color:#6b7680}
+      .paper .terms2{margin-top:20px;border-top:1px solid #d6dbd2;padding-top:12px;font-size:11.5px;
+        line-height:1.65;color:#3c464e;white-space:pre-wrap}
+      .paper .foot2{margin-top:18px;border-top:1px solid #e2e6dd;padding-top:8px;
+        font-family:var(--mono);font-size:9.5px;color:#8a949c;display:flex;justify-content:space-between}
+      .paper .stamp3{position:absolute;right:34px;top:120px;border:4px solid #2C6B4C;color:#2C6B4C;
+        font-family:var(--disp);text-transform:uppercase;letter-spacing:.22em;font-weight:700;
+        font-size:23px;padding:5px 16px;transform:rotate(-9deg);opacity:.85;border-radius:3px}
+      .paperwrap{position:relative}
+      @media(max-width:560px){
+        .paper{padding:16px}
+        .paper .band,.paper .cols{flex-direction:column;gap:12px}
+        .paper .meta{text-align:left;min-width:0}
+        .paper .meta td.v{text-align:left}
+        .paper .word{font-size:20px}
+      }
+      @media print{
+        .shell,.fab,.toast,dialog{display:none!important}
+        body{background:#fff}
+        #printArea{display:block}
+        #printArea .paper{border:0;max-width:none;padding:0;font-size:12px}
+        #printArea .paper table.items tr:nth-child(even) td{background:#f4f6f1;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        #printArea .paper .due{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        #printArea .paper .mono2{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        @page{margin:16mm}
+      }
+      </style>
+      <div class="pgview" id="view_invoices" style="display:none">
+      
+      <div class="tally" style="margin-bottom:12px">
+        <div><div class="lbl">Owed to you</div><div class="val amt in" id="invoices_iOut">$0</div></div>
+        <div><div class="lbl">Overdue</div><div class="val amt out" id="invoices_iLate">$0</div></div>
+        <div><div class="lbl">Paid this year</div><div class="val" id="invoices_iPaid">$0</div></div>
+        <div><div class="lbl">Drafts</div><div class="val" id="invoices_iDraft">0</div></div>
+      </div>
+      <div class="row-btns" style="margin-bottom:12px">
+        <button class="btn" data-act="new">New invoice</button>
+        <button class="btn ghost sm" data-act="mydetails">Your details</button>
+      </div>
+      <div class="grp" id="invoices_ifilters"></div>
+      <div id="invoices_ilist"></div>
+      </div>
+
+      <div class="pgview" id="view_subs" style="display:none">
+      <div class="tally">
+        <div><div class="lbl">Every month</div><div class="val amt out" id="subs_mMonth">$0</div></div>
+        <div><div class="lbl">Every year</div><div class="val amt out" id="subs_mYear">$0</div></div>
+        <div><div class="lbl">Next 30 days</div><div class="val amt out" id="subs_m30">$0</div></div>
+        <div><div class="lbl">Cancelled so far</div><div class="val amt in" id="subs_mSaved">$0</div></div>
+      </div>
+      <div class="row-btns" style="margin:14px 0">
+        <button class="btn" data-act="new">Add a subscription</button>
+        <button class="btn ghost sm" data-act="trial">Add a free trial</button>
+      </div>
+      <h2 class="sec">Coming up</h2>
+      <div id="subs_soon"></div>
+      <h2 class="sec"><span>Active</span><span class="r" id="subs_activeCount"></span></h2>
+      <div id="subs_list"></div>
+      <h2 class="sec">Cancelled</h2>
+      <div id="subs_dead"></div>
       </div>
     </section>
   </div>
@@ -464,8 +665,23 @@ var DB={
   }
 };
 
-var APP_VERSION="2.2";
+var APP_VERSION="2.4";
 var CHANGELOG=[
+ {v:"2.4",d:"2026-08-08",t:"Eight pages instead of eighteen",
+  items:["Everything is grouped now: Plan holds tasks, calendar and habits; Money holds the ledger, wallet, invoices and subscriptions; People holds contacts and lent items; Desk holds notes, journal, documents and sheet music",
+         "The vault stays on its own page on purpose — it locks itself when you leave the page, and tabs would not do that",
+         "Old links and anything you pinned to your home screen still work, they just land on the right tab",
+         "A proper writing surface in Desk — full screen, markdown, preview, word count",
+         "It keeps a draft as you type, on the server, so closing the tab never loses anything",
+         "Save a piece of writing as a note, or straight into Documents as a file",
+         "The wallet from the last update is in here too"]},
+ {v:"2.3",d:"2026-08-08",t:"Wallet",
+  items:["A Wallet page — tap through the notes and coins you actually have and it adds them up",
+         "Tells you straight away whether it matches what the books expect, and by how much you are over or short",
+         "Counting sets your cash balance and records the difference, so nothing quietly drifts",
+         "Past counts are kept with what was in there, and it works out how far off you usually are",
+         "Paying out: type an amount and it tells you which notes to hand over and what you would have left",
+         "Spend straight from the wallet and it takes those notes out of the count and logs it"]},
  {v:"2.2",d:"2026-08-08",t:"The AI actually does things now",
   items:["Fixed: it was printing its instructions instead of carrying them out. Small models never format things exactly as told, so it now understands however they write it",
          "Handles wrong fences, missing quotes, single quotes, curly quotes, trailing commas, dollar signs on amounts and different field names",
@@ -568,6 +784,7 @@ function migrateH(){
   H.subs=H.subs||[];H.journal=H.journal||[];H.scores=H.scores||[];
   H.trash=H.trash||[];H.settings=H.settings||{};H.practice=H.practice||[];
   H.templates=H.templates||[];H.invoices=H.invoices||[];
+  H.wallet=H.wallet||{counts:{},accountId:null,lastCounted:""};H.walletCounts=H.walletCounts||[];
   H.lists=(H.lists&&H.lists.length)?H.lists:DEF_LISTS.slice();
   H.version=H.version||1;
 }
@@ -858,42 +1075,32 @@ function attachBar(host,kind,id,heading){
 /* ---------- navigation ---------- */
 var MODULES=[
   {id:"index",cd:"//",label:"Today",file:"index.html"},
-  {id:"tasks",cd:"TK",label:"Tasks",file:"tasks.html"},
-  {id:"calendar",cd:"CL",label:"Calendar",file:"calendar.html"},
-  {id:"contacts",cd:"CT",label:"Contacts",file:"contacts.html"},
-  {id:"notes",cd:"NT",label:"Notes",file:"notes.html"},
-  {id:"habits",cd:"HB",label:"Habits",file:"habits.html"},
-  {id:"items",cd:"TH",label:"Lent out",file:"items.html"},
+  {id:"plan",cd:"PL",label:"Plan",file:"plan.html"},
   {id:"money",cd:"$$",label:"Money",file:"money.html"},
-  {id:"invoices",cd:"IV",label:"Invoices",file:"invoices.html"},
-  {id:"vault",cd:"PW",label:"Passwords",file:"vault.html"},
-  {id:"subs",cd:"SB",label:"Subscriptions",file:"subs.html"},
-  {id:"journal",cd:"JR",label:"Journal",file:"journal.html"},
-  {id:"docs",cd:"DC",label:"Documents",file:"docs.html"},
-  {id:"music",cd:"MU",label:"Music",file:"music.html"},
-  {id:"history",cd:"HI",label:"History",file:"history.html"},
+  {id:"people",cd:"CT",label:"People",file:"people.html"},
+  {id:"desk",cd:"DK",label:"Desk",file:"desk.html"},
+  {id:"vault",cd:"PW",label:"Vault",file:"vault.html"},
   {id:"talk",cd:"AI",label:"Talk",file:"talk.html"},
   {id:"settings",cd:"SE",label:"Settings",file:"settings.html"}
 ];
 function navCounts(){
   var c={},ts=today();
-  c.tasks=H.tasks.filter(function(t){return !t.done&&t.due&&t.due<=ts;}).length;
-  c.calendar=H.events.filter(function(e){return e.date===ts;}).length;
-  c.items=H.things.filter(function(t){return !t.back&&t.due&&t.due<ts;}).length;
-  c.habits=H.habits.filter(function(h){return !(h.days||{})[ts];}).length;
-  var lt=ledgerTotals(); c.money=lt?lt.late.length:0;
-  c.settings=unseenCount();
-  c.invoices=(H.invoices||[]).filter(function(i){
+  var late=H.tasks.filter(function(t){return !t.done&&!t.someday&&t.due&&t.due<=ts;}).length;
+  var ev=H.events.filter(function(e){return e.date===ts;}).length;
+  var hb=H.habits.filter(function(h){return !(h.days||{})[ts];}).length;
+  c.plan=late+ev+hb;
+  var lt=ledgerTotals();
+  var wl=(H.wallet&&H.wallet.lastCounted)||"";
+  var invLate=(H.invoices||[]).filter(function(i){
     return i.status!=="paid"&&i.status!=="draft"&&i.due&&i.due<ts;}).length;
-  c.music=(H.scores||[]).reduce(function(t,p){
+  var subSoon=(H.subs||[]).filter(function(x){
+    return x.active!==false&&x.next&&daysBetween(ts,x.next)<=3;}).length;
+  c.money=(lt?lt.late.length:0)+invLate+subSoon+((!wl||daysBetween(wl,ts)>=7)?1:0);
+  c.people=H.things.filter(function(t){return !t.back&&t.due&&t.due<ts;}).length;
+  c.desk=(H.scores||[]).reduce(function(t,p){
     return t+((p.spots||[]).filter(function(x){return !x.fixed;}).length?1:0);},0);
-  c.subs=(H.subs||[]).filter(function(x){return x.active!==false&&x.next&&daysBetween(ts,x.next)<=3;}).length;
+  c.settings=unseenCount();
   return c;
-}
-function visibleModules(){
-  var hid=(H.settings&&H.settings.hidden)||[];
-  return MODULES.filter(function(m){
-    return m.id===PAGE||m.id==="index"||m.id==="settings"||hid.indexOf(m.id)<0;});
 }
 function buildNav(){
   var c=navCounts();
@@ -1003,11 +1210,11 @@ function commandBar(){
       function build(q){
         var out=[];
         // create commands
-        var mk=[["new task","TK","tasks.html?new=1"],["new event","CL","calendar.html?new=1"],
-                ["new note","NT","notes.html?new=1"],["new contact","CT","contacts.html?new=1"],
-                ["new journal entry","JR","journal.html?new=1"],["new item lent","TH","items.html?new=1"],
-                ["new subscription","SB","subs.html?new=1"],["log money in","$$","money.html?new=in"],
-                ["log money out","$$","money.html?new=out"],["new document","DC","docs.html?new=1"]];
+        var mk=[["new task","TK","plan.html?tab=tasks&new=1"],["new event","CL","plan.html?tab=calendar&new=1"],
+                ["new note","NT","desk.html?tab=notes&new=1"],["new contact","CT","people.html?tab=contacts&new=1"],
+                ["new journal entry","JR","desk.html?tab=journal&new=1"],["new item lent","TH","people.html?tab=items&new=1"],
+                ["new subscription","SB","money.html?tab=subs&new=1"],["log money in","$$","money.html?new=in"],
+                ["log money out","$$","money.html?new=out"],["new document","DC","desk.html?tab=docs&new=1"]];
         mk.forEach(function(m){
           if(!q||m[0].indexOf(q)>=0) out.push({cd:m[1],t:m[0],s:"create",go:m[2]});});
         // pages
@@ -1017,30 +1224,30 @@ function commandBar(){
         if(q&&q.length>=2){
           (H.tasks||[]).forEach(function(t){
             if(t.title.toLowerCase().indexOf(q)>=0)
-              out.push({cd:"TK",t:t.title,s:t.done?"finished task":"open task",go:"tasks.html"});});
+              out.push({cd:"TK",t:t.title,s:t.done?"finished task":"open task",go:"plan.html?tab=tasks"});});
           (H.events||[]).forEach(function(e){
             if(e.title.toLowerCase().indexOf(q)>=0)
-              out.push({cd:"CL",t:e.title,s:prettyFull(e.date),go:"calendar.html?d="+e.date});});
+              out.push({cd:"CL",t:e.title,s:prettyFull(e.date),go:"plan.html?tab=calendar&d="+e.date});});
           allPeople().forEach(function(p){
             if(p.name.toLowerCase().indexOf(q)>=0)
-              out.push({cd:"CT",t:p.name,s:p.how||"contact",go:"contacts.html?p="+p.id});});
+              out.push({cd:"CT",t:p.name,s:p.how||"contact",go:"people.html?tab=contacts&p="+p.id});});
           (H.notes||[]).forEach(function(n){
             if((n.title+" "+(n.body||"")).toLowerCase().indexOf(q)>=0)
-              out.push({cd:"NT",t:n.title||"Untitled",s:"note",go:"notes.html?n="+n.id});});
+              out.push({cd:"NT",t:n.title||"Untitled",s:"note",go:"desk.html?tab=notes&n="+n.id});});
           (H.scores||[]).forEach(function(p){
             if((p.title+" "+(p.composer||"")+" "+(p.arranger||"")).toLowerCase().indexOf(q)>=0)
-              out.push({cd:"MU",t:p.title,s:"sheet music",go:"music.html"});});
+              out.push({cd:"MU",t:p.title,s:"sheet music",go:"desk.html?tab=music"});});
           (H.subs||[]).forEach(function(x){
             if(x.name.toLowerCase().indexOf(q)>=0)
-              out.push({cd:"SB",t:x.name,s:"subscription",go:"subs.html"});});
+              out.push({cd:"SB",t:x.name,s:"subscription",go:"money.html?tab=subs"});});
           (H.invoices||[]).forEach(function(i){
             if(((i.number||"")+" "+(i.name||"")+" "+(i.forWhat||"")).toLowerCase().indexOf(q)>=0)
               out.push({cd:"IV",t:i.number+" · "+(i.name||""),
-                s:(i.status||"")+(i.due?" · due "+pretty(i.due):""),go:"invoices.html"});});
+                s:(i.status||"")+(i.due?" · due "+pretty(i.due):""),go:"money.html?tab=invoices"});});
           if(L) (L.tickets||[]).forEach(function(t){
             if((t.name+" "+t.code).toLowerCase().indexOf(q)>=0)
               out.push({cd:"$$",t:(t.dir==="owe"?"You owe ":"Owed by ")+t.name,
-                s:money(t.cents-(t.paidCents||0))+" · "+t.code,go:"money.html?t="+t.code});});
+                s:money(t.cents-(t.paidCents||0))+" · "+t.code,go:"money.html?tab=ledger&t="+t.code});});
         }
         return out.slice(0,30);
       }
@@ -1193,11 +1400,11 @@ function exportModule(kind){
 function quickDialog(){
   openDlg("What are you adding?",
     '<div class="row-btns" style="flex-direction:column">'+
-    '<a class="btn" href="tasks.html?new=1" style="width:100%">Task</a>'+
-    '<a class="btn ghost" href="calendar.html?new=1" style="width:100%">Calendar event</a>'+
-    '<a class="btn ghost" href="notes.html?new=1" style="width:100%">Note</a>'+
-    '<a class="btn ghost" href="contacts.html?new=1" style="width:100%">Contact</a>'+
-    '<a class="btn ghost" href="items.html?new=1" style="width:100%">Lent or borrowed item</a>'+
+    '<a class="btn" href="plan.html?tab=tasks&new=1" style="width:100%">Task</a>'+
+    '<a class="btn ghost" href="plan.html?tab=calendar&new=1" style="width:100%">Calendar event</a>'+
+    '<a class="btn ghost" href="desk.html?tab=notes&new=1" style="width:100%">Note</a>'+
+    '<a class="btn ghost" href="people.html?tab=contacts&new=1" style="width:100%">Contact</a>'+
+    '<a class="btn ghost" href="people.html?tab=items&new=1" style="width:100%">Lent or borrowed item</a>'+
     '<a class="btn ghost" href="habits.html?new=1" style="width:100%">Habit to track</a>'+
     '<a class="btn ghost" href="money.html?new=in" style="width:100%">Money in</a>'+
     '<a class="btn ghost" href="money.html?new=out" style="width:100%">Money out</a>'+
@@ -1247,6 +1454,7 @@ document.addEventListener("keydown",function(e){
     $("#pane").insertBefore(w,$("#pane").firstChild);
   }
 })();
+var MOD_LEDGER=(function(){
 var tab="ledger", curMonth=today().slice(0,7), bMode="out";
 function acct(id){for(var i=0;i<L.accounts.length;i++) if(L.accounts[i].id===id) return L.accounts[i]; return null;}
 function acctName(id){var a=acct(id);return a?a.name:"closed account";}
@@ -1310,7 +1518,7 @@ function monthsPresent(){
   return Object.keys(set).sort().reverse();
 }
 function renderBreakdown(){
-  var host=$("#breakdown"); host.innerHTML="";
+  var host=$("#ledger_breakdown"); host.innerHTML="";
   var rows={},total=0;
   L.txns.forEach(function(t){
     if(String(t.date).slice(0,7)!==curMonth) return;
@@ -1464,11 +1672,11 @@ function printTicket(t){
   setTimeout(function(){window.print();},80);
 }
 function pageRender(){
-  $("#v-ledger").style.display=tab==="ledger"?"":"none";
-  $("#v-tickets").style.display=tab==="tickets"?"":"none";
-  $("#v-trends").style.display=tab==="trends"?"":"none";
-  $("#v-history").style.display=tab==="history"?"":"none";
-  $("#tabs").querySelectorAll("button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.t===tab);});
+  $("#ledger_v-ledger").style.display=tab==="ledger"?"":"none";
+  $("#ledger_v-tickets").style.display=tab==="tickets"?"":"none";
+  $("#ledger_v-trends").style.display=tab==="trends"?"":"none";
+  $("#ledger_v-history").style.display=tab==="history"?"":"none";
+  $("#ledger_tabs").querySelectorAll("button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.t===tab);});
   if(tab==="ledger") renderLedger();
   else if(tab==="tickets") renderTickets();
   else if(tab==="trends") renderTrends();
@@ -1477,18 +1685,18 @@ function pageRender(){
 function renderLedger(){
   var ms=monthsPresent();
   if(ms.indexOf(curMonth)<0) curMonth=ms[0];
-  $("#monthPick").innerHTML=ms.map(function(m){
+  $("#ledger_monthPick").innerHTML=ms.map(function(m){
     var p=m.split("-");
     return '<option value="'+m+'"'+(m===curMonth?" selected":"")+'>'+MONL[(+p[1])-1]+" "+p[0]+'</option>';}).join("");
   var tin=0,tout=0;
   L.txns.forEach(function(t){
     if(String(t.date).slice(0,7)!==curMonth) return;
     if(t.type==="in")tin+=t.cents; if(t.type==="out")tout+=t.cents;});
-  $("#tIn").textContent=money(tin); $("#tOut").textContent=money(tout);
+  $("#ledger_tIn").textContent=money(tin); $("#ledger_tOut").textContent=money(tout);
   var lt=ledgerTotals();
-  $("#tOwe").textContent=money(lt.owe); $("#tOwed").textContent=money(lt.owed);
+  $("#ledger_tOwe").textContent=money(lt.owe); $("#ledger_tOwed").textContent=money(lt.owed);
   renderBreakdown();
-  var al=$("#acctList"); al.innerHTML="";
+  var al=$("#ledger_acctList"); al.innerHTML="";
   L.accounts.forEach(function(a){
     var r=el("div","bar-row trio"),Ld=el("div");
     Ld.appendChild(el("div","who",a.name));
@@ -1499,7 +1707,7 @@ function renderLedger(){
       if(!confirm("Remove "+a.name+"? Entries that used it stay in your history.")) return;
       L.accounts=L.accounts.filter(function(x){return x.id!==a.id;});saveL();refresh();};
     r.appendChild(k); al.appendChild(r);});
-  txnList($("#recent"),L.txns.slice().reverse().slice(0,8),
+  txnList($("#ledger_recent"),L.txns.slice().reverse().slice(0,8),
     "Nothing logged yet","Use the quick actions above to put in your first entry.");
 }
 function renderTickets(){
@@ -1508,21 +1716,21 @@ function renderTickets(){
     if(al!==bl) return al-bl;
     return (b.written||"").localeCompare(a.written||"");});
   var closed=L.tickets.filter(function(t){return t.status!=="open";}).slice().reverse();
-  var o=$("#tOpen"); o.innerHTML="";
+  var o=$("#ledger_tOpen"); o.innerHTML="";
   if(!open.length) o.appendChild(emptyBox("No open tickets",
     "Write one when you owe somebody, or when somebody owes you. They get a code to redeem."));
   else open.forEach(function(t){o.appendChild(ticketCard(t,true));});
-  var c=$("#tClosed"); c.innerHTML="";
+  var c=$("#ledger_tClosed"); c.innerHTML="";
   if(!closed.length) c.appendChild(emptyBox("Nothing settled yet","Paid and voided tickets land here."));
   else closed.forEach(function(t){c.appendChild(ticketCard(t,true));});
 }
 function renderHistory(){
-  var f=$("#hFilter").value,q=$("#hSearch").value.trim().toLowerCase();
+  var f=$("#ledger_hFilter").value,q=$("#ledger_hSearch").value.trim().toLowerCase();
   var list=L.txns.slice().reverse().filter(function(t){
     if(f!=="all"&&t.type!==f) return false;
     if(!q) return true;
     return [t.who,t.note,t.cat,t.method,acctName(t.accountId)].join(" ").toLowerCase().indexOf(q)>=0;});
-  txnList($("#histList"),list,"Nothing here","Entries show up as you log them.");
+  txnList($("#ledger_histList"),list,"Nothing here","Entries show up as you log them.");
 }
 function acctOptions(sel){
   return L.accounts.map(function(a){
@@ -1539,33 +1747,33 @@ function catList(){
 function moneyDialog(kind){
   var isIn=kind==="in";
   openDlg(isIn?"Money in":"Money out",
-    '<label><span>How much</span><input type="number" step="0.01" min="0" id="fAmt" inputmode="decimal" placeholder="0.00"></label>'+
-    '<label><span>'+(isIn?"Who gave it to you":"Who or what you paid")+'</span><input id="fWho" list="dlPeople" placeholder="'+(isIn?"Name or source":"Store, person, bill")+'"></label>'+peopleDatalist()+
+    '<label><span>How much</span><input type="number" step="0.01" min="0" id="ledger_fAmt" inputmode="decimal" placeholder="0.00"></label>'+
+    '<label><span>'+(isIn?"Who gave it to you":"Who or what you paid")+'</span><input id="ledger_fWho" list="dlPeople" placeholder="'+(isIn?"Name or source":"Store, person, bill")+'"></label>'+peopleDatalist()+
     '<div class="two">'+
-      '<label><span>'+(isIn?"Put it in":"Take it from")+'</span><select id="fAcct">'+acctOptions()+'</select></label>'+
-      '<label><span>'+(isIn?"How they paid you":"How you paid")+'</span><select id="fMethod">'+methodOptions()+'</select></label></div>'+
-    (isIn?'':'<label><span>What for</span><input id="fCat" list="dlCats" placeholder="Food, gas, phone…">'+catList()+'</label>')+
+      '<label><span>'+(isIn?"Put it in":"Take it from")+'</span><select id="ledger_fAcct">'+acctOptions()+'</select></label>'+
+      '<label><span>'+(isIn?"How they paid you":"How you paid")+'</span><select id="ledger_fMethod">'+methodOptions()+'</select></label></div>'+
+    (isIn?'':'<label><span>What for</span><input id="ledger_fCat" list="dlCats" placeholder="Food, gas, phone…">'+catList()+'</label>')+
     '<div class="two">'+
-      '<label><span>Date</span><input type="date" id="fDate" value="'+today()+'"></label>'+
-      '<label><span>Note</span><input id="fNote" placeholder="Optional"></label></div>'+
-    (isIn?'<label class="check"><input type="checkbox" id="fLoan"><span>This is a loan — write a ticket so I remember I owe it back</span></label>':'')+
-    '<button class="btn" id="fS" style="width:100%">'+(isIn?"Log money in":"Log money out")+'</button>',
+      '<label><span>Date</span><input type="date" id="ledger_fDate" value="'+today()+'"></label>'+
+      '<label><span>Note</span><input id="ledger_fNote" placeholder="Optional"></label></div>'+
+    (isIn?'<label class="check"><input type="checkbox" id="ledger_fLoan"><span>This is a loan — write a ticket so I remember I owe it back</span></label>':'')+
+    '<button class="btn" id="ledger_fS" style="width:100%">'+(isIn?"Log money in":"Log money out")+'</button>',
     function(){
-      $("#fS").onclick=function(){
-        var c=cents($("#fAmt").value);
-        if(c<=0){toast("Put in an amount first");$("#fAmt").focus();return;}
-        var whoRaw=$("#fWho").value.trim();
+      $("#ledger_fS").onclick=function(){
+        var c=cents($("#ledger_fAmt").value);
+        if(c<=0){toast("Put in an amount first");$("#ledger_fAmt").focus();return;}
+        var whoRaw=$("#ledger_fWho").value.trim();
         var p=whoRaw?ensureContact(whoRaw):null;
-        var t={type:kind,cents:c,date:$("#fDate").value||today(),accountId:$("#fAcct").value,
+        var t={type:kind,cents:c,date:$("#ledger_fDate").value||today(),accountId:$("#ledger_fAcct").value,
           who:whoRaw||(isIn?"Money in":"Money out"),personId:p?p.id:null,
-          method:$("#fMethod").value||"",note:$("#fNote").value.trim()};
+          method:$("#ledger_fMethod").value||"",note:$("#ledger_fNote").value.trim()};
         if(!isIn){
-          var cat=$("#fCat").value.trim();
+          var cat=$("#ledger_fCat").value.trim();
           if(cat){t.cat=cat;if(L.categories.indexOf(cat)<0)L.categories.push(cat);}}
         addTxn(t);
-        if(isIn&&$("#fLoan")&&$("#fLoan").checked&&p){
+        if(isIn&&$("#ledger_fLoan")&&$("#ledger_fLoan").checked&&p){
           L.tickets.push({id:uid(),code:newCode(),dir:"owe",cents:c,paidCents:0,pays:[],
-            personId:p.id,name:p.name,note:"Loan from "+p.name,method:$("#fMethod").value||"",
+            personId:p.id,name:p.name,note:"Loan from "+p.name,method:$("#ledger_fMethod").value||"",
             written:today(),status:"open"});
           saveL(); refresh();}
         dlg.close(); toast(isIn?"Logged money in":"Logged money out");};
@@ -1573,20 +1781,20 @@ function moneyDialog(kind){
 }
 function moveDialog(){
   openDlg("Move between accounts",
-    '<label><span>How much</span><input type="number" step="0.01" min="0" id="fAmt" inputmode="decimal" placeholder="0.00"></label>'+
-    '<div class="two"><label><span>From</span><select id="fFrom">'+acctOptions()+'</select></label>'+
-    '<label><span>To</span><select id="fTo">'+acctOptions()+'</select></label></div>'+
-    '<div class="two"><label><span>How</span><select id="fMethod">'+methodOptions()+'</select></label>'+
-    '<label><span>Date</span><input type="date" id="fDate" value="'+today()+'"></label></div>'+
-    '<button class="btn" id="fS" style="width:100%">Move it</button>',
+    '<label><span>How much</span><input type="number" step="0.01" min="0" id="ledger_fAmt" inputmode="decimal" placeholder="0.00"></label>'+
+    '<div class="two"><label><span>From</span><select id="ledger_fFrom">'+acctOptions()+'</select></label>'+
+    '<label><span>To</span><select id="ledger_fTo">'+acctOptions()+'</select></label></div>'+
+    '<div class="two"><label><span>How</span><select id="ledger_fMethod">'+methodOptions()+'</select></label>'+
+    '<label><span>Date</span><input type="date" id="ledger_fDate" value="'+today()+'"></label></div>'+
+    '<button class="btn" id="ledger_fS" style="width:100%">Move it</button>',
     function(){
-      var to=$("#fTo"); if(to.options.length>1) to.selectedIndex=1;
-      $("#fS").onclick=function(){
-        var c=cents($("#fAmt").value);
+      var to=$("#ledger_fTo"); if(to.options.length>1) to.selectedIndex=1;
+      $("#ledger_fS").onclick=function(){
+        var c=cents($("#ledger_fAmt").value);
         if(c<=0){toast("Put in an amount first");return;}
-        if($("#fFrom").value===$("#fTo").value){toast("Pick two different accounts");return;}
-        addTxn({type:"move",cents:c,date:$("#fDate").value||today(),accountId:$("#fFrom").value,
-          toAccountId:$("#fTo").value,method:$("#fMethod").value||"",who:"Moved money",note:""});
+        if($("#ledger_fFrom").value===$("#ledger_fTo").value){toast("Pick two different accounts");return;}
+        addTxn({type:"move",cents:c,date:$("#ledger_fDate").value||today(),accountId:$("#ledger_fFrom").value,
+          toAccountId:$("#ledger_fTo").value,method:$("#ledger_fMethod").value||"",who:"Moved money",note:""});
         dlg.close(); toast("Moved");};
     });
 }
@@ -1594,14 +1802,14 @@ function countDialog(){
   var ca=L.accounts.filter(function(a){return a.kind==="cash";})[0]||L.accounts[0];
   openDlg("Count my cash",
     '<p class="warn">Count what you actually have and put the real number in. This sets the balance and logs the difference so your books match your pocket.</p>'+
-    '<label><span>Which account</span><select id="fAcct">'+acctOptions(ca?ca.id:null)+'</select></label>'+
-    '<label><span>What you actually have</span><input type="number" step="0.01" min="0" id="fAmt" inputmode="decimal" placeholder="0.00"></label>'+
-    '<button class="btn" id="fS" style="width:100%">Set the balance</button>',
+    '<label><span>Which account</span><select id="ledger_fAcct">'+acctOptions(ca?ca.id:null)+'</select></label>'+
+    '<label><span>What you actually have</span><input type="number" step="0.01" min="0" id="ledger_fAmt" inputmode="decimal" placeholder="0.00"></label>'+
+    '<button class="btn" id="ledger_fS" style="width:100%">Set the balance</button>',
     function(){
-      $("#fS").onclick=function(){
-        var v=$("#fAmt").value;
+      $("#ledger_fS").onclick=function(){
+        var v=$("#ledger_fAmt").value;
         if(v===""){toast("Put in the amount you counted");return;}
-        var c=cents(v),a=acct($("#fAcct").value),diff=c-a.cents;
+        var c=cents(v),a=acct($("#ledger_fAcct").value),diff=c-a.cents;
         addTxn({type:"count",cents:c,date:today(),accountId:a.id,who:"Counted "+a.name,
           note:diff===0?"matched":(diff>0?money(diff)+" more than expected":money(-diff)+" short")});
         dlg.close(); toast(diff===0?"Books match":"Balance corrected");};
@@ -1609,32 +1817,32 @@ function countDialog(){
 }
 function acctDialog(){
   openDlg("Add an account",
-    '<label><span>Name it</span><input id="fName" placeholder="Chime, Venmo, envelope under bed"></label>'+
-    '<div class="two"><label><span>Type</span><select id="fKind">'+
+    '<label><span>Name it</span><input id="ledger_fName" placeholder="Chime, Venmo, envelope under bed"></label>'+
+    '<div class="two"><label><span>Type</span><select id="ledger_fKind">'+
     '<option value="cash">Cash</option><option value="bank">Bank</option><option value="digital">App / card</option>'+
     '</select></label>'+
-    '<label><span>What\'s in it now</span><input type="number" step="0.01" id="fAmt" inputmode="decimal" placeholder="0.00"></label></div>'+
-    '<button class="btn" id="fS" style="width:100%">Add it</button>',
+    '<label><span>What\'s in it now</span><input type="number" step="0.01" id="ledger_fAmt" inputmode="decimal" placeholder="0.00"></label></div>'+
+    '<button class="btn" id="ledger_fS" style="width:100%">Add it</button>',
     function(){
-      $("#fS").onclick=function(){
-        var n=$("#fName").value.trim();
+      $("#ledger_fS").onclick=function(){
+        var n=$("#ledger_fName").value.trim();
         if(!n){toast("Give it a name");return;}
-        L.accounts.push({id:uid(),name:n,kind:$("#fKind").value,cents:cents($("#fAmt").value||0)});
+        L.accounts.push({id:uid(),name:n,kind:$("#ledger_fKind").value,cents:cents($("#ledger_fAmt").value||0)});
         saveL();refresh();dlg.close();toast("Account added");};
     });
 }
 function catsDialog(){
   openDlg("Categories & methods",
-    '<label><span>Add a category</span><input id="fNew" placeholder="Laundry, haircuts, tools…"></label>'+
-    '<button class="btn ghost sm" id="fAdd" style="width:100%;margin-bottom:14px">Add it</button>'+
-    '<h2 class="sec">Spending categories</h2><div class="bar-list" id="cList"></div>'+
+    '<label><span>Add a category</span><input id="ledger_fNew" placeholder="Laundry, haircuts, tools…"></label>'+
+    '<button class="btn ghost sm" id="ledger_fAdd" style="width:100%;margin-bottom:14px">Add it</button>'+
+    '<h2 class="sec">Spending categories</h2><div class="bar-list" id="ledger_cList"></div>'+
     '<h2 class="sec">Payment methods</h2>'+
     '<label><span>Add a method</span><input id="mNew" placeholder="Chime, money order…"></label>'+
     '<button class="btn ghost sm" id="mAdd" style="width:100%;margin-bottom:14px">Add it</button>'+
     '<div class="bar-list" id="mList"></div>',
     function(){
       function fill(){
-        var cl=$("#cList"); cl.innerHTML="";
+        var cl=$("#ledger_cList"); cl.innerHTML="";
         L.categories.forEach(function(c){
           var r=el("div","bar-row"); r.appendChild(el("div","who",c));
           var k=el("button","kill","×");
@@ -1647,10 +1855,10 @@ function catsDialog(){
           k.onclick=function(){L.methods=L.methods.filter(function(x){return x!==m;});saveL();fill();};
           r.appendChild(k); ml.appendChild(r);});}
       fill();
-      $("#fAdd").onclick=function(){
-        var v=$("#fNew").value.trim(); if(!v) return;
+      $("#ledger_fAdd").onclick=function(){
+        var v=$("#ledger_fNew").value.trim(); if(!v) return;
         if(L.categories.indexOf(v)<0) L.categories.push(v);
-        $("#fNew").value="";saveL();fill();renderBreakdown();};
+        $("#ledger_fNew").value="";saveL();fill();renderBreakdown();};
       $("#mAdd").onclick=function(){
         var v=$("#mNew").value.trim(); if(!v) return;
         if(L.methods.indexOf(v)<0) L.methods.push(v);
@@ -1660,25 +1868,25 @@ function catsDialog(){
 function ticketDialog(prefill){
   var dir="owe";
   openDlg("Write a ticket",
-    '<div class="seg"><button type="button" id="sO" aria-pressed="true">I owe them</button>'+
-    '<button type="button" id="sT" aria-pressed="false">They owe me</button></div>'+
-    '<label><span>How much</span><input type="number" step="0.01" min="0" id="fAmt" inputmode="decimal" placeholder="0.00"></label>'+
-    '<label><span>Who</span><input id="fWho" list="dlPeople" placeholder="Name" value="'+esc(prefill||"")+'"></label>'+peopleDatalist()+
-    '<div class="two"><label><span>How it gets paid</span><select id="fMethod">'+methodOptions()+'</select></label>'+
-    '<label><span>Due by (optional)</span><input type="date" id="fDue"></label></div>'+
-    '<label><span>What it\'s for (optional)</span><input id="fNote" placeholder="Covered my ticket, borrowed for gas…"></label>'+
-    '<button class="btn tick" id="fS" style="width:100%">Write the ticket</button>',
+    '<div class="seg"><button type="button" id="ledger_sO" aria-pressed="true">I owe them</button>'+
+    '<button type="button" id="ledger_sT" aria-pressed="false">They owe me</button></div>'+
+    '<label><span>How much</span><input type="number" step="0.01" min="0" id="ledger_fAmt" inputmode="decimal" placeholder="0.00"></label>'+
+    '<label><span>Who</span><input id="ledger_fWho" list="dlPeople" placeholder="Name" value="'+esc(prefill||"")+'"></label>'+peopleDatalist()+
+    '<div class="two"><label><span>How it gets paid</span><select id="ledger_fMethod">'+methodOptions()+'</select></label>'+
+    '<label><span>Due by (optional)</span><input type="date" id="ledger_fDue"></label></div>'+
+    '<label><span>What it\'s for (optional)</span><input id="ledger_fNote" placeholder="Covered my ticket, borrowed for gas…"></label>'+
+    '<button class="btn tick" id="ledger_fS" style="width:100%">Write the ticket</button>',
     function(){
-      $("#sO").onclick=function(){dir="owe";$("#sO").setAttribute("aria-pressed",true);$("#sT").setAttribute("aria-pressed",false);};
-      $("#sT").onclick=function(){dir="owed";$("#sO").setAttribute("aria-pressed",false);$("#sT").setAttribute("aria-pressed",true);};
-      $("#fS").onclick=function(){
-        var c=cents($("#fAmt").value);
+      $("#ledger_sO").onclick=function(){dir="owe";$("#ledger_sO").setAttribute("aria-pressed",true);$("#ledger_sT").setAttribute("aria-pressed",false);};
+      $("#ledger_sT").onclick=function(){dir="owed";$("#ledger_sO").setAttribute("aria-pressed",false);$("#ledger_sT").setAttribute("aria-pressed",true);};
+      $("#ledger_fS").onclick=function(){
+        var c=cents($("#ledger_fAmt").value);
         if(c<=0){toast("Put in an amount");return;}
-        var nm=$("#fWho").value.trim();
+        var nm=$("#ledger_fWho").value.trim();
         if(!nm){toast("Who is it for?");return;}
         var p=ensureContact(nm);
         var t={id:uid(),code:newCode(),dir:dir,cents:c,paidCents:0,pays:[],personId:p.id,name:p.name,
-          note:$("#fNote").value.trim(),method:$("#fMethod").value||"",due:$("#fDue").value||"",
+          note:$("#ledger_fNote").value.trim(),method:$("#ledger_fMethod").value||"",due:$("#ledger_fDue").value||"",
           written:today(),status:"open"};
         L.tickets.push(t); saveL(); tab="tickets"; refresh(); dlg.close(); showTicket(t);};
     });
@@ -1692,30 +1900,30 @@ function txnDialog(t){
       (t.cat?'<dt>For</dt><dd>'+esc(t.cat)+'</dd>':'')+
       (t.method?'<dt>Paid by</dt><dd>'+esc(t.method)+'</dd>':'')+
       (t.note?'<dt>Note</dt><dd>'+esc(t.note)+'</dd>':'')+
-    '</div><div id="rcHost"></div>'+
-    '<button class="btn ghost sm" id="rcClose" style="width:100%">Close</button>',
+    '</div><div id="ledger_rcHost"></div>'+
+    '<button class="btn ghost sm" id="ledger_rcClose" style="width:100%">Close</button>',
     function(){
-      attachBar($("#rcHost"),"txn",t.id,"Receipts");
-      $("#rcClose").onclick=function(){dlg.close();};
+      attachBar($("#ledger_rcHost"),"txn",t.id,"Receipts");
+      $("#ledger_rcClose").onclick=function(){dlg.close();};
     });
 }
 function showTicket(t){
-  openDlg("Ticket "+t.code,'<div id="tHost"></div><div id="attachHost"></div>'+
+  openDlg("Ticket "+t.code,'<div id="ledger_tHost"></div><div id="ledger_attachHost"></div>'+
     '<p class="foot-note">Send it as a text, or print it as a two-part slip — they take one half, you keep the stub. When they bring the code back, hit "Redeem a code." They can take it in pieces; the code stays good until it\'s paid off.</p>',
     function(){
-      $("#tHost").appendChild(ticketCard(t,true));
-      attachBar($("#attachHost"),"ticket",t.code,"Receipts");});
+      $("#ledger_tHost").appendChild(ticketCard(t,true));
+      attachBar($("#ledger_attachHost"),"ticket",t.code,"Receipts");});
 }
 function redeemDialog(prefill){
   openDlg("Redeem a code",
-    '<label><span>Code</span><input id="fCode" class="code-in" placeholder="ABCD-1234" autocapitalize="characters" value="'+esc(prefill||"")+'"></label>'+
-    '<div id="rFound"></div>'+
-    '<button class="btn ghost" id="fLook" style="width:100%">Look it up</button>',
+    '<label><span>Code</span><input id="ledger_fCode" class="code-in" placeholder="ABCD-1234" autocapitalize="characters" value="'+esc(prefill||"")+'"></label>'+
+    '<div id="ledger_rFound"></div>'+
+    '<button class="btn ghost" id="ledger_fLook" style="width:100%">Look it up</button>',
     function(){
       function lookup(){
-        var code=$("#fCode").value.trim().toUpperCase();
+        var code=$("#ledger_fCode").value.trim().toUpperCase();
         var t=L.tickets.filter(function(x){return x.code===code;})[0];
-        var host=$("#rFound");
+        var host=$("#ledger_rFound");
         if(!t){host.innerHTML='<p class="warn">No ticket with that code. Check the letters and numbers.</p>';return;}
         if(t.status!=="open"){
           host.innerHTML='<p class="warn">This ticket was already '+
@@ -1724,17 +1932,17 @@ function redeemDialog(prefill){
         host.appendChild(ticketCard(t,false));
         var rem=remaining(t),box=el("div");
         box.innerHTML='<div class="two">'+
-          '<label><span>How much now</span><input type="number" step="0.01" min="0" max="'+(rem/100).toFixed(2)+'" id="rAmt" inputmode="decimal" value="'+(rem/100).toFixed(2)+'"></label>'+
-          '<label><span>'+(t.dir==="owe"?"Pay it out of":"Put the money in")+'</span><select id="rAcct">'+acctOptions()+'</select></label></div>'+
-          '<label><span>'+(t.dir==="owe"?"How you paid them":"How they paid you")+'</span><select id="rMethod">'+methodOptions(t.method)+'</select></label>';
+          '<label><span>How much now</span><input type="number" step="0.01" min="0" max="'+(rem/100).toFixed(2)+'" id="ledger_rAmt" inputmode="decimal" value="'+(rem/100).toFixed(2)+'"></label>'+
+          '<label><span>'+(t.dir==="owe"?"Pay it out of":"Put the money in")+'</span><select id="ledger_rAcct">'+acctOptions()+'</select></label></div>'+
+          '<label><span>'+(t.dir==="owe"?"How you paid them":"How they paid you")+'</span><select id="ledger_rMethod">'+methodOptions(t.method)+'</select></label>';
         host.appendChild(box);
         var go=el("button","btn tick","Record it"); go.style.width="100%";
         go.onclick=function(){
-          var amt=cents($("#rAmt").value);
+          var amt=cents($("#ledger_rAmt").value);
           if(amt<=0){toast("How much are they taking?");return;}
           if(amt>rem){toast("That's more than the "+money(rem)+" left on it");return;}
-          var mth=$("#rMethod").value||"";
-          var txn=addTxn({type:t.dir==="owe"?"out":"in",cents:amt,date:today(),accountId:$("#rAcct").value,
+          var mth=$("#ledger_rMethod").value||"";
+          var txn=addTxn({type:t.dir==="owe"?"out":"in",cents:amt,date:today(),accountId:$("#ledger_rAcct").value,
             who:t.dir==="owe"?"Paid "+t.name:"Collected from "+t.name,
             personId:t.personId,method:mth,note:"Ticket "+t.code,ticketId:t.id});
           t.pays=t.pays||[];
@@ -1745,9 +1953,9 @@ function redeemDialog(prefill){
           var left=t.cents-t.paidCents;
           toast(left>0?money(left)+" still open on "+t.code:"Ticket "+t.code+" paid off");};
         host.appendChild(go);
-        $("#fLook").style.display="none";}
-      $("#fLook").onclick=lookup;
-      $("#fCode").addEventListener("keydown",function(e){if(e.key==="Enter")lookup();});
+        $("#ledger_fLook").style.display="none";}
+      $("#ledger_fLook").onclick=lookup;
+      $("#ledger_fCode").addEventListener("keydown",function(e){if(e.key==="Enter")lookup();});
       if(prefill) lookup();
     });
 }
@@ -1762,15 +1970,15 @@ function pageAction(a){
   else if(a==="redeem") redeemDialog("");
 }
 function pageBoot(){
-  $("#tabs").querySelectorAll("button").forEach(function(b){
+  $("#ledger_tabs").querySelectorAll("button").forEach(function(b){
     b.onclick=function(){tab=b.dataset.t;pageRender();};});
-  $("#bmode").querySelectorAll("button").forEach(function(b){
+  $("#ledger_bmode").querySelectorAll("button").forEach(function(b){
     b.onclick=function(){bMode=b.dataset.b;
-      $("#bmode").querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed",x===b);});
+      $("#ledger_bmode").querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed",x===b);});
       renderBreakdown();};});
-  $("#monthPick").onchange=function(){curMonth=this.value;renderLedger();};
-  $("#hFilter").onchange=renderHistory;
-  $("#hSearch").oninput=renderHistory;
+  $("#ledger_monthPick").onchange=function(){curMonth=this.value;renderLedger();};
+  $("#ledger_hFilter").onchange=renderHistory;
+  $("#ledger_hSearch").oninput=renderHistory;
   if(qparam("tab")) tab=qparam("tab");
   if(qparam("new")==="receipt") setTimeout(receiptDialog,120);
   var n=qparam("new");
@@ -1813,7 +2021,7 @@ function renderTrends(){
   var max=1;
   data.forEach(function(d){ max=Math.max(max,d.in,d.out); });
 
-  var host=$("#mBars"); host.innerHTML="";
+  var host=$("#ledger_mBars"); host.innerHTML="";
   var bars=el("div","mbars");
   data.forEach(function(d){
     var c=el("div","col");
@@ -1839,10 +2047,10 @@ function renderTrends(){
   var thisM=today().slice(0,7);
   var d=parseD(today()); d.setDate(1); d.setMonth(d.getMonth()-1);
   var lastM=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-  $("#cmpLbl").textContent=MONL[(+thisM.slice(5))-1]+" vs "+MONL[(+lastM.slice(5))-1];
+  $("#ledger_cmpLbl").textContent=MONL[(+thisM.slice(5))-1]+" vs "+MONL[(+lastM.slice(5))-1];
   var a=catTotals(thisM), b=catTotals(lastM);
   var keys=Object.keys(a).concat(Object.keys(b)).filter(function(v,i,arr){return arr.indexOf(v)===i;});
-  var ch=$("#catCmp"); ch.innerHTML="";
+  var ch=$("#ledger_catCmp"); ch.innerHTML="";
   if(!keys.length){ ch.appendChild(emptyBox("Nothing to compare","Log a couple of months of spending first.")); }
   else{
     var box=el("div","bar-list");
@@ -1881,7 +2089,7 @@ function forecastEvents(){
   return out.sort(function(x,y){return x.date.localeCompare(y.date);});
 }
 function renderForecast(){
-  var host=$("#fcast"); host.innerHTML="";
+  var host=$("#ledger_fcast"); host.innerHTML="";
   var lt=ledgerTotals(), bal=lt.total;
   var ev=forecastEvents();
   if(!ev.length){
@@ -1919,19 +2127,19 @@ function renderForecast(){
 function receiptDialog(){
   openDlg("Log from a receipt",
     '<p class="foot-note" style="margin-top:0">Photograph the receipt, then check the amount. It stays attached to the entry.</p>'+
-    '<div id="rcPick"></div>'+
-    '<img id="rcPrev" class="preview" style="display:none" alt="">'+
+    '<div id="ledger_rcPick"></div>'+
+    '<img id="ledger_rcPrev" class="preview" style="display:none" alt="">'+
     '<div class="two">'+
-      '<label><span>Amount</span><input type="number" step="0.01" min="0" id="rcAmt" inputmode="decimal" placeholder="0.00"></label>'+
-      '<label><span>Date</span><input type="date" id="rcDate" value="'+today()+'"></label></div>'+
-    '<label><span>Where</span><input id="rcWho" list="dlPeople" placeholder="Shop or person"></label>'+peopleDatalist()+
+      '<label><span>Amount</span><input type="number" step="0.01" min="0" id="ledger_rcAmt" inputmode="decimal" placeholder="0.00"></label>'+
+      '<label><span>Date</span><input type="date" id="ledger_rcDate" value="'+today()+'"></label></div>'+
+    '<label><span>Where</span><input id="ledger_rcWho" list="dlPeople" placeholder="Shop or person"></label>'+peopleDatalist()+
     '<div class="two">'+
-      '<label><span>What for</span><input id="rcCat" list="dlCats" placeholder="Food, gas…">'+catList()+'</label>'+
-      '<label><span>Paid with</span><select id="rcMethod">'+methodOptions()+'</select></label></div>'+
-    '<button class="btn" id="rcSave" style="width:100%">Log it</button>',
+      '<label><span>What for</span><input id="ledger_rcCat" list="dlCats" placeholder="Food, gas…">'+catList()+'</label>'+
+      '<label><span>Paid with</span><select id="ledger_rcMethod">'+methodOptions()+'</select></label></div>'+
+    '<button class="btn" id="ledger_rcSave" style="width:100%">Log it</button>',
     function(){
       var file=null;
-      var host=$("#rcPick");
+      var host=$("#ledger_rcPick");
       var pick=el("input"); pick.type="file"; pick.accept="image/*"; pick.capture="environment";
       pick.style.display="none";
       var b=el("button","btn ghost sm","Take or choose a photo"); b.style.width="100%";
@@ -1941,7 +2149,7 @@ function receiptDialog(){
       host.appendChild(scan);
       pick.onchange=function(){
         file=pick.files[0]; if(!file) return;
-        var img=$("#rcPrev");
+        var img=$("#ledger_rcPrev");
         img.src=URL.createObjectURL(file); img.style.display="block";
         b.textContent="Photo chosen — tap to change";
         scan.style.display="block";};
@@ -1951,20 +2159,20 @@ function receiptDialog(){
         scan.disabled=true; scan.textContent="Reading… this takes a moment";
         readTotal(file).then(function(v){
           scan.disabled=false;
-          if(v){ $("#rcAmt").value=v.toFixed(2); scan.textContent="Read "+money(Math.round(v*100))+" — check it"; }
+          if(v){ $("#ledger_rcAmt").value=v.toFixed(2); scan.textContent="Read "+money(Math.round(v*100))+" — check it"; }
           else scan.textContent="Couldn't read it — type the amount";
         }).catch(function(){
           scan.disabled=false;
           scan.textContent="Reading isn't available — type the amount";});
       };
-      $("#rcSave").onclick=async function(){
-        var c=cents($("#rcAmt").value);
+      $("#ledger_rcSave").onclick=async function(){
+        var c=cents($("#ledger_rcAmt").value);
         if(c<=0) return toast("What was the amount?");
-        var who=$("#rcWho").value.trim();
+        var who=$("#ledger_rcWho").value.trim();
         var p=who?ensureContact(who):null;
-        var t={type:"out",cents:c,date:$("#rcDate").value||today(),accountId:firstAccount().id,
-          who:who||"Money out",personId:p?p.id:null,method:$("#rcMethod").value||"",
-          cat:$("#rcCat").value.trim(),note:"from a receipt"};
+        var t={type:"out",cents:c,date:$("#ledger_rcDate").value||today(),accountId:firstAccount().id,
+          who:who||"Money out",personId:p?p.id:null,method:$("#ledger_rcMethod").value||"",
+          cat:$("#ledger_rcCat").value.trim(),note:"from a receipt"};
         if(t.cat&&L.categories.indexOf(t.cat)<0) L.categories.push(t.cat);
         var txn=addTxn(t);
         if(file){
@@ -1999,6 +2207,1050 @@ function readTotal(file){
     s.onerror=function(){ reject(new Error("no internet for the reader")); };
     document.head.appendChild(s);
   });
+}
+
+return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
+})();
+var MOD_WALLET=(function(){
+/* each denomination needs its own key — a $1 note and a $1 coin are both 100 cents */
+var NOTES=[["n100",10000,"$100","hundred"],["n50",5000,"$50","fifty"],["n20",2000,"$20","twenty"],
+           ["n10",1000,"$10","ten"],["n5",500,"$5","five"],["n2",200,"$2","two"],["n1",100,"$1","one"]];
+var COINS=[["c100",100,"$1","dollar coin"],["c50",50,"50¢","half"],["c25",25,"25¢","quarter"],
+           ["c10",10,"10¢","dime"],["c5",5,"5¢","nickel"],["c1",1,"1¢","penny"]];
+var ALLDEN=NOTES.concat(COINS);
+function denByKey(k){ return ALLDEN.filter(function(d){return d[0]===k;})[0]; }
+var wtab="count";
+
+function W(){ H.wallet=H.wallet||{counts:{},accountId:null,lastCounted:""}; 
+  H.wallet.counts=H.wallet.counts||{}; return H.wallet; }
+function wCounts(){ H.walletCounts=H.walletCounts||[]; return H.walletCounts; }
+function cashAccounts(){
+  if(!L||!L.accounts) return [];
+  var c=L.accounts.filter(function(a){return a.kind==="cash";});
+  return c.length?c:L.accounts;
+}
+function walletAcct(){
+  var list=cashAccounts();
+  if(!list.length) return null;
+  var w=W();
+  return list.filter(function(a){return a.id===w.accountId;})[0]||list[0];
+}
+function countOf(k){ return +(W().counts[k]||0); }
+function setCount(k,n){ W().counts[k]=Math.max(0,n||0); }
+function sumOf(list){ return list.reduce(function(t,d){return t+d[1]*countOf(d[0]);},0); }
+function walletTotal(){ return sumOf(ALLDEN); }
+function notesTotal(){ return sumOf(NOTES); }
+function coinsTotal(){ return sumOf(COINS); }
+function pieceCount(){ return ALLDEN.reduce(function(n,d){return n+countOf(d[0]);},0); }
+
+function pageHead(){
+  var a=walletAcct();
+  var t=walletTotal();
+  setHead("WL · wallet","Wallet",
+    (a?money(a.cents)+" on the books"+(a.name?" ("+a.name+")":""):"no cash account yet")+
+    (W().lastCounted?"  ·  counted "+relDay(W().lastCounted):"  ·  never counted"));
+}
+
+/* ---------- counting ---------- */
+function denRow(d,host){
+  var k=d[0], v=d[1];
+  var r=el("div","den"+(countOf(k)?"":" zero"));
+  var f=el("div","face",d[2]);
+  var s=el("small",null,d[3]); f.appendChild(s);
+  r.appendChild(f);
+  var c=el("div","cnt");
+  var minus=el("button",null,"−");
+  var inp=el("input"); inp.type="number"; inp.inputMode="numeric"; inp.min="0";
+  inp.value=countOf(k)||"";
+  inp.placeholder="0";
+  var plus=el("button",null,"+");
+  var sub=el("div","sub2",money(v*countOf(k)));
+  function refresh(){
+    inp.value=countOf(k)||"";
+    sub.textContent=money(v*countOf(k));
+    r.className="den"+(countOf(k)?"":" zero");
+    save(); drawTotals();
+  }
+  minus.onclick=function(){ setCount(k,countOf(k)-1); refresh(); };
+  plus.onclick=function(){ setCount(k,countOf(k)+1); refresh(); };
+  inp.oninput=function(){ setCount(k,parseInt(inp.value,10)||0); sub.textContent=money(v*countOf(k));
+    r.className="den"+(countOf(k)?"":" zero"); save(); drawTotals(); };
+  c.appendChild(minus); c.appendChild(inp); c.appendChild(plus);
+  r.appendChild(c); r.appendChild(sub);
+  host.appendChild(r);
+}
+function drawTotals(){
+  var t=walletTotal(), a=walletAcct();
+  $("#wallet_wNow").textContent=money(t);
+  var bits=[pieceCount()+" piece"+(pieceCount()===1?"":"s")];
+  if(W().lastCounted) bits.push("last counted "+relDay(W().lastCounted));
+  $("#wallet_wSub").textContent=bits.join(" · ");
+  $("#wallet_wBills").textContent=money(notesTotal());
+  $("#wallet_wCoins").textContent=money(coinsTotal());
+
+  var h=$("#wallet_wDrift"); h.innerHTML="";
+  if(!a) return;
+  var diff=t-a.cents;
+  var d=el("div","drift "+(diff===0?"ok":"off"));
+  if(t===0) d.innerHTML="The books say <b>"+esc(money(a.cents))+"</b> is in "+esc(a.name)+
+    ". Count what's actually there and see if it lines up.";
+  else if(diff===0) d.innerHTML="Spot on — matches the <b>"+esc(money(a.cents))+"</b> the books expect.";
+  else if(diff>0) d.innerHTML="You have <b>"+esc(money(diff))+" more</b> than the books expect. "+
+    "Probably money that came in and never got logged.";
+  else d.innerHTML="You're <b>"+esc(money(-diff))+" short</b> of what the books expect. "+
+    "Probably something you spent and never logged.";
+  h.appendChild(d);
+}
+function drawCount(){
+  var n=$("#wallet_wNotes"); n.innerHTML="";
+  NOTES.forEach(function(d){ denRow(d,n); });
+  var c=$("#wallet_wCoinList"); c.innerHTML="";
+  COINS.forEach(function(d){ denRow(d,c); });
+  drawTotals();
+}
+
+function saveCount(){
+  var a=walletAcct();
+  if(!a) return toast("No cash account to update");
+  var t=walletTotal();
+  if(!pieceCount()&&!confirm("Count it as completely empty?")) return;
+  var before=a.cents, diff=t-before;
+  a.cents=t;
+  if(L){
+    L.txns.push({id:uid(),type:"count",cents:t,prevCents:before,date:today(),
+      accountId:a.id,who:"Counted "+a.name,
+      note:diff===0?"matched":(diff>0?money(diff)+" more than expected":money(-diff)+" short")});
+    saveL();
+  }
+  var snap={};
+  ALLDEN.forEach(function(d){ if(countOf(d[0])) snap[d[0]]=countOf(d[0]); });
+  wCounts().unshift({id:uid(),date:today(),at:Date.now(),total:t,expected:before,
+    diff:diff,denoms:snap,accountId:a.id});
+  if(wCounts().length>200) H.walletCounts=wCounts().slice(0,200);
+  W().lastCounted=today();
+  save(); pageHead(); drawTotals();
+  toast(diff===0?"Books match your pocket":(diff>0?money(diff)+" more than expected":money(-diff)+" short — balance corrected"));
+}
+
+/* ---------- past counts ---------- */
+function denomText(denoms){
+  var out=[];
+  ALLDEN.forEach(function(d){
+    var n=denoms[d[0]];
+    if(n) out.push(n+" × "+d[2]);});
+  return out;
+}
+function drawLog(){
+  var list=wCounts();
+  $("#wallet_lN").textContent=list.length;
+  $("#wallet_lWhen").textContent=list.length?relDay(list[0].date):"—";
+  var offs=list.filter(function(c){return c.diff!==0;});
+  var avg=offs.length?Math.round(offs.reduce(function(t,c){return t+c.diff;},0)/offs.length):0;
+  $("#wallet_lDrift").textContent=avg?money(Math.abs(avg))+(avg<0?" short":" over"):"—";
+  var worst=0;
+  list.forEach(function(c){ if(Math.abs(c.diff)>Math.abs(worst)) worst=c.diff; });
+  $("#wallet_lWorst").textContent=worst?money(Math.abs(worst)):"—";
+
+  var host=$("#wallet_lList"); host.innerHTML="";
+  if(!list.length){
+    host.appendChild(emptyBox("No counts yet","Count your wallet and it gets recorded here."));
+    return;}
+  var box=el("div","bar-list");
+  list.slice(0,40).forEach(function(c){
+    var r=el("div","bar-row trio tap"),L2=el("div");
+    L2.appendChild(el("div","who",money(c.total)));
+    L2.appendChild(el("div","meta",prettyFull(c.date)+" · "+
+      (c.diff===0?"matched":(c.diff>0?money(c.diff)+" more than expected":money(-c.diff)+" short"))));
+    r.appendChild(L2);
+    r.appendChild(el("span","pill"+(c.diff===0?"":(c.diff<0?" hot":" warm")),
+      c.diff===0?"matched":(c.diff>0?"over":"short")));
+    var k=el("button","kill","×");
+    k.onclick=function(e){e.stopPropagation();
+      H.walletCounts=wCounts().filter(function(x){return x.id!==c.id;});
+      save(); drawLog();};
+    r.appendChild(k);
+    r.onclick=function(){ countDetail(c); };
+    box.appendChild(r);});
+  host.appendChild(box);
+}
+function countDetail(c){
+  var parts=denomText(c.denoms||{});
+  openDlg("Count from "+prettyFull(c.date),
+    '<div class="kv" style="margin-bottom:10px">'+
+      '<dt>Counted</dt><dd>'+esc(money(c.total))+'</dd>'+
+      '<dt>Books said</dt><dd>'+esc(money(c.expected))+'</dd>'+
+      '<dt>Difference</dt><dd>'+(c.diff===0?"none":esc(money(c.diff)))+'</dd>'+
+    '</div>'+
+    '<div class="cap" style="font-family:var(--disp);text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:var(--dim)">What was in there</div>'+
+    '<div class="brk">'+(parts.length?parts.map(function(p){return '<span>'+esc(p)+'</span>';}).join(""):'<span>empty</span>')+'</div>'+
+    '<div class="row-btns" style="margin-top:14px">'+
+      '<button class="btn ghost sm" id="wallet_cdLoad" style="flex:1">Load this back in</button>'+
+      '<button class="btn ghost sm" id="wallet_cdClose">Close</button></div>',
+    function(){
+      $("#wallet_cdClose").onclick=function(){dlg.close();};
+      $("#wallet_cdLoad").onclick=function(){
+        W().counts={};
+        Object.keys(c.denoms||{}).forEach(function(k){ W().counts[k]=c.denoms[k]; });
+        save(); dlg.close(); setTab("count"); toast("Loaded — adjust and count again");};
+    });
+}
+
+/* ---------- paying out ---------- */
+function makeChange(cents2){
+  var out=[], left=cents2;
+  ALLDEN.slice().sort(function(a,b){return b[1]-a[1];}).forEach(function(d){
+    var can=Math.min(countOf(d[0]),Math.floor(left/d[1]));
+    if(can>0){ out.push([d[0],can]); left-=d[1]*can; }
+  });
+  return {picks:out,short:left};
+}
+function drawPay(){
+  var host=$("#wallet_pOut"); host.innerHTML="";
+  var v=$("#wallet_pAmt").value;
+  if(!v) return;
+  var need=Math.round(parseFloat(v)*100)||0;
+  if(need<=0) return;
+  var have=walletTotal();
+  if(!have) { host.appendChild(emptyBox("Nothing counted","Count your wallet first.")); return; }
+  var r=makeChange(need);
+  var box=el("div");
+  if(r.short>0){
+    var e=el("div","drift off");
+    if(need>have) e.innerHTML="You only have <b>"+esc(money(have))+"</b> — that's <b>"+
+      esc(money(need-have))+" short</b>.";
+    else e.innerHTML="You can't make exactly <b>"+esc(money(need))+"</b> with what you've got. "+
+      "Closest under is <b>"+esc(money(need-r.short))+"</b> — you'd need change back.";
+    box.appendChild(e);
+  }
+  if(r.picks.length){
+    box.appendChild(el("h2","sec","Hand over"));
+    var w=el("div","brk");
+    r.picks.forEach(function(p){
+      var d=denByKey(p[0]);
+      w.appendChild(el("span",null,p[1]+" × "+(d?d[2]:p[0])));});
+    box.appendChild(w);
+    var paid=r.picks.reduce(function(t,p){
+      var d=denByKey(p[0]); return t+(d?d[1]:0)*p[1];},0);
+    var after=el("p","foot-note");
+    after.textContent="That's "+money(paid)+". You'd have "+money(have-paid)+" left in your wallet.";
+    box.appendChild(after);
+    var row=el("div","row-btns");
+    var b=el("button","btn tick sm","Spend it and log it");
+    b.onclick=function(){ spendDialog(paid,r.picks); };
+    row.appendChild(b);
+    box.appendChild(row);
+  }
+  host.appendChild(box);
+}
+function spendDialog(cents2,picks){
+  openDlg("Log "+money(cents2)+" out",
+    '<p class="foot-note" style="margin-top:0">Takes those notes out of your wallet count and logs the spend.</p>'+
+    '<label><span>Who or what you paid</span><input id="wallet_spW" list="dlPeople" placeholder="Shop, person"></label>'+peopleDatalist()+
+    '<div class="two">'+
+      '<label><span>What for</span><input id="wallet_spC" placeholder="Food, gas…"></label>'+
+      '<label><span>Date</span><input type="date" id="wallet_spD" value="'+today()+'"></label></div>'+
+    '<button class="btn" id="wallet_spGo" style="width:100%">Log it</button>',
+    function(){
+      $("#wallet_spGo").onclick=function(){
+        var a=walletAcct();
+        var who=$("#wallet_spW").value.trim();
+        var p=who?ensureContact(who):null;
+        if(L&&a){
+          var cat=$("#wallet_spC").value.trim();
+          var t={id:uid(),type:"out",cents:cents2,date:$("#wallet_spD").value||today(),accountId:a.id,
+            who:who||"Money out",personId:p?p.id:null,method:"Cash",note:"from the wallet"};
+          if(cat){ t.cat=cat; if(L.categories.indexOf(cat)<0) L.categories.push(cat); }
+          a.cents-=cents2; L.txns.push(t); saveL();
+        }
+        picks.forEach(function(pk){ setCount(pk[0],countOf(pk[0])-pk[1]); });
+        W().lastCounted=today();
+        save(); pageHead(); drawCount(); dlg.close();
+        $("#wallet_pAmt").value=""; drawPay();
+        toast(money(cents2)+" out — wallet updated");};
+    });
+}
+
+function whichDialog(){
+  var list=cashAccounts();
+  openDlg("Which pocket",
+    '<p class="foot-note" style="margin-top:0">Which cash account this wallet is. Counting updates that one.</p>'+
+    (list.length?'<label><span>Wallet is</span><select id="wallet_waSel">'+list.map(function(a){
+      return '<option value="'+a.id+'"'+(walletAcct()&&a.id===walletAcct().id?" selected":"")+'>'+
+        esc(a.name)+" — "+money(a.cents)+'</option>';}).join("")+'</select></label>'
+      :'<p class="warn">No cash account in your ledger yet. Add one in Money first.</p>')+
+    '<button class="btn" id="wallet_waS" style="width:100%">Save</button>',
+    function(){
+      $("#wallet_waS").onclick=function(){
+        if($("#wallet_waSel")) W().accountId=$("#wallet_waSel").value;
+        save(); pageHead(); drawTotals(); dlg.close(); toast("Saved");};
+    });
+}
+
+function setTab(t){
+  wtab=t;
+  $("#wallet_v-count").style.display=t==="count"?"block":"none";
+  $("#wallet_v-log").style.display=t==="log"?"block":"none";
+  $("#wallet_v-pay").style.display=t==="pay"?"block":"none";
+  $("#wallet_wtabs").querySelectorAll("button").forEach(function(b){
+    b.setAttribute("aria-pressed",b.dataset.t===t);});
+  if(t==="count") drawCount();
+  else if(t==="log") drawLog();
+  else drawPay();
+}
+function pageRender(){ setTab(wtab); }
+function pageAction(a){
+  if(a==="save") saveCount();
+  else if(a==="zero"){
+    if(!pieceCount()) return;
+    if(!confirm("Clear the count back to nothing?")) return;
+    W().counts={}; save(); drawCount(); toast("Cleared");
+  }
+  else if(a==="which") whichDialog();
+}
+function pageBoot(){
+  H.wallet=W(); H.walletCounts=wCounts();
+  $("#wallet_wtabs").querySelectorAll("button").forEach(function(b){
+    b.onclick=function(){ setTab(b.dataset.t); };});
+  $("#wallet_pAmt").oninput=drawPay;
+  if(qparam("tab")) wtab=qparam("tab");
+}
+
+return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
+})();
+var MOD_INVOICES=(function(){
+var ifilter="open";
+function invoices(){ H.invoices=H.invoices||[]; return H.invoices; }
+function biz(){ H.settings=H.settings||{}; H.settings.biz=H.settings.biz||{}; return H.settings.biz; }
+function lineTotal(l){ return Math.round((+l.qty||0)*Math.round((+l.rate||0)*100)); }
+function subTotal(inv){ return (inv.items||[]).reduce(function(t,l){return t+lineTotal(l);},0); }
+function invTotal(inv){
+  var s=subTotal(inv);
+  var d=inv.discount?Math.round(s*(+inv.discount)/100):0;
+  var afterD=s-d;
+  var tax=inv.taxPct?Math.round(afterD*(+inv.taxPct)/100):0;
+  return {sub:s,discount:d,tax:tax,total:afterD+tax};
+}
+function ticketFor(inv){
+  if(!L||!inv.ticketId) return null;
+  return (L.tickets||[]).filter(function(t){return t.id===inv.ticketId;})[0]||null;
+}
+function invPaid(inv){
+  var tk=ticketFor(inv);
+  if(tk) return tk.paidCents||0;
+  return inv.status==="paid"?invTotal(inv).total:(inv.paidCents||0);
+}
+function invDue(inv){ return Math.max(0,invTotal(inv).total-invPaid(inv)); }
+function newTicketCode(){
+  var A="ABCDEFGHJKLMNPQRSTUVWXYZ",D="23456789",c;
+  do{ c=""; for(var i=0;i<4;i++)c+=A[Math.floor(Math.random()*A.length)];
+      c+="-"; for(var j=0;j<4;j++)c+=D[Math.floor(Math.random()*D.length)];
+  }while((L.tickets||[]).some(function(t){return t.code===c;}));
+  return c;
+}
+function issueTicket(inv){
+  if(!L) return toast("No ledger on this device");
+  var t=invTotal(inv).total;
+  if(t<=0) return toast("Put some lines on it first");
+  if(ticketFor(inv)) return toast("It already has a ticket");
+  var p=inv.personId?contactRec(inv.personId):(inv.name?ensureContact(inv.name):null);
+  var tk={id:uid(),code:newTicketCode(),dir:"owed",cents:t,paidCents:0,pays:[],
+    personId:p?p.id:null,name:inv.name||"",note:"Invoice "+inv.number+(inv.forWhat?" — "+inv.forWhat:""),
+    method:"",due:inv.due||"",written:today(),status:"open",invoiceId:inv.id};
+  L.tickets.push(tk); saveL();
+  inv.ticketId=tk.id; inv.ticketCode=tk.code;
+  if(inv.status==="draft") inv.status="sent";
+  save();
+  return tk;
+}
+function syncFromTicket(inv){
+  var tk=ticketFor(inv);
+  if(!tk) return;
+  if(tk.status==="paid"&&inv.status!=="paid"){
+    inv.status="paid"; inv.paidOn=tk.closedOn||today();
+  } else if(tk.status==="open"&&inv.status==="paid"){
+    inv.status="sent"; delete inv.paidOn;
+  }
+}
+function takePayment(inv,cents2,method,acctId,when){
+  var tk=ticketFor(inv);
+  var txn=null;
+  if(L){
+    var ac=(L.accounts||[]).filter(function(a){return a.id===acctId;})[0]||L.accounts[0];
+    if(ac){
+      txn={id:uid(),type:"in",cents:cents2,date:when||today(),accountId:ac.id,
+        who:inv.name||"Invoice",personId:inv.personId||null,method:method||"",
+        note:"Invoice "+inv.number+(tk?" · ticket "+tk.code:"")};
+      ac.cents+=cents2; L.txns.push(txn);
+    }
+  }
+  if(tk){
+    tk.pays=tk.pays||[];
+    tk.pays.push({id:uid(),date:when||today(),cents:cents2,accountId:acctId,
+      method:method||"",txnId:txn?txn.id:null});
+    tk.paidCents=(tk.paidCents||0)+cents2;
+    if(tk.paidCents>=tk.cents){ tk.status="paid"; tk.closedOn=when||today(); }
+    saveL();
+    syncFromTicket(inv);
+  } else {
+    inv.paidCents=(inv.paidCents||0)+cents2;
+    if(inv.paidCents>=invTotal(inv).total){ inv.status="paid"; inv.paidOn=when||today(); }
+    if(L) saveL();
+  }
+  save();
+}
+function invStatus(inv){
+  syncFromTicket(inv);
+  if(inv.status==="paid") return "paid";
+  if(inv.status==="draft") return "draft";
+  if(invPaid(inv)>0) return inv.due&&inv.due<today()?"overdue":"part paid";
+  if(inv.due&&inv.due<today()) return "overdue";
+  return "sent";
+}
+function nextNumber(){
+  var n=(H.settings.invoiceNext||1);
+  return "INV-"+String(n).padStart(4,"0");
+}
+
+function pageHead(){
+  var open=0,late=0,paid=0,drafts=0;
+  var yr=today().slice(0,4);
+  invoices().forEach(function(i){
+    var t=invTotal(i).total, st=invStatus(i);
+    if(st==="paid"){ if((i.paidOn||"").slice(0,4)===yr) paid+=t; }
+    else if(st==="draft") drafts++;
+    else { open+=invDue(i); paid+=invPaid(i); if(st==="overdue") late+=invDue(i); }});
+  setHead("IV · invoices","Invoices",
+    money(open)+" outstanding"+(late?"  ·  "+money(late)+" overdue":"")+
+    "  ·  "+money(paid)+" paid in "+yr);
+  var e=$("#invoices_iOut");
+  if(e){ e.textContent=money(open); $("#invoices_iLate").textContent=money(late);
+    $("#invoices_iPaid").textContent=money(paid); $("#invoices_iDraft").textContent=drafts; }
+}
+function pageRender(){
+  var counts={open:0,overdue:0,draft:0,paid:0};
+  invoices().forEach(function(i){
+    var st=invStatus(i);
+    if(st==="paid") counts.paid++;
+    else if(st==="draft") counts.draft++;
+    else { counts.open++; if(st==="overdue") counts.overdue++; }});
+  $("#invoices_ifilters").innerHTML=[["open","Outstanding ("+counts.open+")"],
+    ["overdue","Overdue ("+counts.overdue+")"],["draft","Drafts ("+counts.draft+")"],
+    ["paid","Paid ("+counts.paid+")"],["all","All"]].map(function(o){
+    return '<button data-f="'+o[0]+'"'+(o[0]===ifilter?' aria-pressed="true"':'')+'>'+esc(o[1])+'</button>';}).join("");
+  $("#invoices_ifilters").querySelectorAll("button").forEach(function(b){
+    b.onclick=function(){ifilter=b.dataset.f;pageRender();};});
+
+  var list=invoices().filter(function(i){
+    var st=invStatus(i);
+    if(ifilter==="all") return true;
+    if(ifilter==="open") return st==="sent"||st==="overdue"||st==="part paid";
+    return st===ifilter;
+  }).sort(function(a,b){return (b.issued||"").localeCompare(a.issued||"");});
+
+  var host=$("#invoices_ilist"); host.innerHTML="";
+  if(!list.length){
+    host.appendChild(emptyBox(invoices().length?"Nothing here":"No invoices yet",
+      invoices().length?"Try another filter.":"Bill somebody for a gig, a lesson, or work you did."));
+    return;}
+  list.forEach(function(inv){
+    var st=invStatus(inv), t=invTotal(inv).total, paid=invPaid(inv);
+    var d=el("div","inv "+(st==="part paid"?"overdue":st));
+    var top=el("div","top");
+    var L2=el("div");
+    L2.appendChild(el("div","who2",inv.name||"No one yet"));
+    L2.appendChild(el("div","num",inv.number+(inv.forWhat?" · "+inv.forWhat:"")));
+    top.appendChild(L2);
+    top.appendChild(el("div","tot",paid&&st!=="paid"?money(invDue(inv)):money(t)));
+    d.appendChild(top);
+    var ft=el("div","ft");
+    ft.appendChild(el("span","pill"+(st==="overdue"?" hot":st==="paid"?"":st==="draft"?"":" warm"),st));
+    if(inv.issued) ft.appendChild(el("span",null,"issued "+pretty(inv.issued)));
+    if(inv.due&&st!=="paid") ft.appendChild(el("span",null,(st==="overdue"?"was due ":"due ")+pretty(inv.due)));
+    if(st==="paid"&&inv.paidOn) ft.appendChild(el("span",null,"paid "+pretty(inv.paidOn)));
+    if(paid&&st!=="paid") ft.appendChild(el("span",null,money(paid)+" of "+money(t)+" in"));
+    if(inv.ticketCode) ft.appendChild(el("span","pill",inv.ticketCode));
+    ft.appendChild(el("span",null,(inv.items||[]).length+" line"+((inv.items||[]).length===1?"":"s")));
+    d.appendChild(ft);
+    d.onclick=function(){invDialog(inv);};
+    host.appendChild(d);});
+}
+
+function invDialog(inv){
+  var isNew=!inv;
+  inv=inv||{number:nextNumber(),name:"",personId:null,forWhat:"",
+    issued:today(),due:addDays(today(),14),items:[{desc:"",qty:1,rate:""}],
+    terms:biz().terms||"",notes:"",taxPct:"",discount:"",status:"draft"};
+  var st=invStatus(inv);
+  openDlg(isNew?"New invoice":inv.number+" · "+(inv.name||""),
+    '<div class="two">'+
+      '<label><span>Number</span><input id="invoices_vNum" value="'+esc(inv.number)+'"></label>'+
+      '<label><span>Status</span><select id="invoices_vSt">'+
+        [["draft","Draft"],["sent","Sent"],["paid","Paid"]].map(function(o){
+          return '<option value="'+o[0]+'"'+(inv.status===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+
+      '</select></label></div>'+
+    '<label><span>Bill to</span><input id="invoices_vWho" list="dlPeople" value="'+esc(inv.name||"")+'" placeholder="Name"></label>'+peopleDatalist()+
+    '<label><span>What it is for</span><input id="invoices_vFor" value="'+esc(inv.forWhat||"")+'" placeholder="Saturday gig, two lessons"></label>'+
+    '<div class="two">'+
+      '<label><span>Issued</span><input type="date" id="invoices_vIss" value="'+esc(inv.issued||today())+'"></label>'+
+      '<label><span>Due</span><input type="date" id="invoices_vDue" value="'+esc(inv.due||"")+'"></label></div>'+
+    '<h2 class="sec">Lines</h2>'+
+    '<div class="lihead"><div>What</div><div>Qty</div><div>Rate</div><div>Amount</div><div></div></div>'+
+    '<div id="invoices_vLines"></div>'+
+    '<button class="btn ghost sm" id="invoices_vAdd" style="width:100%;margin-top:6px">Add a line</button>'+
+    '<div class="two" style="margin-top:12px">'+
+      '<label><span>Discount %</span><input type="number" id="invoices_vDisc" inputmode="decimal" value="'+esc(inv.discount||"")+'" placeholder="0"></label>'+
+      '<label><span>Tax %</span><input type="number" id="invoices_vTax" inputmode="decimal" value="'+esc(inv.taxPct||"")+'" placeholder="0"></label></div>'+
+    '<div class="totals" id="invoices_vTot"></div>'+
+    (isNew?'':'<div id="invoices_vTicket"></div>')+
+    '<label style="margin-top:12px"><span>How to pay you</span><textarea id="invoices_vTerms" style="min-height:52px" placeholder="Cash App $handle, cash on the night, due within 14 days">'+esc(inv.terms||"")+'</textarea></label>'+
+    '<label><span>Notes on the invoice</span><input id="invoices_vNotes" value="'+esc(inv.notes||"")+'"></label>'+
+    '<div class="row-btns"><button class="btn" id="invoices_vS" style="flex:1">'+(isNew?"Create it":"Save")+'</button>'+
+    (isNew?'':'<button class="btn ghost sm" id="invoices_vPrev">Preview</button>'+
+             '<button class="btn ghost sm" id="invoices_vPrint">Print</button>'+
+             '<button class="btn ghost sm" id="invoices_vSend">Send</button>'+
+             (st!=="paid"?'<button class="btn tick sm" id="invoices_vPaid">Take a payment</button>':'')+
+             '<button class="btn ghost sm" id="invoices_vX">Delete</button>')+'</div>',
+    function(){
+      var items=(inv.items&&inv.items.length)?inv.items.map(function(l){return {desc:l.desc,qty:l.qty,rate:l.rate};})
+        :[{desc:"",qty:1,rate:""}];
+      function totals(){
+        var tmp={items:items,taxPct:$("#invoices_vTax").value,discount:$("#invoices_vDisc").value};
+        var t=invTotal(tmp), h=$("#invoices_vTot"); h.innerHTML="";
+        function row(l,v,cls){
+          var r=el("div","totrow"+(cls?" "+cls:""));
+          r.appendChild(el("div",null,l)); r.appendChild(el("div",null,v));
+          h.appendChild(r);}
+        row("Subtotal",money(t.sub));
+        if(t.discount) row("Discount "+$("#invoices_vDisc").value+"%","−"+money(t.discount));
+        if(t.tax) row("Tax "+$("#invoices_vTax").value+"%",money(t.tax));
+        row("Total",money(t.total),"big");
+      }
+      function drawLines(){
+        var h=$("#invoices_vLines"); h.innerHTML="";
+        items.forEach(function(l,idx){
+          var r=el("div","li");
+          var d1=el("input"); d1.value=l.desc||""; d1.placeholder="Playing a set";
+          d1.oninput=function(){l.desc=d1.value;};
+          var q=el("input"); q.type="number"; q.inputMode="decimal"; q.value=l.qty!=null?l.qty:1;
+          var rt=el("input"); rt.type="number"; rt.inputMode="decimal"; rt.step="0.01";
+          rt.value=l.rate!==""&&l.rate!=null?l.rate:""; rt.placeholder="0.00";
+          var amt=el("div","amt3",money(lineTotal(l)));
+          q.oninput=function(){l.qty=q.value;amt.textContent=money(lineTotal(l));totals();};
+          rt.oninput=function(){l.rate=rt.value;amt.textContent=money(lineTotal(l));totals();};
+          var k=el("button","kill","×");
+          k.onclick=function(e){e.preventDefault();
+            if(items.length<2) return toast("An invoice needs at least one line");
+            items.splice(idx,1);drawLines();totals();};
+          r.appendChild(d1);r.appendChild(q);r.appendChild(rt);r.appendChild(amt);r.appendChild(k);
+          h.appendChild(r);});
+      }
+      drawLines(); totals();
+      if(!isNew) drawTicketBox(inv);
+      $("#invoices_vAdd").onclick=function(e){e.preventDefault();items.push({desc:"",qty:1,rate:""});drawLines();};
+      $("#invoices_vDisc").oninput=totals; $("#invoices_vTax").oninput=totals;
+
+      function collect(){
+        inv.number=$("#invoices_vNum").value.trim()||inv.number;
+        inv.name=$("#invoices_vWho").value.trim();
+        if(inv.name){ var p=ensureContact(inv.name); inv.personId=p?p.id:null; }
+        inv.forWhat=$("#invoices_vFor").value.trim();
+        inv.issued=$("#invoices_vIss").value||today(); inv.due=$("#invoices_vDue").value;
+        inv.items=items.filter(function(l){return (l.desc||"").trim()||lineTotal(l);});
+        inv.taxPct=$("#invoices_vTax").value; inv.discount=$("#invoices_vDisc").value;
+        inv.terms=$("#invoices_vTerms").value; inv.notes=$("#invoices_vNotes").value.trim();
+        inv.status=$("#invoices_vSt").value;
+      }
+      $("#invoices_vS").onclick=function(){
+        collect();
+        if(!inv.items.length) return toast("Put at least one line on it");
+        if(isNew){
+          inv.id=uid();
+          invoices().push(inv);
+          H.settings.invoiceNext=(H.settings.invoiceNext||1)+1;
+        }
+        save(); pageHead(); pageRender(); dlg.close();
+        toast(isNew?"Invoice "+inv.number+" created":"Saved");};
+      if(!isNew){
+        $("#invoices_vPrev").onclick=function(){ collect(); save(); previewInvoice(inv); };
+        $("#invoices_vPrint").onclick=function(){ collect(); save(); printInvoice(inv); };
+        $("#invoices_vSend").onclick=function(){ collect(); save(); sendInvoice(inv); };
+        if($("#invoices_vPaid")) $("#invoices_vPaid").onclick=function(){ collect(); save(); payDialog(inv); };
+        $("#invoices_vX").onclick=function(){
+          if(!confirm("Delete "+inv.number+"?")) return;
+          trashIt("invoice",inv.number+" · "+(inv.name||""),inv);
+          H.invoices=invoices().filter(function(x){return x.id!==inv.id;});
+          save(); pageHead(); pageRender(); dlg.close();};
+      }
+    });
+}
+
+function drawTicketBox(inv){
+  var host=$("#invoices_vTicket"); if(!host) return;
+  host.innerHTML="";
+  host.appendChild(el("h2","sec","Payment ticket"));
+  var tk=ticketFor(inv);
+  if(!tk){
+    host.appendChild(el("p","foot-note",
+      "Issue a ticket and they get a code to pay against. It handles part payments, shows on the invoice, and lives with your other tickets in Money."));
+    var b=el("button","btn ghost sm","Issue a ticket for this"); b.style.width="100%";
+    b.onclick=function(e){ e.preventDefault();
+      if(issueTicket(inv)){ drawTicketBox(inv); pageHead(); pageRender(); toast("Ticket "+inv.ticketCode+" issued"); } };
+    host.appendChild(b);
+    return;
+  }
+  var box=el("div","bar-list");
+  var r=el("div","bar-row trio"),L2=el("div");
+  L2.appendChild(el("div","who",tk.code));
+  L2.appendChild(el("div","meta",money(tk.paidCents||0)+" of "+money(tk.cents)+" in · "+tk.status));
+  r.appendChild(L2);
+  r.appendChild(el("div","amt in",money(tk.cents-(tk.paidCents||0))+" left"));
+  r.appendChild(el("div"));
+  box.appendChild(r);
+  (tk.pays||[]).forEach(function(p){
+    var pr=el("div","bar-row"),PL=el("div");
+    PL.appendChild(el("div","who",money(p.cents)));
+    PL.appendChild(el("div","meta",prettyFull(p.date)+(p.method?" · "+p.method:"")));
+    pr.appendChild(PL); pr.appendChild(el("span","pill","paid"));
+    box.appendChild(pr);});
+  host.appendChild(box);
+  var row=el("div","row-btns"); row.style.marginTop="8px";
+  var a=el("a","btn ghost sm","Open in Money"); a.href="money.html?t="+tk.code;
+  row.appendChild(a);
+  host.appendChild(row);
+}
+
+function payDialog(inv){
+  var left=invDue(inv);
+  dlg.close();
+  setTimeout(function(){
+    openDlg("Payment on "+inv.number,
+      '<p class="foot-note" style="margin-top:0">'+esc(money(invPaid(inv)))+' of '+esc(money(invTotal(inv).total))+
+        ' has come in. Part payments are fine — the rest stays open.</p>'+
+      '<div class="two">'+
+        '<label><span>How much now</span><input type="number" step="0.01" min="0" id="invoices_mpAmt" value="'+(left/100).toFixed(2)+'"></label>'+
+        '<label><span>When</span><input type="date" id="invoices_mpDate" value="'+today()+'"></label></div>'+
+      (L?'<div class="two">'+
+        '<label><span>Into</span><select id="invoices_mpAcct">'+(L.accounts||[]).map(function(a){
+          return '<option value="'+a.id+'">'+esc(a.name)+'</option>';}).join("")+'</select></label>'+
+        '<label><span>How they paid</span><select id="invoices_mpM"><option value="">Not noted</option>'+
+          (L.methods||[]).map(function(m){return '<option value="'+esc(m)+'">'+esc(m)+'</option>';}).join("")+
+        '</select></label></div>':'<p class="warn">No ledger here, so this only marks the invoice.</p>')+
+      '<button class="btn tick" id="invoices_mpGo" style="width:100%">Record it</button>',
+      function(){
+        $("#invoices_mpGo").onclick=function(){
+          var c=Math.round(parseFloat($("#invoices_mpAmt").value)*100)||0;
+          if(c<=0) return toast("How much came in?");
+          if(c>left) return toast("That is more than the "+money(left)+" still due");
+          takePayment(inv,c,$("#invoices_mpM")?$("#invoices_mpM").value:"",$("#invoices_mpAcct")?$("#invoices_mpAcct").value:null,$("#invoices_mpDate").value);
+          pageHead(); pageRender(); dlg.close();
+          var rest=invDue(inv);
+          toast(rest>0?money(rest)+" still due":"Invoice "+inv.number+" settled");};
+      });
+  },60);
+}
+function markPaid(inv){
+  var t=invTotal(inv).total;
+  dlg.close();
+  setTimeout(function(){
+    openDlg("Mark "+inv.number+" paid",
+      '<p class="foot-note" style="margin-top:0">This logs the money coming in, so you do not have to enter it twice.</p>'+
+      '<div class="two">'+
+        '<label><span>How much came in</span><input type="number" step="0.01" id="invoices_mpAmt" value="'+(t/100).toFixed(2)+'"></label>'+
+        '<label><span>When</span><input type="date" id="invoices_mpDate" value="'+today()+'"></label></div>'+
+      (L?'<div class="two">'+
+        '<label><span>Into</span><select id="invoices_mpAcct">'+(L.accounts||[]).map(function(a){
+          return '<option value="'+a.id+'">'+esc(a.name)+'</option>';}).join("")+'</select></label>'+
+        '<label><span>How they paid</span><select id="invoices_mpM"><option value="">Not noted</option>'+
+          (L.methods||[]).map(function(m){return '<option value="'+esc(m)+'">'+esc(m)+'</option>';}).join("")+
+        '</select></label></div>':'<p class="warn">No ledger on this device, so it will only mark the invoice.</p>')+
+      '<button class="btn tick" id="invoices_mpGo" style="width:100%">Mark it paid</button>',
+      function(){
+        $("#invoices_mpGo").onclick=function(){
+          var c=Math.round(parseFloat($("#invoices_mpAmt").value)*100)||0;
+          inv.status="paid"; inv.paidOn=$("#invoices_mpDate").value||today();
+          if(L&&c>0){
+            var ac=(L.accounts||[]).filter(function(a){return a.id===$("#invoices_mpAcct").value;})[0]||L.accounts[0];
+            if(ac){
+              var txn={id:uid(),type:"in",cents:c,date:inv.paidOn,accountId:ac.id,
+                who:inv.name||"Invoice",personId:inv.personId||null,
+                method:$("#invoices_mpM")?$("#invoices_mpM").value:"",note:"Invoice "+inv.number};
+              ac.cents+=c; L.txns.push(txn); saveL();
+              inv.txnId=txn.id;
+            }
+          }
+          save(); pageHead(); pageRender(); dlg.close();
+          toast("Paid — "+money(c)+" logged in");};
+      });
+  },60);
+}
+
+function invoiceText(inv){
+  var t=invTotal(inv), b=biz();
+  var A=[];
+  A.push("INVOICE "+inv.number);
+  if(b.name) A.push("From: "+b.name);
+  A.push("To: "+(inv.name||"—"));
+  if(inv.forWhat) A.push("For: "+inv.forWhat);
+  A.push("Issued: "+prettyFull(inv.issued));
+  if(inv.due) A.push("Due: "+prettyFull(inv.due));
+  A.push("");
+  (inv.items||[]).forEach(function(l){
+    A.push("  "+(l.desc||"—")+"   "+(l.qty||1)+" x "+money(Math.round((+l.rate||0)*100))+
+      "   "+money(lineTotal(l)));});
+  A.push("");
+  if(t.discount) A.push("Discount: −"+money(t.discount));
+  if(t.tax) A.push("Tax: "+money(t.tax));
+  A.push("TOTAL: "+money(t.total));
+  var paid=invPaid(inv);
+  if(paid){ A.push("Received: "+money(paid)); A.push("STILL DUE: "+money(invDue(inv))); }
+  var tk=ticketFor(inv);
+  if(tk&&invDue(inv)>0){
+    A.push("");
+    A.push("Pay against code: "+tk.code);
+    A.push("Part payments are fine — the code stays good until it clears.");
+  }
+  if(inv.terms){ A.push(""); A.push(inv.terms); }
+  if(inv.notes){ A.push(""); A.push(inv.notes); }
+  return A.join("\n");
+}
+function sendInvoice(inv){
+  var txt=invoiceText(inv);
+  if(navigator.share) navigator.share({title:inv.number,text:txt}).catch(function(){copyInv(txt);});
+  else copyInv(txt);
+}
+function copyInv(txt){
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(txt).then(function(){toast("Copied — paste it to them");},
+      function(){toast("Copy didn't work");});
+  else toast("Copy isn't available here");
+}
+function initials2(n){
+  var p=String(n||"").trim().split(/\s+/).filter(Boolean);
+  if(!p.length) return "S";
+  return ((p[0][0]||"")+(p.length>1?p[p.length-1][0]:"")).toUpperCase();
+}
+function invoiceHTML(inv){
+  var t=invTotal(inv), b=biz(), st=invStatus(inv);
+  var paid=invPaid(inv), due=invDue(inv), tk=ticketFor(inv);
+  var person=inv.personId?contactRec(inv.personId):null;
+  var billTo=[inv.name||"—"];
+  if(person){
+    if(person.addr) billTo.push(person.addr);
+    if(person.email) billTo.push(person.email);
+    if(person.phone) billTo.push(person.phone);
+  }
+  var rows=(inv.items||[]).map(function(l){
+    return '<tr><td><div class="desc2">'+esc(l.desc||"—")+'</div></td>'+
+      '<td class="r">'+esc(String(l.qty||1))+'</td>'+
+      '<td class="r">'+esc(money(Math.round((+l.rate||0)*100)))+'</td>'+
+      '<td class="r">'+esc(money(lineTotal(l)))+'</td></tr>';}).join("");
+  var meta='<table>'+
+    '<tr><td class="k">Invoice</td><td class="v">'+esc(inv.number)+'</td></tr>'+
+    '<tr><td class="k">Issued</td><td class="v">'+esc(prettyFull(inv.issued))+'</td></tr>'+
+    (inv.due?'<tr><td class="k">Due</td><td class="v">'+esc(prettyFull(inv.due))+'</td></tr>':'')+
+    (inv.forWhat?'<tr><td class="k">Reference</td><td class="v">'+esc(inv.forWhat)+'</td></tr>':'')+
+    '</table>';
+  var sums='<table>'+
+    '<tr><td class="k">Subtotal</td><td class="v">'+esc(money(t.sub))+'</td></tr>'+
+    (t.discount?'<tr><td class="k">Discount '+esc(inv.discount)+'%</td><td class="v">−'+esc(money(t.discount))+'</td></tr>':'')+
+    (t.tax?'<tr><td class="k">Tax '+esc(inv.taxPct)+'%</td><td class="v">'+esc(money(t.tax))+'</td></tr>':'')+
+    '<tr class="grand"><td class="k">Total</td><td class="v">'+esc(money(t.total))+'</td></tr>'+
+    (paid?'<tr class="paidrow"><td class="k">Received</td><td class="v">−'+esc(money(paid))+'</td></tr>':'')+
+    '</table>';
+  return '<div class="paperwrap"><div class="paper">'+
+    '<div class="band">'+
+      '<div><div class="mono2">'+esc(initials2(b.name||"Station"))+'</div>'+
+        '<div class="word">Invoice</div></div>'+
+      '<div class="from">'+(b.name?'<b>'+esc(b.name)+'</b><br>':'')+
+        [b.line1,b.line2,b.phone,b.email].filter(Boolean).map(esc).join("<br>")+'</div>'+
+      '<div class="meta">'+meta+'</div>'+
+    '</div>'+
+    '<div class="cols">'+
+      '<div><div class="cap">Billed to</div><div class="who3">'+esc(billTo[0])+'</div>'+
+        (billTo.length>1?'<div style="margin-top:4px">'+billTo.slice(1).map(esc).join("<br>")+'</div>':'')+'</div>'+
+      '<div><div class="cap">Status</div><div class="who3">'+esc(st==="part paid"?"Part paid":st)+'</div>'+
+        (inv.due&&st!=="paid"?'<div style="margin-top:4px">Payment due '+esc(prettyFull(inv.due))+'</div>':'')+
+        (st==="paid"&&inv.paidOn?'<div style="margin-top:4px">Settled '+esc(prettyFull(inv.paidOn))+'</div>':'')+'</div>'+
+    '</div>'+
+    '<table class="items"><thead><tr>'+
+      '<th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th>'+
+    '</tr></thead><tbody>'+(rows||'<tr><td colspan="4">No lines yet</td></tr>')+'</tbody></table>'+
+    '<div class="sums">'+sums+'</div>'+
+    '<div class="due'+(due<=0?" settled":"")+'">'+
+      '<span class="l">'+(due<=0?"Paid in full":"Amount due")+'</span>'+
+      '<span class="n">'+esc(money(due<=0?t.total:due))+'</span></div>'+
+    (tk&&due>0?'<div class="codebox"><div><div class="t2">Pay against this code</div>'+
+      '<div class="c">'+esc(tk.code)+'</div></div>'+
+      '<div style="text-align:right;font-size:11.5px;max-width:230px">Quote it when you pay. '+
+      'Part payments are fine — the code stays good until the balance clears.</div></div>':'')+
+    ((inv.terms||inv.notes)?'<div class="terms2">'+esc(inv.terms||"")+
+      (inv.notes?"\n\n"+esc(inv.notes):"")+'</div>':'')+
+    '<div class="foot2"><span>'+esc(inv.number)+(b.name?' · '+esc(b.name):'')+'</span>'+
+      '<span>'+esc(prettyFull(inv.issued))+'</span></div>'+
+    (st==="paid"?'<div class="stamp3">Paid</div>':'')+
+    '</div></div>';
+}
+function previewInvoice(inv){
+  openDlg(inv.number+" · preview",
+    invoiceHTML(inv)+
+    '<div class="row-btns" style="margin-top:14px">'+
+      '<button class="btn" id="invoices_pvPrint" style="flex:1">Print or save as PDF</button>'+
+      '<button class="btn ghost sm" id="invoices_pvSend">Send as text</button>'+
+      '<button class="btn ghost sm" id="invoices_pvBack">Back</button></div>',
+    function(){
+      $("#invoices_pvPrint").onclick=function(){ printInvoice(inv); };
+      $("#invoices_pvSend").onclick=function(){ sendInvoice(inv); };
+      $("#invoices_pvBack").onclick=function(){ dlg.close(); setTimeout(function(){invDialog(inv);},60); };
+    });
+}
+function printInvoice(inv){
+  $("#printArea").innerHTML=invoiceHTML(inv);
+  if(dlg.open) dlg.close();
+  setTimeout(function(){ window.print(); },120);
+}
+function detailsDialog(){
+  var b=biz();
+  openDlg("Your details",
+    '<p class="foot-note" style="margin-top:0">These go at the top of every invoice you print or send.</p>'+
+    '<label><span>Your name or trading name</span><input id="invoices_bN" value="'+esc(b.name||"")+'"></label>'+
+    '<label><span>Address line 1</span><input id="invoices_b1" value="'+esc(b.line1||"")+'"></label>'+
+    '<label><span>Address line 2</span><input id="invoices_b2" value="'+esc(b.line2||"")+'"></label>'+
+    '<div class="two">'+
+      '<label><span>Phone</span><input id="invoices_bP" value="'+esc(b.phone||"")+'"></label>'+
+      '<label><span>Email</span><input id="invoices_bE" value="'+esc(b.email||"")+'"></label></div>'+
+    '<label><span>Standard payment terms</span><textarea id="invoices_bT" style="min-height:60px" placeholder="Cash App $handle · due within 14 days">'+esc(b.terms||"")+'</textarea></label>'+
+    '<div class="two">'+
+      '<label><span>Next invoice number</span><input type="number" id="invoices_bNum" value="'+(H.settings.invoiceNext||1)+'"></label>'+
+      '<label><span>Default due in (days)</span><input type="number" id="bD" value="'+(b.dueDays||14)+'"></label></div>'+
+    '<button class="btn" id="invoices_bS" style="width:100%">Save</button>',
+    function(){
+      $("#invoices_bS").onclick=function(){
+        b.name=$("#invoices_bN").value.trim(); b.line1=$("#invoices_b1").value.trim(); b.line2=$("#invoices_b2").value.trim();
+        b.phone=$("#invoices_bP").value.trim(); b.email=$("#invoices_bE").value.trim(); b.terms=$("#invoices_bT").value;
+        b.dueDays=+$("#bD").value||14;
+        H.settings.invoiceNext=+$("#invoices_bNum").value||1;
+        save(); dlg.close(); toast("Saved");};
+    });
+}
+function pageAction(a){
+  if(a==="new") invDialog(null);
+  else if(a==="mydetails") detailsDialog();
+}
+function pageBoot(){
+  H.invoices=H.invoices||[];
+  if(qparam("f")) ifilter=qparam("f");
+  if(qparam("new")) setTimeout(function(){invDialog(null);},120);
+}
+
+return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
+})();
+var MOD_SUBS=(function(){
+function perYear(s){
+  var c=s.cents||0;
+  if(s.cycle==="weekly") return Math.round(c*52);
+  if(s.cycle==="monthly") return c*12;
+  if(s.cycle==="quarterly") return c*4;
+  return c;
+}
+function perMonth(s){ return Math.round(perYear(s)/12); }
+function advance(s,from){
+  if(s.cycle==="weekly") return addDays(from,7);
+  if(s.cycle==="monthly") return addMonth(from);
+  if(s.cycle==="quarterly") return addMonth(addMonth(addMonth(from)));
+  var d=parseD(from); d.setFullYear(d.getFullYear()+1); return ymd(d);
+}
+function rollForward(s){
+  // catch a next-charge date up to today, so nothing sits stale
+  var moved=false;
+  while(s.next&&s.next<today()){ s.next=advance(s,s.next); moved=true; }
+  return moved;
+}
+function active(){ return (H.subs||[]).filter(function(s){return s.active!==false;}); }
+
+function pageHead(){
+  var a=active();
+  var m=a.reduce(function(t,s){return t+perMonth(s);},0);
+  setHead("SB · subscriptions","Subscriptions",
+    a.length+" active  ·  "+money(m)+" a month  ·  "+money(a.reduce(function(t,s){return t+perYear(s);},0))+" a year");
+}
+function chargesIn(days){
+  var out=[];
+  active().forEach(function(s){
+    if(!s.next) return;
+    var d=s.next;
+    while(daysBetween(today(),d)<=days){
+      if(d>=today()) out.push({sub:s,date:d});
+      d=advance(s,d);
+      if(out.length>60) break;
+    }
+  });
+  return out.sort(function(a,b){return a.date.localeCompare(b.date);});
+}
+function subRow(s,showActions){
+  var late=s.next&&s.next<=today();
+  var soon=s.next&&daysBetween(today(),s.next)<=3;
+  var r=el("div","bar-row trio"+(showActions?"":" tap")),L=el("div");
+  L.appendChild(el("div","who",s.name));
+  var bits=[money(s.cents)+" "+(s.cycle||"monthly")];
+  if(s.next&&s.active!==false) bits.push((late?"due now":"next "+relDay(s.next)));
+  if(s.method) bits.push(s.method);
+  if(s.cat) bits.push(s.cat);
+  if(s.trial) bits.push("FREE TRIAL");
+  if(s.active===false&&s.cancelledOn) bits.push("cancelled "+pretty(s.cancelledOn));
+  L.appendChild(el("div","meta",bits.join(" · ")));
+  r.appendChild(L);
+  var a=el("div","amt out",money(perMonth(s))+"/mo");
+  a.style.fontSize="12.5px";
+  if(s.active===false){ a.className="amt"; a.textContent="—"; }
+  r.appendChild(a);
+  if(s.trial&&s.active!==false&&soon) r.appendChild(el("span","pill hot","cancel now"));
+  else if(late) r.appendChild(el("span","pill hot","due"));
+  else if(soon) r.appendChild(el("span","pill warm","soon"));
+  else r.appendChild(el("div"));
+  r.onclick=function(){subDialog(s);};
+  return r;
+}
+function pageRender(){
+  var changed=false;
+  (H.subs||[]).forEach(function(s){ if(s.active!==false&&rollForward(s)) changed=true; });
+  if(changed) save();
+
+  var a=active();
+  $("#subs_mMonth").textContent=money(a.reduce(function(t,s){return t+perMonth(s);},0));
+  $("#subs_mYear").textContent=money(a.reduce(function(t,s){return t+perYear(s);},0));
+  $("#subs_m30").textContent=money(chargesIn(30).reduce(function(t,c){return t+c.sub.cents;},0));
+  $("#subs_mSaved").textContent=money((H.subs||[]).filter(function(s){return s.active===false;})
+    .reduce(function(t,s){return t+perYear(s);},0))+"/yr";
+  $("#subs_activeCount").textContent=a.length+" of them";
+
+  var soon=chargesIn(30),host=$("#subs_soon"); host.innerHTML="";
+  if(!soon.length) host.appendChild(emptyBox("Nothing charging soon","Add a subscription and its next charge shows up here."));
+  else{
+    var box=el("div","bar-list");
+    soon.slice(0,12).forEach(function(c){
+      var r=el("div","bar-row trio"),L=el("div");
+      L.appendChild(el("div","who",c.sub.name));
+      L.appendChild(el("div","meta",relDay(c.date)+" · "+prettyFull(c.date)+(c.sub.method?" · "+c.sub.method:"")));
+      r.appendChild(L);
+      r.appendChild(el("div","amt out",money(c.sub.cents)));
+      r.appendChild(c.sub.trial?el("span","pill hot","trial"):el("div"));
+      box.appendChild(r);});
+    host.appendChild(box);
+  }
+
+  var lh=$("#subs_list"); lh.innerHTML="";
+  if(!a.length) lh.appendChild(emptyBox("Nothing tracked yet","Add what you pay for every month — streaming, phone, storage, anything."));
+  else{
+    var b2=el("div","bar-list");
+    a.slice().sort(function(x,y){return perYear(y)-perYear(x);}).forEach(function(s){b2.appendChild(subRow(s));});
+    lh.appendChild(b2);
+  }
+
+  var dead=(H.subs||[]).filter(function(s){return s.active===false;});
+  var dh=$("#subs_dead"); dh.innerHTML="";
+  if(!dead.length) dh.appendChild(emptyBox("None cancelled","When you cancel something it moves here with what it was costing you."));
+  else{
+    var b3=el("div","bar-list");
+    dead.forEach(function(s){b3.appendChild(subRow(s));});
+    dh.appendChild(b3);
+  }
+}
+function methodOpts(sel){
+  var ms=(L&&L.methods)?L.methods:["Cash","Cash App","Apple Pay","Debit card"];
+  return '<option value="">Not noted</option>'+ms.map(function(m){
+    return '<option value="'+esc(m)+'"'+(m===sel?" selected":"")+'>'+esc(m)+'</option>';}).join("");
+}
+function subDialog(s,isTrial){
+  var isNew=!s;
+  s=s||{name:"",cents:0,cycle:isTrial?"monthly":"monthly",next:"",method:"",cat:"",url:"",notes:"",
+        active:true,trial:!!isTrial};
+  openDlg(isNew?(isTrial?"Add a free trial":"Add a subscription"):s.name,
+    (isTrial?'<p class="warn">Put the date the trial ends as the next charge. It turns red three days before, so you get a chance to cancel first.</p>':'')+
+    '<label><span>What is it</span><input id="subs_fN" value="'+esc(s.name)+'" placeholder="Spotify, phone, storage"></label>'+
+    '<div class="two">'+
+      '<label><span>How much</span><input type="number" step="0.01" min="0" id="subs_fA" inputmode="decimal" value="'+(s.cents?(s.cents/100).toFixed(2):"")+'" placeholder="0.00"></label>'+
+      '<label><span>How often</span><select id="subs_fC">'+
+        ["weekly","monthly","quarterly","yearly"].map(function(c){
+          return '<option value="'+c+'"'+(s.cycle===c?" selected":"")+'>'+c+'</option>';}).join("")+
+      '</select></label></div>'+
+    '<div class="two">'+
+      '<label><span>'+(s.trial?"Trial ends":"Next charge")+'</span><input type="date" id="subs_fD" value="'+esc(s.next||"")+'"></label>'+
+      '<label><span>Paid with</span><select id="subs_fM">'+methodOpts(s.method)+'</select></label></div>'+
+    '<div class="two">'+
+      '<label><span>Category</span><input id="subs_fT" value="'+esc(s.cat||"")+'" placeholder="Music, phone, tools"></label>'+
+      '<label class="check" style="margin-top:18px"><input type="checkbox" id="subs_fR"'+(s.trial?" checked":"")+'><span>This is a free trial</span></label></div>'+
+    '<label><span>Where to cancel it</span><input id="subs_fU" value="'+esc(s.url||"")+'" placeholder="Website or phone number"></label>'+
+    '<label><span>Notes</span><input id="subs_fO" value="'+esc(s.notes||"")+'" placeholder="Optional"></label>'+
+    '<div class="row-btns"><button class="btn" id="subs_fS" style="flex:1">'+(isNew?"Add it":"Save")+'</button>'+
+    (isNew?'':(s.active===false
+      ? '<button class="btn ghost" id="subs_fRe">Restart it</button>'
+      : '<button class="btn ghost" id="subs_fX">Cancelled it</button>')+
+      '<button class="btn ghost sm" id="subs_fDel">Delete</button>')+'</div>',
+    function(){
+      $("#subs_fS").onclick=function(){
+        var n=$("#subs_fN").value.trim();
+        if(!n){toast("What is it called?");return;}
+        s.name=n; s.cents=cents($("#subs_fA").value); s.cycle=$("#subs_fC").value;
+        s.next=$("#subs_fD").value; s.method=$("#subs_fM").value; s.cat=$("#subs_fT").value.trim();
+        s.url=$("#subs_fU").value.trim(); s.notes=$("#subs_fO").value.trim(); s.trial=$("#subs_fR").checked;
+        if(isNew){s.id=uid();s.active=true;s.created=today();H.subs.push(s);}
+        save();pageHead();pageRender();buildNav();dlg.close();toast(isNew?"Added":"Saved");};
+      if(!isNew&&s.active!==false) $("#subs_fX").onclick=function(){
+        s.active=false; s.cancelledOn=today();
+        save();pageHead();pageRender();buildNav();dlg.close();
+        toast("Cancelled — that's "+money(perYear(s))+" a year back");};
+      if(!isNew&&s.active===false) $("#subs_fRe").onclick=function(){
+        s.active=true; delete s.cancelledOn;
+        if(s.next&&s.next<today()) rollForward(s);
+        save();pageHead();pageRender();buildNav();dlg.close();toast("Back on the list");};
+      if(!isNew) $("#subs_fDel").onclick=function(){
+        if(!confirm("Delete "+s.name+" completely? Use 'Cancelled it' instead if you want to keep the record.")) return;
+        trashIt("sub",s.name,s);
+        H.subs=H.subs.filter(function(x){return x.id!==s.id;});
+        save();pageHead();pageRender();buildNav();dlg.close();};
+    });
+}
+function pageAction(a){
+  if(a==="new") subDialog(null,false);
+  else if(a==="trial") subDialog(null,true);
+}
+function pageBoot(){ if(qparam("new")) setTimeout(function(){subDialog(null,false);},120); }
+
+return {head:pageHead,render:pageRender,action:(typeof pageAction!=='undefined'?pageAction:null),boot:(typeof pageBoot!=='undefined'?pageBoot:null)};
+})();
+
+var TABS=["ledger", "wallet", "invoices", "subs"];
+var ptab=TABS[0];
+function activeMod(){ return window["MOD_"+ptab.toUpperCase()]; }
+function setPTab(t){
+  if(TABS.indexOf(t)<0) t=TABS[0];
+  ptab=t;
+  TABS.forEach(function(x){
+    var v=document.getElementById("view_"+x);
+    if(v) v.style.display=(x===t)?"":"none";});
+  document.querySelectorAll("#pgtabs button").forEach(function(b){
+    b.setAttribute("aria-pressed",b.dataset.t===t);});
+  var fab=document.querySelector(".fab");
+  if(fab){ var f={"ledger": "in", "wallet": "", "invoices": "new", "subs": "new"}; if(f[t]){ fab.style.display=""; fab.dataset.act=f[t]; } else fab.style.display="none"; }
+  try{ history.replaceState(null,"",location.pathname+"?tab="+t); }catch(e){}
+  $("#pTools").innerHTML="";
+  addTool("Search",commandBar); addTool("Trash",trashDialog); addTool("Theme",cycleTheme);
+  var m=activeMod();
+  if(m){ if(m.head) m.head(); if(m.render) m.render(); }
+  window.scrollTo(0,0);
+}
+function pageHead(){ var m=activeMod(); if(m&&m.head) m.head(); }
+function pageRender(){ var m=activeMod(); if(m&&m.render) m.render(); }
+function pageAction(a){ var m=activeMod(); if(m&&m.action) m.action(a); }
+function pageBoot(){
+  document.querySelectorAll("#pgtabs button").forEach(function(b){
+    b.onclick=function(){ setPTab(b.dataset.t); };});
+  TABS.forEach(function(x){
+    var m=window["MOD_"+x.toUpperCase()];
+    if(m&&m.boot){ try{ m.boot(); }catch(e){ console.error("boot "+x,e); } }});
+  var want=qparam("tab");
+  if(want&&TABS.indexOf(want)>=0) ptab=want;
+  setTimeout(function(){ setPTab(ptab); },0);
 }
 })();
 </script>
