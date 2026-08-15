@@ -313,7 +313,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 .logrow .w{font-family:var(--mono);font-size:11px;color:var(--dim)}
 .logrow .b{font-size:13.5px;white-space:pre-wrap;margin-top:2px}
 .web{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
-.pplayer{position:fixed;inset:0;z-index:200;background:rgba(12,18,24,.6);display:flex;align-items:flex-end;justify-content:center}
+.pplayer{position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;margin:0;max-width:none;max-height:none;background:rgba(12,18,24,.6);display:flex;align-items:flex-end;justify-content:center}
 .pplayer .sheet2{background:var(--paper);border:1px solid var(--ink);border-radius:3px 3px 0 0;width:min(480px,100%);max-height:88vh;display:flex;flex-direction:column}
 .pplayer .hd2{background:var(--ink);color:var(--on-ink);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;font-size:12px}
 .pplayer .hd2 button{background:none;border:0;color:var(--on-ink);font-size:20px;line-height:1;cursor:pointer}
@@ -671,8 +671,11 @@ var DB={
   }
 };
 
-var APP_VERSION="2.6";
+var APP_VERSION="2.7";
 var CHANGELOG=[
+ {v:"2.7",d:"2026-08-10",t:"Two fixes",
+  items:["Fixed properly: the person chooser was opening behind the form instead of over it. It now lives inside the dialog so it always sits on top",
+         "Count my cash in the ledger now has a Count it out mode — tap through the notes and coins instead of working out the total in your head, and it tells you if you are over or short as you go"]},
  {v:"2.6",d:"2026-08-10",t:"The vault holds real-world things too",
   items:["Fixed: choosing a person used to close the form you were filling in, so you could not carry on. It now opens over the top and closes back to where you were",
          "The vault takes more than website logins — bank cards, door codes, safe combinations, phone and router PINs, account numbers, or just a secret note",
@@ -1097,6 +1100,10 @@ function attachBar(host,kind,id,heading){
 /* ---------- choosing people ----------
    Names are never free text any more. You either pick somebody who
    already exists, or you deliberately create them. */
+/* A <dialog> opened with showModal() lives in the browser's top layer, which
+   sits above every normal z-index. So anything meant to appear OVER it has to
+   be a child of that dialog, not of body. */
+function pplHost(){ return (dlg && dlg.open) ? dlg : document.body; }
 function personPicker(opts){
   opts=opts||{};
   var chosen=(opts.value||[]).slice();
@@ -1107,7 +1114,7 @@ function personPicker(opts){
   var xb=el("button",null,"\u00d7");
   hd.appendChild(xb); sheet.appendChild(hd);
   var bd=el("div","bd2"); sheet.appendChild(bd);
-  layer.appendChild(sheet); document.body.appendChild(layer);
+  layer.appendChild(sheet); pplHost().appendChild(layer);
   function shut(){ if(layer.parentNode) layer.parentNode.removeChild(layer); }
   xb.onclick=shut;
   layer.onclick=function(e){ if(e.target===layer) shut(); };
@@ -1181,7 +1188,7 @@ function newPersonForm(name,then,closeParent){
   var xb=el("button",null,"\u00d7"); hd.appendChild(xb);
   sheet.appendChild(hd);
   var bd=el("div","bd2"); sheet.appendChild(bd);
-  layer.appendChild(sheet); document.body.appendChild(layer);
+  layer.appendChild(sheet); pplHost().appendChild(layer);
   function shut(){ if(layer.parentNode) layer.parentNode.removeChild(layer); }
   xb.onclick=shut;
   layer.onclick=function(e){ if(e.target===layer) shut(); };
@@ -2030,21 +2037,117 @@ function moveDialog(){
         dlg.close(); toast("Moved");};
     });
 }
+var CDEN=[["n100",10000,"$100"],["n50",5000,"$50"],["n20",2000,"$20"],["n10",1000,"$10"],
+          ["n5",500,"$5"],["n2",200,"$2"],["n1",100,"$1"],
+          ["c100",100,"$1 coin"],["c50",50,"50\u00a2"],["c25",25,"25\u00a2"],
+          ["c10",10,"10\u00a2"],["c5",5,"5\u00a2"],["c1",1,"1\u00a2"]];
 function countDialog(){
   var ca=L.accounts.filter(function(a){return a.kind==="cash";})[0]||L.accounts[0];
+  var mode="total", counts={};
   openDlg("Count my cash",
-    '<p class="warn">Count what you actually have and put the real number in. This sets the balance and logs the difference so your books match your pocket.</p>'+
+    '<p class="warn">Count what is actually there. This sets the balance and logs the difference, so your books match your pocket.</p>'+
     '<label><span>Which account</span><select id="ledger_fAcct">'+acctOptions(ca?ca.id:null)+'</select></label>'+
-    '<label><span>What you actually have</span><input type="number" step="0.01" min="0" id="ledger_fAmt" inputmode="decimal" placeholder="0.00"></label>'+
+    '<div class="seg" id="ledger_cmode">'+
+      '<button type="button" data-m="total" aria-pressed="true">I know the total</button>'+
+      '<button type="button" data-m="count">Count it out</button>'+
+    '</div>'+
+    '<div id="ledger_cTotal">'+
+      '<label><span>What you actually have</span><input type="number" step="0.01" min="0" id="ledger_fAmt" inputmode="decimal" placeholder="0.00"></label>'+
+    '</div>'+
+    '<div id="ledger_cDen" style="display:none">'+
+      '<div class="bar-list" id="ledger_denList"></div>'+
+      '<div class="wtot" style="margin-top:10px"><div class="l">Counted</div>'+
+        '<div class="n" id="ledger_denTot">$0.00</div>'+
+        '<div class="s" id="ledger_denSub">nothing yet</div></div>'+
+    '</div>'+
+    '<div id="ledger_cDiff"></div>'+
     '<button class="btn" id="ledger_fS" style="width:100%">Set the balance</button>',
     function(){
+      function amount(){
+        if(mode==="total") return cents($("#ledger_fAmt").value||0);
+        return CDEN.reduce(function(t,d){ return t+d[1]*(+counts[d[0]]||0); },0);
+      }
+      function pieces(){ return CDEN.reduce(function(n,d){ return n+(+counts[d[0]]||0); },0); }
+      function showDiff(){
+        var a=acct($("#ledger_fAcct").value);
+        var h=$("#ledger_cDiff"); h.innerHTML="";
+        if(!a) return;
+        var has=(mode==="total"&&$("#ledger_fAmt").value==="")||(mode==="count"&&!pieces());
+        var d=el("div","drift "+(has?"ok":(amount()===a.cents?"ok":"off")));
+        d.style.marginTop="10px";
+        if(has) d.innerHTML="The books say <b>"+esc(money(a.cents))+"</b> is in "+esc(a.name)+".";
+        else{
+          var diff=amount()-a.cents;
+          if(diff===0) d.innerHTML="Spot on \u2014 matches the <b>"+esc(money(a.cents))+"</b> expected.";
+          else if(diff>0) d.innerHTML="<b>"+esc(money(diff))+" more</b> than the books expect \u2014 probably money in that never got logged.";
+          else d.innerHTML="<b>"+esc(money(-diff))+" short</b> of the books \u2014 probably something spent that never got logged.";
+        }
+        h.appendChild(d);
+      }
+      function drawDen(){
+        var h=$("#ledger_denList"); h.innerHTML="";
+        CDEN.forEach(function(d){
+          var r=el("div","den"+((+counts[d[0]]||0)?"":" zero"));
+          r.appendChild(el("div","face",d[2]));
+          var c=el("div","cnt");
+          var minus=el("button",null,"\u2212");
+          var inp=el("input"); inp.type="number"; inp.inputMode="numeric"; inp.min="0";
+          inp.value=(+counts[d[0]]||0)||""; inp.placeholder="0";
+          var plus=el("button",null,"+");
+          var sub=el("div","sub2",money(d[1]*(+counts[d[0]]||0)));
+          function up(){
+            inp.value=(+counts[d[0]]||0)||"";
+            sub.textContent=money(d[1]*(+counts[d[0]]||0));
+            r.className="den"+((+counts[d[0]]||0)?"":" zero");
+            tot();
+          }
+          minus.onclick=function(e){e.preventDefault();counts[d[0]]=Math.max(0,(+counts[d[0]]||0)-1);up();};
+          plus.onclick=function(e){e.preventDefault();counts[d[0]]=(+counts[d[0]]||0)+1;up();};
+          inp.oninput=function(){counts[d[0]]=Math.max(0,parseInt(inp.value,10)||0);
+            sub.textContent=money(d[1]*counts[d[0]]);
+            r.className="den"+(counts[d[0]]?"":" zero"); tot();};
+          c.appendChild(minus);c.appendChild(inp);c.appendChild(plus);
+          r.appendChild(c); r.appendChild(sub);
+          h.appendChild(r);});
+      }
+      function tot(){
+        $("#ledger_denTot").textContent=money(amount());
+        $("#ledger_denSub").textContent=pieces()?(pieces()+" piece"+(pieces()===1?"":"s")):"nothing yet";
+        showDiff();
+      }
+      $("#ledger_cmode").querySelectorAll("button").forEach(function(b){
+        b.onclick=function(e){
+          e.preventDefault(); mode=b.dataset.m;
+          $("#ledger_cmode").querySelectorAll("button").forEach(function(x){
+            x.setAttribute("aria-pressed",x.dataset.m===mode);});
+          $("#ledger_cTotal").style.display=mode==="total"?"":"none";
+          $("#ledger_cDen").style.display=mode==="count"?"":"none";
+          if(mode==="count"&&!$("#ledger_denList").children.length) drawDen();
+          tot();};});
+      $("#ledger_fAmt").oninput=showDiff;
+      $("#ledger_fAcct").onchange=showDiff;
+      showDiff();
       $("#ledger_fS").onclick=function(){
-        var v=$("#ledger_fAmt").value;
-        if(v===""){toast("Put in the amount you counted");return;}
-        var c=cents(v),a=acct($("#ledger_fAcct").value),diff=c-a.cents;
+        if(mode==="total"&&$("#ledger_fAmt").value===""){toast("Put in the amount you counted");return;}
+        if(mode==="count"&&!pieces()&&!confirm("Count it as completely empty?")) return;
+        var c=amount(),a=acct($("#ledger_fAcct").value),diff=c-a.cents;
         addTxn({type:"count",cents:c,date:today(),accountId:a.id,who:"Counted "+a.name,
-          note:diff===0?"matched":(diff>0?money(diff)+" more than expected":money(-diff)+" short")});
-        dlg.close(); toast(diff===0?"Books match":"Balance corrected");};
+          note:(diff===0?"matched":(diff>0?money(diff)+" more than expected":money(-diff)+" short"))+
+               (mode==="count"?" \u00b7 counted out":"")});
+        if(mode==="count"){
+          H.wallet=H.wallet||{counts:{},accountId:null,lastCounted:""};
+          H.walletCounts=H.walletCounts||[];
+          var snap={};
+          CDEN.forEach(function(d){ if(+counts[d[0]]) snap[d[0]]=+counts[d[0]]; });
+          H.walletCounts.unshift({id:uid(),date:today(),at:Date.now(),total:c,
+            expected:a.cents,diff:diff,denoms:snap,accountId:a.id});
+          if(H.wallet.accountId===a.id||!H.wallet.accountId){
+            H.wallet.accountId=a.id; H.wallet.counts=snap; H.wallet.lastCounted=today();
+          }
+          save();
+        }
+        dlg.close();
+        toast(diff===0?"Books match your pocket":(diff>0?money(diff)+" more than expected":money(-diff)+" short \u2014 corrected"));};
     });
 }
 function acctDialog(){

@@ -313,7 +313,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 .logrow .w{font-family:var(--mono);font-size:11px;color:var(--dim)}
 .logrow .b{font-size:13.5px;white-space:pre-wrap;margin-top:2px}
 .web{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
-.pplayer{position:fixed;inset:0;z-index:200;background:rgba(12,18,24,.6);display:flex;align-items:flex-end;justify-content:center}
+.pplayer{position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;margin:0;max-width:none;max-height:none;background:rgba(12,18,24,.6);display:flex;align-items:flex-end;justify-content:center}
 .pplayer .sheet2{background:var(--paper);border:1px solid var(--ink);border-radius:3px 3px 0 0;width:min(480px,100%);max-height:88vh;display:flex;flex-direction:column}
 .pplayer .hd2{background:var(--ink);color:var(--on-ink);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;font-size:12px}
 .pplayer .hd2 button{background:none;border:0;color:var(--on-ink);font-size:20px;line-height:1;cursor:pointer}
@@ -554,8 +554,11 @@ var DB={
   }
 };
 
-var APP_VERSION="2.6";
+var APP_VERSION="2.7";
 var CHANGELOG=[
+ {v:"2.7",d:"2026-08-10",t:"Two fixes",
+  items:["Fixed properly: the person chooser was opening behind the form instead of over it. It now lives inside the dialog so it always sits on top",
+         "Count my cash in the ledger now has a Count it out mode — tap through the notes and coins instead of working out the total in your head, and it tells you if you are over or short as you go"]},
  {v:"2.6",d:"2026-08-10",t:"The vault holds real-world things too",
   items:["Fixed: choosing a person used to close the form you were filling in, so you could not carry on. It now opens over the top and closes back to where you were",
          "The vault takes more than website logins — bank cards, door codes, safe combinations, phone and router PINs, account numbers, or just a secret note",
@@ -980,6 +983,10 @@ function attachBar(host,kind,id,heading){
 /* ---------- choosing people ----------
    Names are never free text any more. You either pick somebody who
    already exists, or you deliberately create them. */
+/* A <dialog> opened with showModal() lives in the browser's top layer, which
+   sits above every normal z-index. So anything meant to appear OVER it has to
+   be a child of that dialog, not of body. */
+function pplHost(){ return (dlg && dlg.open) ? dlg : document.body; }
 function personPicker(opts){
   opts=opts||{};
   var chosen=(opts.value||[]).slice();
@@ -990,7 +997,7 @@ function personPicker(opts){
   var xb=el("button",null,"\u00d7");
   hd.appendChild(xb); sheet.appendChild(hd);
   var bd=el("div","bd2"); sheet.appendChild(bd);
-  layer.appendChild(sheet); document.body.appendChild(layer);
+  layer.appendChild(sheet); pplHost().appendChild(layer);
   function shut(){ if(layer.parentNode) layer.parentNode.removeChild(layer); }
   xb.onclick=shut;
   layer.onclick=function(e){ if(e.target===layer) shut(); };
@@ -1064,7 +1071,7 @@ function newPersonForm(name,then,closeParent){
   var xb=el("button",null,"\u00d7"); hd.appendChild(xb);
   sheet.appendChild(hd);
   var bd=el("div","bd2"); sheet.appendChild(bd);
-  layer.appendChild(sheet); document.body.appendChild(layer);
+  layer.appendChild(sheet); pplHost().appendChild(layer);
   function shut(){ if(layer.parentNode) layer.parentNode.removeChild(layer); }
   xb.onclick=shut;
   layer.onclick=function(e){ if(e.target===layer) shut(); };
