@@ -313,6 +313,19 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 .logrow .w{font-family:var(--mono);font-size:11px;color:var(--dim)}
 .logrow .b{font-size:13.5px;white-space:pre-wrap;margin-top:2px}
 .web{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.pplayer{position:fixed;inset:0;z-index:200;background:rgba(12,18,24,.6);display:flex;align-items:flex-end;justify-content:center}
+.pplayer .sheet2{background:var(--paper);border:1px solid var(--ink);border-radius:3px 3px 0 0;width:min(480px,100%);max-height:88vh;display:flex;flex-direction:column}
+.pplayer .hd2{background:var(--ink);color:var(--on-ink);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;font-size:12px}
+.pplayer .hd2 button{background:none;border:0;color:var(--on-ink);font-size:20px;line-height:1;cursor:pointer}
+.pplayer .bd2{padding:14px;overflow:auto;flex:1}
+@media(min-width:620px){.pplayer{align-items:center}.pplayer .sheet2{border-radius:3px}}
+.krow{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.krow button{background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:6px 10px;
+  font-family:var(--disp);text-transform:uppercase;letter-spacing:.09em;font-size:10.5px;color:var(--dim);cursor:pointer}
+.krow button[aria-pressed=true]{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.cred.phys{border-left-color:var(--tick-deep)}
+.cred .kd{font-family:var(--mono);font-size:9.5px;border:1px solid var(--rule);border-radius:2px;padding:1px 5px;color:var(--dim)}
+.cred .kd.p{border-color:var(--tick-deep);color:var(--tick-deep)}
 </style>
 
 <div class="shell">
@@ -346,9 +359,11 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 
       <div id="unlocked" style="display:none">
         <div class="audit" id="audit"></div>
-        <label style="margin-bottom:12px"><span>Find a login</span><input id="q" placeholder="Site, username, tag…"></label>
+        <label style="margin-bottom:12px"><span>Find anything</span><input id="q" placeholder="Site, card, door, username, tag…"></label>
+        <div class="krow" id="kfilter"></div>
         <div class="row-btns" style="margin-bottom:14px">
-          <button class="btn" data-act="new">Add a login</button>
+          <button class="btn" data-act="new">Add something</button>
+          <button class="btn ghost sm" data-act="import">Import from browser</button>
           <button class="btn ghost" data-act="gen">Generate a password</button>
           <button class="btn ghost sm" data-act="lock">Lock now</button>
           <button class="btn ghost sm" data-act="master">Change master password</button>
@@ -395,8 +410,14 @@ var DB={
   }
 };
 
-var APP_VERSION="2.5";
+var APP_VERSION="2.6";
 var CHANGELOG=[
+ {v:"2.6",d:"2026-08-10",t:"The vault holds real-world things too",
+  items:["Fixed: choosing a person used to close the form you were filling in, so you could not carry on. It now opens over the top and closes back to where you were",
+         "The vault takes more than website logins — bank cards, door codes, safe combinations, phone and router PINs, account numbers, or just a secret note",
+         "Each kind asks for the right things: a card wants the number and expiry, a door wants where it is and where the spare key lives",
+         "Filter the vault by kind, and physical things are marked so they stand out",
+         "Import your saved passwords from Chrome or Firefox — it shows you what it found and skips anything you already have"]},
  {v:"2.5",d:"2026-08-08",t:"People, properly",
   items:["Anywhere you name somebody — money, tickets, invoices, lent items, events — you now pick them from your contacts instead of typing a name",
          "Adding a new person is a deliberate step with a proper little form, so you stop ending up with three spellings of the same name",
@@ -818,111 +839,118 @@ function attachBar(host,kind,id,heading){
 function personPicker(opts){
   opts=opts||{};
   var chosen=(opts.value||[]).slice();
-  openDlg(opts.title||"Who?",
-    '<label><span>Search</span><input id="ppQ" placeholder="Type a name"></label>'+
-    '<div id="ppChosen"></div>'+
-    '<div id="ppList"></div>'+
-    '<div id="ppNew"></div>'+
+  var layer=el("div","pplayer");
+  var sheet=el("div","sheet2");
+  var hd=el("div","hd2");
+  hd.appendChild(el("span",null,opts.title||"Who?"));
+  var xb=el("button",null,"\u00d7");
+  hd.appendChild(xb); sheet.appendChild(hd);
+  var bd=el("div","bd2"); sheet.appendChild(bd);
+  layer.appendChild(sheet); document.body.appendChild(layer);
+  function shut(){ if(layer.parentNode) layer.parentNode.removeChild(layer); }
+  xb.onclick=shut;
+  layer.onclick=function(e){ if(e.target===layer) shut(); };
+  bd.innerHTML='<label><span>Search</span><input id="ppQ" placeholder="Type a name"></label>'+
+    '<div id="ppChosen"></div><div id="ppList"></div><div id="ppNew"></div>'+
     '<div class="row-btns" style="margin-top:12px">'+
       '<button class="btn" id="ppOK" style="flex:1">Done</button>'+
-      '<button class="btn ghost sm" id="ppCancel">Cancel</button></div>',
-    function(){
-      function drawChosen(){
-        var h=$("#ppChosen"); h.innerHTML="";
-        if(!opts.multi||!chosen.length) return;
-        var w=el("div","web"); w.style.marginBottom="8px";
-        chosen.forEach(function(id){
-          var p=contactRec(id); if(!p) return;
-          var c=el("span","pill warm",p.name+" ×");
-          c.style.cursor="pointer";
-          c.onclick=function(){ chosen=chosen.filter(function(x){return x!==id;}); drawChosen(); drawList(); };
-          w.appendChild(c);});
-        h.appendChild(w);
-      }
-      function pick(p){
-        if(opts.multi){
-          if(chosen.indexOf(p.id)<0) chosen.push(p.id);
-          $("#ppQ").value=""; drawChosen(); drawList();
-        } else { dlg.close(); if(opts.onPick) opts.onPick(p); }
-      }
-      function drawList(){
-        var q=$("#ppQ").value.trim().toLowerCase();
-        var all=allPeople().filter(function(p){
-          if(opts.multi&&chosen.indexOf(p.id)>=0) return false;
-          if(!q) return true;
-          return (p.name+" "+(p.how||"")+" "+(p.phone||"")).toLowerCase().indexOf(q)>=0;});
-        var h=$("#ppList"); h.innerHTML="";
-        if(all.length){
-          var box=el("div","bar-list");
-          all.slice(0,40).forEach(function(p){
-            var r=el("div","bar-row ctrow tap");
-            r.appendChild(el("div","initial",initials(p.name)));
-            var L2=el("div");
-            L2.appendChild(el("div","who",p.name));
-            var bits=[];
-            if(p.how) bits.push(p.how);
-            if(p.phone) bits.push(p.phone);
-            L2.appendChild(el("div","meta",bits.join(" · ")||"no details yet"));
-            r.appendChild(L2); r.appendChild(el("span","pill","pick")); r.appendChild(el("div"));
-            r.onclick=function(){ pick(p); };
-            box.appendChild(r);});
-          h.appendChild(box);
-        } else h.appendChild(emptyBox(q?"Nobody by that name":"No contacts yet",
-          q?"Add them below.":"Add your first person below."));
-        // explicit creation
-        var n=$("#ppNew"); n.innerHTML="";
-        if(q){
-          var b=el("button","btn tick sm","Add \""+q+"\" as a new contact");
-          b.style.cssText="width:100%;margin-top:10px";
-          b.onclick=function(){ newPersonForm(q,pick); };
-          n.appendChild(b);
-        } else {
-          var b2=el("button","btn ghost sm","Add somebody new");
-          b2.style.cssText="width:100%;margin-top:10px";
-          b2.onclick=function(){ newPersonForm("",pick); };
-          n.appendChild(b2);
-        }
-      }
-      $("#ppQ").oninput=drawList;
-      $("#ppCancel").onclick=function(){ dlg.close(); };
-      $("#ppOK").onclick=function(){
-        dlg.close();
-        if(opts.multi&&opts.onPickMany) opts.onPickMany(chosen);
-      };
-      if(!opts.multi) $("#ppOK").style.display="none";
-      drawChosen(); drawList();
-      setTimeout(function(){ $("#ppQ").focus(); },40);
-    });
+      '<button class="btn ghost sm" id="ppCancel">Cancel</button></div>';
+  function drawChosen(){
+    var h=bd.querySelector("#ppChosen"); h.innerHTML="";
+    if(!opts.multi||!chosen.length) return;
+    var w=el("div","web"); w.style.marginBottom="8px";
+    chosen.forEach(function(id){
+      var p=contactRec(id); if(!p) return;
+      var c2=el("span","pill warm",p.name+" \u00d7");
+      c2.style.cursor="pointer";
+      c2.onclick=function(){ chosen=chosen.filter(function(y){return y!==id;}); drawChosen(); drawList(); };
+      w.appendChild(c2);});
+    h.appendChild(w);
+  }
+  function pick(p){
+    if(opts.multi){
+      if(chosen.indexOf(p.id)<0) chosen.push(p.id);
+      bd.querySelector("#ppQ").value=""; drawChosen(); drawList();
+    } else { shut(); if(opts.onPick) opts.onPick(p); }
+  }
+  function drawList(){
+    var q=bd.querySelector("#ppQ").value.trim().toLowerCase();
+    var all=allPeople().filter(function(p){
+      if(opts.multi&&chosen.indexOf(p.id)>=0) return false;
+      if(!q) return true;
+      return (p.name+" "+(p.how||"")+" "+(p.phone||"")).toLowerCase().indexOf(q)>=0;});
+    var h=bd.querySelector("#ppList"); h.innerHTML="";
+    if(all.length){
+      var box=el("div","bar-list");
+      all.slice(0,40).forEach(function(p){
+        var r=el("div","bar-row ctrow tap");
+        r.appendChild(el("div","initial",initials(p.name)));
+        var L2=el("div");
+        L2.appendChild(el("div","who",p.name));
+        var bits=[];
+        if(p.how) bits.push(p.how);
+        if(p.phone) bits.push(p.phone);
+        L2.appendChild(el("div","meta",bits.join(" \u00b7 ")||"no details yet"));
+        r.appendChild(L2); r.appendChild(el("span","pill","pick")); r.appendChild(el("div"));
+        r.onclick=function(){ pick(p); };
+        box.appendChild(r);});
+      h.appendChild(box);
+    } else h.appendChild(emptyBox(q?"Nobody by that name":"No contacts yet",
+      q?"Add them below.":"Add your first person below."));
+    var n=bd.querySelector("#ppNew"); n.innerHTML="";
+    var b=el("button","btn "+(q?"tick ":"ghost ")+"sm",
+      q?('Add "'+q+'" as a new contact'):"Add somebody new");
+    b.style.cssText="width:100%;margin-top:10px";
+    b.onclick=function(e){ e.preventDefault(); newPersonForm(q,pick,shut); };
+    n.appendChild(b);
+  }
+  bd.querySelector("#ppQ").oninput=drawList;
+  bd.querySelector("#ppCancel").onclick=shut;
+  bd.querySelector("#ppOK").onclick=function(){
+    shut(); if(opts.multi&&opts.onPickMany) opts.onPickMany(chosen); };
+  if(!opts.multi) bd.querySelector("#ppOK").style.display="none";
+  drawChosen(); drawList();
+  setTimeout(function(){ bd.querySelector("#ppQ").focus(); },40);
 }
-function newPersonForm(name,then){
-  dlg.close();
-  setTimeout(function(){
-    openDlg("New contact",
-      '<label><span>Name</span><input id="npN" value="'+esc(name||"")+'"></label>'+
-      '<div class="two">'+
-        '<label><span>How you know them</span><input id="npH" placeholder="Cousin, from band"></label>'+
-        '<label><span>Phone</span><input id="npP" type="tel"></label></div>'+
-      '<label><span>Anything worth remembering</span><input id="npNo" placeholder="Optional"></label>'+
-      '<button class="btn" id="npS" style="width:100%">Add them</button>',
-      function(){
-        $("#npS").onclick=function(){
-          var nm=$("#npN").value.trim();
-          if(!nm) return toast("They need a name");
-          var dupe=allPeople().filter(function(p){return p.name.toLowerCase()===nm.toLowerCase();})[0];
-          if(dupe&&!confirm("You already have a "+dupe.name+". Add another anyway?")){
-            dlg.close(); if(then) then(contactRec(dupe.id)); return;
-          }
-          var c={id:uid(),name:nm,how:$("#npH").value.trim(),phone:$("#npP").value.trim(),
-            notes:$("#npNo").value.trim(),tags:[],knows:[],log:[]};
-          H.contacts.push(c);
-          if(L){ L.people=L.people||[]; L.people.push({id:c.id,name:c.name}); saveL(); }
-          save(); dlg.close();
-          toast(nm+" added");
-          if(then) then(c);
-        };
-        setTimeout(function(){ $("#npN").focus(); },40);
-      });
-  },60);
+function newPersonForm(name,then,closeParent){
+  var layer=el("div","pplayer");
+  var sheet=el("div","sheet2");
+  var hd=el("div","hd2");
+  hd.appendChild(el("span",null,"New contact"));
+  var xb=el("button",null,"\u00d7"); hd.appendChild(xb);
+  sheet.appendChild(hd);
+  var bd=el("div","bd2"); sheet.appendChild(bd);
+  layer.appendChild(sheet); document.body.appendChild(layer);
+  function shut(){ if(layer.parentNode) layer.parentNode.removeChild(layer); }
+  xb.onclick=shut;
+  layer.onclick=function(e){ if(e.target===layer) shut(); };
+  bd.innerHTML='<label><span>Name</span><input id="npN" value="'+esc(name||"")+'"></label>'+
+    '<div class="two">'+
+      '<label><span>How you know them</span><input id="npH" placeholder="Cousin, from band"></label>'+
+      '<label><span>Phone</span><input id="npP" type="tel"></label></div>'+
+    '<label><span>Anything worth remembering</span><input id="npNo" placeholder="Optional"></label>'+
+    '<div class="row-btns"><button class="btn" id="npS" style="flex:1">Add them</button>'+
+    '<button class="btn ghost sm" id="npC">Cancel</button></div>';
+  bd.querySelector("#npC").onclick=shut;
+  bd.querySelector("#npS").onclick=function(){
+    var nm=bd.querySelector("#npN").value.trim();
+    if(!nm) return toast("They need a name");
+    var dupe=allPeople().filter(function(p){return p.name.toLowerCase()===nm.toLowerCase();})[0];
+    if(dupe&&!confirm("You already have a "+dupe.name+". Add another anyway?")){
+      shut(); if(closeParent) closeParent();
+      if(then) then(contactRec(dupe.id)); return;
+    }
+    var c2={id:uid(),name:nm,how:bd.querySelector("#npH").value.trim(),
+      phone:bd.querySelector("#npP").value.trim(),
+      notes:bd.querySelector("#npNo").value.trim(),tags:[],knows:[],log:[]};
+    H.contacts.push(c2);
+    if(L){ L.people=L.people||[]; L.people.push({id:c2.id,name:c2.name}); saveL(); }
+    save(); shut();
+    if(closeParent) closeParent();
+    toast(nm+" added");
+    if(then) then(c2);
+  };
+  setTimeout(function(){ bd.querySelector("#npN").focus(); },40);
 }
 /* Turns an existing text input into a chooser. Keeps the input's value as
    the name, so older code that reads .value still works. */
@@ -949,7 +977,8 @@ function bindPersonField(sel,opts){
       }});
     }
   }
-  inp.onclick=open; inp.onfocus=function(){ inp.blur(); open(); };
+  inp.onclick=function(e){ e.preventDefault(); open(); };
+  inp.onkeydown=function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
   var wrap=inp.parentNode;
   if(wrap&&!wrap.querySelector(".clrp")){
     var c=el("button","btn ghost sm clrp","Clear");
@@ -1401,6 +1430,19 @@ document.addEventListener("keydown",function(e){
    There is no recovery: lose the master password, lose the data.
    ============================================================ */
 var ITER=600000;
+var KINDS=[
+ ["login","Website or app","Something you sign in to"],
+ ["card","Bank card","Card number, PIN, expiry"],
+ ["door","Door or lock","A code you punch in, or where a key lives"],
+ ["safe","Safe or padlock","A combination"],
+ ["device","Device or SIM","Phone PIN, PUK, router, alarm"],
+ ["account","Account number","Utility, membership, policy"],
+ ["note","Just a secret note","Anything else worth locking up"]
+];
+function kindOf(e){ return e.kind||"login"; }
+function kindLabel(k){ var f=KINDS.filter(function(x){return x[0]===k;})[0]; return f?f[1]:"Login"; }
+function isPhysical(e){ return ["card","door","safe","device"].indexOf(kindOf(e))>=0; }
+var vfilter="all";
 var KEY=null;         /* CryptoKey, memory only */
 var ENTRIES=null;     /* decrypted entries, memory only */
 var idleT=null, IDLE_MIN=5;
@@ -1580,14 +1622,14 @@ function renderLock(){
 function dupSet(){
   var seen={},dup={};
   ENTRIES.forEach(function(e){
-    if(!e.pass) return;
+    if(!e.pass||kindOf(e)!=="login") return;
     if(seen[e.pass]) dup[e.pass]=1; else seen[e.pass]=1;});
   return dup;
 }
 function renderAudit(){
   var dup=dupSet();
-  var weak=ENTRIES.filter(function(e){return e.pass&&bitsOf(e.pass)<40;}).length;
-  var reused=ENTRIES.filter(function(e){return e.pass&&dup[e.pass];}).length;
+  var weak=ENTRIES.filter(function(e){return kindOf(e)==="login"&&e.pass&&bitsOf(e.pass)<40;}).length;
+  var reused=ENTRIES.filter(function(e){return kindOf(e)==="login"&&e.pass&&dup[e.pass];}).length;
   var stale=ENTRIES.filter(function(e){return e.updated&&daysBetween(e.updated,today())>365;}).length;
   var a=$("#audit"); a.innerHTML="";
   [[weak,"weak"],[reused,"reused"],[stale,"over a year old"]].forEach(function(x){
@@ -1599,9 +1641,22 @@ function renderAudit(){
 function renderList(){
   var q=($("#q").value||"").trim().toLowerCase();
   var dup=dupSet();
+  var counts={all:ENTRIES.length};
+  ENTRIES.forEach(function(e){ var k=kindOf(e); counts[k]=(counts[k]||0)+1; });
+  var kf=$("#kfilter");
+  if(kf){
+    var opts=[["all","Everything ("+ENTRIES.length+")"]];
+    KINDS.forEach(function(k){ if(counts[k[0]]) opts.push([k[0],k[1]+" ("+counts[k[0]]+")"]); });
+    kf.innerHTML=opts.map(function(x){
+      return '<button data-k="'+x[0]+'"'+(x[0]===vfilter?' aria-pressed="true"':'')+'>'+esc(x[1])+'</button>';}).join("");
+    kf.querySelectorAll("button").forEach(function(b){
+      b.onclick=function(){ vfilter=b.dataset.k; renderList(); };});
+  }
   var list=ENTRIES.filter(function(e){
+    if(vfilter!=="all"&&kindOf(e)!==vfilter) return false;
     if(!q) return true;
-    return [e.title,e.user,e.url,e.note,(e.tags||[]).join(" ")].join(" ").toLowerCase().indexOf(q)>=0;})
+    return [e.title,e.user,e.url,e.note,e.number,e.pin,e.where,(e.tags||[]).join(" ")]
+      .join(" ").toLowerCase().indexOf(q)>=0;})
     .slice().sort(function(a,b){return (a.title||"").localeCompare(b.title||"");});
   var host=$("#list"); host.innerHTML="";
   if(!list.length){
@@ -1610,17 +1665,27 @@ function renderList(){
     return;}
   list.forEach(function(e){
     var b=bitsOf(e.pass),isDup=e.pass&&dup[e.pass];
-    var d=el("div","cred"+(b<40?" weak":isDup?" reused":""));
+    var phys=isPhysical(e);
+    var d=el("div","cred"+(phys?" phys":(b<40?" weak":isDup?" reused":"")));
     d.appendChild(el("div","ct",e.title||"Untitled"));
-    if(e.user) d.appendChild(el("div","cu",e.user));
+    var sub=e.user||e.number||e.where||"";
+    if(sub) d.appendChild(el("div","cu",sub));
     var f=el("div","cf");
+    f.appendChild(el("span","kd"+(phys?" p":""),kindLabel(kindOf(e))));
     var s=strengthLabel(b);
-    f.appendChild(el("span","pill"+(b<40?" hot":""),s[0]));
+    if(kindOf(e)==="login"&&e.pass) f.appendChild(el("span","pill"+(b<40?" hot":""),s[0]));
     if(isDup) f.appendChild(el("span","pill warm","reused"));
     (e.tags||[]).forEach(function(t){f.appendChild(el("span","pill",t));});
-    var cp=el("button","btn ghost sm","Copy password");
-    cp.onclick=function(ev){ev.stopPropagation();touchIdle();copyNow(e.pass,"Password copied");};
-    f.appendChild(cp);
+    if(e.pass){
+      var cp=el("button","btn ghost sm",phys?"Copy code":"Copy password");
+      cp.onclick=function(ev){ev.stopPropagation();touchIdle();copyNow(e.pass,"Copied");};
+      f.appendChild(cp);
+    }
+    if(e.number){
+      var cn=el("button","btn ghost sm","Copy number");
+      cn.onclick=function(ev){ev.stopPropagation();touchIdle();copyNow(e.number,"Number copied");};
+      f.appendChild(cn);
+    }
     if(e.user){
       var cu=el("button","btn ghost sm","Copy user");
       cu.onclick=function(ev){ev.stopPropagation();touchIdle();copyNow(e.user,"Username copied");};
@@ -1634,50 +1699,207 @@ function renderList(){
 /* ---------- dialogs ---------- */
 function credDialog(e){
   var isNew=!e;
-  e=e||{title:"",user:"",pass:"",url:"",note:"",tags:[]};
-  openDlg(isNew?"Add a login":(e.title||"Login"),
-    '<label><span>Site or app</span><input id="fT" value="'+esc(e.title||"")+'" placeholder="Cash App, Gmail, landlord portal"></label>'+
-    '<label><span>Username or email</span><input id="fU" value="'+esc(e.user||"")+'" autocomplete="off"></label>'+
-    '<label><span>Password</span><input type="password" id="fP" value="'+esc(e.pass||"")+'" autocomplete="new-password"></label>'+
-    '<div class="meter"><i></i></div><div class="mlbl" id="ml"></div>'+
-    '<div class="row-btns" style="margin:8px 0 12px">'+
-      '<button class="btn ghost sm" id="fShow">Reveal</button>'+
-      '<button class="btn ghost sm" id="fGen">Generate one</button>'+
-      (isNew?'':'<button class="btn ghost sm" id="fCopy">Copy</button>')+'</div>'+
-    '<label><span>Web address</span><input id="fW" value="'+esc(e.url||"")+'" placeholder="Optional"></label>'+
-    '<label><span>Tags</span><input id="fG" value="'+esc((e.tags||[]).join(", "))+'" placeholder="banking, email, shopping"></label>'+
-    '<label><span>Notes</span><textarea id="fN" style="min-height:60px" placeholder="Security question answers, account number, anything else">'+esc(e.note||"")+'</textarea></label>'+
+  e=e||{kind:"login",title:"",user:"",pass:"",url:"",note:"",tags:[],
+        number:"",pin:"",expiry:"",where:"",holder:""};
+  var kind=kindOf(e);
+  openDlg(isNew?"Add something":(e.title||"Entry"),
+    '<div class="krow" id="kpick"></div>'+
+    '<div id="kdesc" class="foot-note" style="margin-top:0"></div>'+
+    '<label><span id="lblTitle">What is it</span><input id="fT" value="'+esc(e.title||"")+'"></label>'+
+    '<div id="kfields"></div>'+
+    '<label><span>Tags</span><input id="fG" value="'+esc((e.tags||[]).join(", "))+'" placeholder="banking, house, car"></label>'+
+    '<label><span>Notes</span><textarea id="fN" style="min-height:60px" placeholder="Anything else worth keeping with it">'+esc(e.note||"")+'</textarea></label>'+
     '<div class="row-btns"><button class="btn" id="fS" style="flex:1">'+(isNew?"Save it":"Save")+'</button>'+
     (isNew?'':'<button class="btn ghost" id="fX">Delete</button>')+'</div>',
     function(){
-      var pi=$("#fP");
-      meterFor(pi,$("#dlgBody").querySelector(".meter"),$("#ml"));
-      $("#fShow").onclick=function(){
-        var shown=pi.type==="text";
-        pi.type=shown?"password":"text";
-        $("#fShow").textContent=shown?"Reveal":"Hide";};
-      $("#fGen").onclick=function(){
-        dlg.close();
-        setTimeout(function(){ genDialog(function(pw){ e.pass=pw; credDialog(isNew?null:e); if(isNew){ setTimeout(function(){ $("#fP").value=pw; $("#fP").dispatchEvent(new Event("input")); },80);} }); },60);};
-      if(!isNew) $("#fCopy").onclick=function(){touchIdle();copyNow(pi.value,"Password copied");};
+      function secretRow(label,val,ph){
+        return '<label><span>'+esc(label)+'</span><input type="password" id="fP" value="'+esc(val||"")+
+          '" autocomplete="new-password" placeholder="'+esc(ph||"")+'"></label>'+
+          '<div class="meter"><i></i></div><div class="mlbl" id="ml"></div>'+
+          '<div class="row-btns" style="margin:8px 0 12px">'+
+            '<button class="btn ghost sm" id="fShow">Reveal</button>'+
+            '<button class="btn ghost sm" id="fGen">Generate one</button>'+
+            (isNew?'':'<button class="btn ghost sm" id="fCopy">Copy</button>')+'</div>';
+      }
+      function drawKind(){
+        var kp=$("#kpick");
+        kp.innerHTML=KINDS.map(function(k){
+          return '<button type="button" data-k="'+k[0]+'"'+(k[0]===kind?' aria-pressed="true"':'')+'>'+
+            esc(k[1])+'</button>';}).join("");
+        kp.querySelectorAll("button").forEach(function(b){
+          b.onclick=function(ev){ ev.preventDefault(); kind=b.dataset.k; drawKind(); drawFields(); };});
+        var f=KINDS.filter(function(k){return k[0]===kind;})[0];
+        $("#kdesc").textContent=f?f[2]:"";
+      }
+      function drawFields(){
+        var h=$("#kfields");
+        var t=$("#lblTitle");
+        if(kind==="login"){
+          t.textContent="Site or app";
+          h.innerHTML='<label><span>Username or email</span><input id="fU" value="'+esc(e.user||"")+'" autocomplete="off"></label>'+
+            secretRow("Password",e.pass,"")+
+            '<label><span>Web address</span><input id="fW" value="'+esc(e.url||"")+'" placeholder="Optional"></label>';
+        } else if(kind==="card"){
+          t.textContent="Which card";
+          h.innerHTML='<label><span>Name on it</span><input id="fU" value="'+esc(e.holder||e.user||"")+'"></label>'+
+            '<label><span>Card number</span><input id="fNum" class="code-in" value="'+esc(e.number||"")+'" inputmode="numeric"></label>'+
+            '<div class="two"><label><span>Expires</span><input id="fExp" value="'+esc(e.expiry||"")+'" placeholder="09/28"></label>'+
+            '<label><span>Where it lives</span><input id="fWhere" value="'+esc(e.where||"")+'" placeholder="in my wallet"></label></div>'+
+            secretRow("PIN",e.pass,"4 digits");
+        } else if(kind==="door"){
+          t.textContent="Which door or lock";
+          h.innerHTML='<label><span>Where it is</span><input id="fWhere" value="'+esc(e.where||"")+'" placeholder="front door, storage unit"></label>'+
+            secretRow("The code",e.pass,"")+
+            '<label><span>Spare key kept</span><input id="fU" value="'+esc(e.user||"")+'" placeholder="Optional — who has one, where it hangs"></label>';
+        } else if(kind==="safe"){
+          t.textContent="Which safe or lock";
+          h.innerHTML='<label><span>Where it is</span><input id="fWhere" value="'+esc(e.where||"")+'"></label>'+
+            secretRow("Combination",e.pass,"");
+        } else if(kind==="device"){
+          t.textContent="Which device";
+          h.innerHTML='<label><span>What it is</span><input id="fWhere" value="'+esc(e.where||"")+'" placeholder="my phone, the router, the alarm"></label>'+
+            secretRow("PIN or password",e.pass,"")+
+            '<label><span>Second code</span><input id="fNum" value="'+esc(e.number||"")+'" placeholder="Optional — PUK, WiFi key, serial"></label>';
+        } else if(kind==="account"){
+          t.textContent="Which account";
+          h.innerHTML='<label><span>Account number</span><input id="fNum" class="code-in" value="'+esc(e.number||"")+'"></label>'+
+            '<label><span>In whose name</span><input id="fU" value="'+esc(e.holder||e.user||"")+'"></label>'+
+            secretRow("PIN or security answer",e.pass,"Optional");
+        } else {
+          t.textContent="Call it something";
+          h.innerHTML=secretRow("The secret",e.pass,"");
+        }
+        wireSecret();
+      }
+      function wireSecret(){
+        var pi=$("#fP"); if(!pi) return;
+        var mtr=$("#dlgBody").querySelector(".meter");
+        if(mtr&&$("#ml")) meterFor(pi,mtr,$("#ml"));
+        if($("#fShow")) $("#fShow").onclick=function(ev){
+          ev.preventDefault();
+          var shown=pi.type==="text";
+          pi.type=shown?"password":"text";
+          $("#fShow").textContent=shown?"Reveal":"Hide";};
+        if($("#fGen")) $("#fGen").onclick=function(ev){
+          ev.preventDefault();
+          genDialog(function(pw){
+            var p2=$("#fP");
+            if(p2){ p2.value=pw; p2.dispatchEvent(new Event("input")); }
+          });};
+        if($("#fCopy")) $("#fCopy").onclick=function(ev){
+          ev.preventDefault(); touchIdle(); copyNow(pi.value,"Copied");};
+      }
+      drawKind(); drawFields();
       $("#fS").onclick=async function(){
         var t=$("#fT").value.trim();
-        if(!t){toast("What site is this for?");return;}
-        e.title=t; e.user=$("#fU").value.trim(); e.url=$("#fW").value.trim();
-        e.note=$("#fN").value; e.updated=today();
-        e.tags=$("#fG").value.split(",").map(function(s){return s.trim();}).filter(Boolean);
-        var np=pi.value;
+        if(!t) return toast("Give it a name");
+        e.kind=kind; e.title=t;
+        e.note=$("#fN").value;
+        e.tags=$("#fG").value.split(",").map(function(x){return x.trim();}).filter(Boolean);
+        e.user=$("#fU")?$("#fU").value.trim():"";
+        e.url=$("#fW")?$("#fW").value.trim():"";
+        e.number=$("#fNum")?$("#fNum").value.trim():"";
+        e.expiry=$("#fExp")?$("#fExp").value.trim():"";
+        e.where=$("#fWhere")?$("#fWhere").value.trim():"";
+        if(kind==="card"||kind==="account") e.holder=e.user;
+        var np=$("#fP")?$("#fP").value:"";
         if(np!==e.pass){ e.pass=np; e.changed=today(); }
+        e.updated=today();
         if(isNew){ e.id=uid(); e.created=today(); e.changed=today(); ENTRIES.push(e); }
         await sealVault(); touchIdle(); pageHead(); pageRender(); dlg.close();
         toast(isNew?"Saved to the vault":"Saved");};
       if(!isNew) $("#fX").onclick=async function(){
-        if(!confirm("Delete the login for "+(e.title||"this site")+"? It cannot be recovered.")) return;
+        if(!confirm("Delete "+(e.title||"this")+"? It cannot be recovered.")) return;
         ENTRIES=ENTRIES.filter(function(x){return x.id!==e.id;});
         await sealVault(); pageHead(); pageRender(); dlg.close(); toast("Deleted");};
     });
 }
-
+function importDialog(){
+  openDlg("Import from your browser",
+    '<p class="foot-note" style="margin-top:0">Chrome: Settings &rarr; Autofill &rarr; Password Manager &rarr; the three dots &rarr; Export passwords. '+
+    'Firefox: about:logins &rarr; the three dots &rarr; Export Logins. Open the file in a text editor and paste it here.</p>'+
+    '<p class="warn">The file your browser gives you has every password in the clear. Delete it as soon as you have pasted it, and empty your trash.</p>'+
+    '<label><span>Paste the CSV</span><textarea id="imT" style="min-height:170px;font-family:var(--mono);font-size:12px" placeholder="name,url,username,password"></textarea></label>'+
+    '<div id="imPrev"></div>'+
+    '<div class="row-btns"><button class="btn ghost" id="imCheck" style="flex:1">Have a look first</button>'+
+    '<button class="btn tick" id="imGo" style="flex:1;display:none">Import them</button></div>',
+    function(){
+      var parsed=[];
+      function splitCSV(line){
+        var out=[],cur="",q=false;
+        for(var i=0;i<line.length;i++){
+          var ch=line[i];
+          if(q){
+            if(ch==='"'&&line[i+1]==='"'){ cur+='"'; i++; }
+            else if(ch==='"') q=false;
+            else cur+=ch;
+          } else if(ch==='"') q=true;
+          else if(ch===","){ out.push(cur); cur=""; }
+          else cur+=ch;
+        }
+        out.push(cur); return out;
+      }
+      $("#imCheck").onclick=function(){
+        var raw=$("#imT").value.trim();
+        if(!raw) return toast("Paste the file contents first");
+        var lines=raw.split(/\r?\n/).filter(function(l){return l.trim();});
+        var head=splitCSV(lines[0]).map(function(h){return h.trim().toLowerCase().replace(/^"|"$/g,"");});
+        function col(){
+          for(var i=0;i<arguments.length;i++){
+            var k=head.indexOf(arguments[i]);
+            if(k>=0) return k;
+          }
+          return -1;
+        }
+        var cN=col("name","title"), cU=col("url","website","login_uri","hostname"),
+            cUser=col("username","login_username","user"),
+            cP=col("password","login_password"), cNote=col("note","notes","comment");
+        if(cP<0) return toast("Couldn't find a password column in that");
+        parsed=[];
+        var haveUrl={};
+        ENTRIES.forEach(function(x){
+          var h=(x.url||"").replace(/^https?:\/\//,"").replace(/^www\./,"").split("/")[0].toLowerCase();
+          if(h) haveUrl[h+"|"+(x.user||"").toLowerCase()]=1;});
+        lines.slice(1).forEach(function(l){
+          var c=splitCSV(l);
+          var pw=(c[cP]||"").trim();
+          if(!pw) return;
+          var url=cU>=0?(c[cU]||"").trim():"";
+          var host=url.replace(/^https?:\/\//,"").replace(/^www\./,"").split("/")[0].toLowerCase();
+          var user=cUser>=0?(c[cUser]||"").trim():"";
+          var dup=!!haveUrl[host+"|"+user.toLowerCase()];
+          parsed.push({title:(cN>=0?(c[cN]||"").trim():"")||host||"Untitled",
+            url:url,user:user,pass:pw,note:cNote>=0?(c[cNote]||"").trim():"",dup:dup});
+        });
+        var h2=$("#imPrev"); h2.innerHTML="";
+        if(!parsed.length){ h2.appendChild(emptyBox("Nothing usable","No rows with a password in them.")); return; }
+        var news=parsed.filter(function(p){return !p.dup;});
+        h2.appendChild(el("h2","sec",news.length+" to bring in, "+(parsed.length-news.length)+" already here"));
+        var box=el("div","bar-list");
+        parsed.slice(0,30).forEach(function(p){
+          var r=el("div","bar-row trio"),L2=el("div");
+          L2.appendChild(el("div","who",p.title));
+          L2.appendChild(el("div","meta",(p.user||"no username")+(p.url?" \u00b7 "+p.url.slice(0,42):"")));
+          r.appendChild(L2);
+          r.appendChild(el("span","pill"+(p.dup?"":" warm"),p.dup?"have it":"new"));
+          r.appendChild(el("div"));
+          box.appendChild(r);});
+        h2.appendChild(box);
+        if(parsed.length>30) h2.appendChild(el("p","foot-note","and "+(parsed.length-30)+" more"));
+        $("#imGo").style.display=news.length?"":"none";
+        $("#imGo").textContent="Import "+news.length;
+      };
+      $("#imGo").onclick=async function(){
+        var news=parsed.filter(function(p){return !p.dup;});
+        if(!news.length) return;
+        news.forEach(function(p){
+          ENTRIES.push({id:uid(),kind:"login",title:p.title,user:p.user,pass:p.pass,
+            url:p.url,note:p.note,tags:["imported"],
+            created:today(),changed:today(),updated:today()});});
+        await sealVault(); touchIdle(); pageHead(); pageRender(); dlg.close();
+        toast(news.length+" brought in \u2014 now delete that file");};
+    });
+}
 function genDialog(onUse){
   openDlg("Generate a password",
     '<div class="genout" id="gOut">—</div>'+
@@ -1746,6 +1968,7 @@ function masterDialog(){
 
 function pageAction(a){
   if(a==="new") credDialog(null);
+  else if(a==="import") importDialog();
   else if(a==="gen") genDialog(null);
   else if(a==="lock"){ lock(); toast("Locked"); }
   else if(a==="master") masterDialog();

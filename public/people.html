@@ -313,6 +313,12 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 .logrow .w{font-family:var(--mono);font-size:11px;color:var(--dim)}
 .logrow .b{font-size:13.5px;white-space:pre-wrap;margin-top:2px}
 .web{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.pplayer{position:fixed;inset:0;z-index:200;background:rgba(12,18,24,.6);display:flex;align-items:flex-end;justify-content:center}
+.pplayer .sheet2{background:var(--paper);border:1px solid var(--ink);border-radius:3px 3px 0 0;width:min(480px,100%);max-height:88vh;display:flex;flex-direction:column}
+.pplayer .hd2{background:var(--ink);color:var(--on-ink);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;font-size:12px}
+.pplayer .hd2 button{background:none;border:0;color:var(--on-ink);font-size:20px;line-height:1;cursor:pointer}
+.pplayer .bd2{padding:14px;overflow:auto;flex:1}
+@media(min-width:620px){.pplayer{align-items:center}.pplayer .sheet2{border-radius:3px}}
 </style>
 
 <div class="shell">
@@ -433,8 +439,14 @@ var DB={
   }
 };
 
-var APP_VERSION="2.5";
+var APP_VERSION="2.6";
 var CHANGELOG=[
+ {v:"2.6",d:"2026-08-10",t:"The vault holds real-world things too",
+  items:["Fixed: choosing a person used to close the form you were filling in, so you could not carry on. It now opens over the top and closes back to where you were",
+         "The vault takes more than website logins — bank cards, door codes, safe combinations, phone and router PINs, account numbers, or just a secret note",
+         "Each kind asks for the right things: a card wants the number and expiry, a door wants where it is and where the spare key lives",
+         "Filter the vault by kind, and physical things are marked so they stand out",
+         "Import your saved passwords from Chrome or Firefox — it shows you what it found and skips anything you already have"]},
  {v:"2.5",d:"2026-08-08",t:"People, properly",
   items:["Anywhere you name somebody — money, tickets, invoices, lent items, events — you now pick them from your contacts instead of typing a name",
          "Adding a new person is a deliberate step with a proper little form, so you stop ending up with three spellings of the same name",
@@ -856,111 +868,118 @@ function attachBar(host,kind,id,heading){
 function personPicker(opts){
   opts=opts||{};
   var chosen=(opts.value||[]).slice();
-  openDlg(opts.title||"Who?",
-    '<label><span>Search</span><input id="ppQ" placeholder="Type a name"></label>'+
-    '<div id="ppChosen"></div>'+
-    '<div id="ppList"></div>'+
-    '<div id="ppNew"></div>'+
+  var layer=el("div","pplayer");
+  var sheet=el("div","sheet2");
+  var hd=el("div","hd2");
+  hd.appendChild(el("span",null,opts.title||"Who?"));
+  var xb=el("button",null,"\u00d7");
+  hd.appendChild(xb); sheet.appendChild(hd);
+  var bd=el("div","bd2"); sheet.appendChild(bd);
+  layer.appendChild(sheet); document.body.appendChild(layer);
+  function shut(){ if(layer.parentNode) layer.parentNode.removeChild(layer); }
+  xb.onclick=shut;
+  layer.onclick=function(e){ if(e.target===layer) shut(); };
+  bd.innerHTML='<label><span>Search</span><input id="ppQ" placeholder="Type a name"></label>'+
+    '<div id="ppChosen"></div><div id="ppList"></div><div id="ppNew"></div>'+
     '<div class="row-btns" style="margin-top:12px">'+
       '<button class="btn" id="ppOK" style="flex:1">Done</button>'+
-      '<button class="btn ghost sm" id="ppCancel">Cancel</button></div>',
-    function(){
-      function drawChosen(){
-        var h=$("#ppChosen"); h.innerHTML="";
-        if(!opts.multi||!chosen.length) return;
-        var w=el("div","web"); w.style.marginBottom="8px";
-        chosen.forEach(function(id){
-          var p=contactRec(id); if(!p) return;
-          var c=el("span","pill warm",p.name+" ×");
-          c.style.cursor="pointer";
-          c.onclick=function(){ chosen=chosen.filter(function(x){return x!==id;}); drawChosen(); drawList(); };
-          w.appendChild(c);});
-        h.appendChild(w);
-      }
-      function pick(p){
-        if(opts.multi){
-          if(chosen.indexOf(p.id)<0) chosen.push(p.id);
-          $("#ppQ").value=""; drawChosen(); drawList();
-        } else { dlg.close(); if(opts.onPick) opts.onPick(p); }
-      }
-      function drawList(){
-        var q=$("#ppQ").value.trim().toLowerCase();
-        var all=allPeople().filter(function(p){
-          if(opts.multi&&chosen.indexOf(p.id)>=0) return false;
-          if(!q) return true;
-          return (p.name+" "+(p.how||"")+" "+(p.phone||"")).toLowerCase().indexOf(q)>=0;});
-        var h=$("#ppList"); h.innerHTML="";
-        if(all.length){
-          var box=el("div","bar-list");
-          all.slice(0,40).forEach(function(p){
-            var r=el("div","bar-row ctrow tap");
-            r.appendChild(el("div","initial",initials(p.name)));
-            var L2=el("div");
-            L2.appendChild(el("div","who",p.name));
-            var bits=[];
-            if(p.how) bits.push(p.how);
-            if(p.phone) bits.push(p.phone);
-            L2.appendChild(el("div","meta",bits.join(" · ")||"no details yet"));
-            r.appendChild(L2); r.appendChild(el("span","pill","pick")); r.appendChild(el("div"));
-            r.onclick=function(){ pick(p); };
-            box.appendChild(r);});
-          h.appendChild(box);
-        } else h.appendChild(emptyBox(q?"Nobody by that name":"No contacts yet",
-          q?"Add them below.":"Add your first person below."));
-        // explicit creation
-        var n=$("#ppNew"); n.innerHTML="";
-        if(q){
-          var b=el("button","btn tick sm","Add \""+q+"\" as a new contact");
-          b.style.cssText="width:100%;margin-top:10px";
-          b.onclick=function(){ newPersonForm(q,pick); };
-          n.appendChild(b);
-        } else {
-          var b2=el("button","btn ghost sm","Add somebody new");
-          b2.style.cssText="width:100%;margin-top:10px";
-          b2.onclick=function(){ newPersonForm("",pick); };
-          n.appendChild(b2);
-        }
-      }
-      $("#ppQ").oninput=drawList;
-      $("#ppCancel").onclick=function(){ dlg.close(); };
-      $("#ppOK").onclick=function(){
-        dlg.close();
-        if(opts.multi&&opts.onPickMany) opts.onPickMany(chosen);
-      };
-      if(!opts.multi) $("#ppOK").style.display="none";
-      drawChosen(); drawList();
-      setTimeout(function(){ $("#ppQ").focus(); },40);
-    });
+      '<button class="btn ghost sm" id="ppCancel">Cancel</button></div>';
+  function drawChosen(){
+    var h=bd.querySelector("#ppChosen"); h.innerHTML="";
+    if(!opts.multi||!chosen.length) return;
+    var w=el("div","web"); w.style.marginBottom="8px";
+    chosen.forEach(function(id){
+      var p=contactRec(id); if(!p) return;
+      var c2=el("span","pill warm",p.name+" \u00d7");
+      c2.style.cursor="pointer";
+      c2.onclick=function(){ chosen=chosen.filter(function(y){return y!==id;}); drawChosen(); drawList(); };
+      w.appendChild(c2);});
+    h.appendChild(w);
+  }
+  function pick(p){
+    if(opts.multi){
+      if(chosen.indexOf(p.id)<0) chosen.push(p.id);
+      bd.querySelector("#ppQ").value=""; drawChosen(); drawList();
+    } else { shut(); if(opts.onPick) opts.onPick(p); }
+  }
+  function drawList(){
+    var q=bd.querySelector("#ppQ").value.trim().toLowerCase();
+    var all=allPeople().filter(function(p){
+      if(opts.multi&&chosen.indexOf(p.id)>=0) return false;
+      if(!q) return true;
+      return (p.name+" "+(p.how||"")+" "+(p.phone||"")).toLowerCase().indexOf(q)>=0;});
+    var h=bd.querySelector("#ppList"); h.innerHTML="";
+    if(all.length){
+      var box=el("div","bar-list");
+      all.slice(0,40).forEach(function(p){
+        var r=el("div","bar-row ctrow tap");
+        r.appendChild(el("div","initial",initials(p.name)));
+        var L2=el("div");
+        L2.appendChild(el("div","who",p.name));
+        var bits=[];
+        if(p.how) bits.push(p.how);
+        if(p.phone) bits.push(p.phone);
+        L2.appendChild(el("div","meta",bits.join(" \u00b7 ")||"no details yet"));
+        r.appendChild(L2); r.appendChild(el("span","pill","pick")); r.appendChild(el("div"));
+        r.onclick=function(){ pick(p); };
+        box.appendChild(r);});
+      h.appendChild(box);
+    } else h.appendChild(emptyBox(q?"Nobody by that name":"No contacts yet",
+      q?"Add them below.":"Add your first person below."));
+    var n=bd.querySelector("#ppNew"); n.innerHTML="";
+    var b=el("button","btn "+(q?"tick ":"ghost ")+"sm",
+      q?('Add "'+q+'" as a new contact'):"Add somebody new");
+    b.style.cssText="width:100%;margin-top:10px";
+    b.onclick=function(e){ e.preventDefault(); newPersonForm(q,pick,shut); };
+    n.appendChild(b);
+  }
+  bd.querySelector("#ppQ").oninput=drawList;
+  bd.querySelector("#ppCancel").onclick=shut;
+  bd.querySelector("#ppOK").onclick=function(){
+    shut(); if(opts.multi&&opts.onPickMany) opts.onPickMany(chosen); };
+  if(!opts.multi) bd.querySelector("#ppOK").style.display="none";
+  drawChosen(); drawList();
+  setTimeout(function(){ bd.querySelector("#ppQ").focus(); },40);
 }
-function newPersonForm(name,then){
-  dlg.close();
-  setTimeout(function(){
-    openDlg("New contact",
-      '<label><span>Name</span><input id="npN" value="'+esc(name||"")+'"></label>'+
-      '<div class="two">'+
-        '<label><span>How you know them</span><input id="npH" placeholder="Cousin, from band"></label>'+
-        '<label><span>Phone</span><input id="npP" type="tel"></label></div>'+
-      '<label><span>Anything worth remembering</span><input id="npNo" placeholder="Optional"></label>'+
-      '<button class="btn" id="npS" style="width:100%">Add them</button>',
-      function(){
-        $("#npS").onclick=function(){
-          var nm=$("#npN").value.trim();
-          if(!nm) return toast("They need a name");
-          var dupe=allPeople().filter(function(p){return p.name.toLowerCase()===nm.toLowerCase();})[0];
-          if(dupe&&!confirm("You already have a "+dupe.name+". Add another anyway?")){
-            dlg.close(); if(then) then(contactRec(dupe.id)); return;
-          }
-          var c={id:uid(),name:nm,how:$("#npH").value.trim(),phone:$("#npP").value.trim(),
-            notes:$("#npNo").value.trim(),tags:[],knows:[],log:[]};
-          H.contacts.push(c);
-          if(L){ L.people=L.people||[]; L.people.push({id:c.id,name:c.name}); saveL(); }
-          save(); dlg.close();
-          toast(nm+" added");
-          if(then) then(c);
-        };
-        setTimeout(function(){ $("#npN").focus(); },40);
-      });
-  },60);
+function newPersonForm(name,then,closeParent){
+  var layer=el("div","pplayer");
+  var sheet=el("div","sheet2");
+  var hd=el("div","hd2");
+  hd.appendChild(el("span",null,"New contact"));
+  var xb=el("button",null,"\u00d7"); hd.appendChild(xb);
+  sheet.appendChild(hd);
+  var bd=el("div","bd2"); sheet.appendChild(bd);
+  layer.appendChild(sheet); document.body.appendChild(layer);
+  function shut(){ if(layer.parentNode) layer.parentNode.removeChild(layer); }
+  xb.onclick=shut;
+  layer.onclick=function(e){ if(e.target===layer) shut(); };
+  bd.innerHTML='<label><span>Name</span><input id="npN" value="'+esc(name||"")+'"></label>'+
+    '<div class="two">'+
+      '<label><span>How you know them</span><input id="npH" placeholder="Cousin, from band"></label>'+
+      '<label><span>Phone</span><input id="npP" type="tel"></label></div>'+
+    '<label><span>Anything worth remembering</span><input id="npNo" placeholder="Optional"></label>'+
+    '<div class="row-btns"><button class="btn" id="npS" style="flex:1">Add them</button>'+
+    '<button class="btn ghost sm" id="npC">Cancel</button></div>';
+  bd.querySelector("#npC").onclick=shut;
+  bd.querySelector("#npS").onclick=function(){
+    var nm=bd.querySelector("#npN").value.trim();
+    if(!nm) return toast("They need a name");
+    var dupe=allPeople().filter(function(p){return p.name.toLowerCase()===nm.toLowerCase();})[0];
+    if(dupe&&!confirm("You already have a "+dupe.name+". Add another anyway?")){
+      shut(); if(closeParent) closeParent();
+      if(then) then(contactRec(dupe.id)); return;
+    }
+    var c2={id:uid(),name:nm,how:bd.querySelector("#npH").value.trim(),
+      phone:bd.querySelector("#npP").value.trim(),
+      notes:bd.querySelector("#npNo").value.trim(),tags:[],knows:[],log:[]};
+    H.contacts.push(c2);
+    if(L){ L.people=L.people||[]; L.people.push({id:c2.id,name:c2.name}); saveL(); }
+    save(); shut();
+    if(closeParent) closeParent();
+    toast(nm+" added");
+    if(then) then(c2);
+  };
+  setTimeout(function(){ bd.querySelector("#npN").focus(); },40);
 }
 /* Turns an existing text input into a chooser. Keeps the input's value as
    the name, so older code that reads .value still works. */
@@ -987,7 +1006,8 @@ function bindPersonField(sel,opts){
       }});
     }
   }
-  inp.onclick=open; inp.onfocus=function(){ inp.blur(); open(); };
+  inp.onclick=function(e){ e.preventDefault(); open(); };
+  inp.onkeydown=function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
   var wrap=inp.parentNode;
   if(wrap&&!wrap.querySelector(".clrp")){
     var c=el("button","btn ghost sm clrp","Clear");
