@@ -1,0 +1,309 @@
+<!doctype html>
+<title>Office sign — Station</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+--ink:#16202A; --ink-2:#22303D; --ink-3:#35485A; --paper:#F3F5EF; --bar:#DDE9D4;
+--rule:#C3CDBB; --stamp:#B0402E; --tick:#E3A62C; --tick-deep:#8A6414;
+--pos:#2C6B4C; --dim:#6B7A6B; --mute:#8FA3A8; --pad:16px;
+--disp:"Archivo Narrow",Helvetica Neue,Arial,sans-serif;
+--mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+--body:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+.shell{display:flex;min-height:100vh}
+.rail{width:196px;flex:0 0 196px;background:var(--ink);color:var(--paper);padding:16px 0 24px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{padding:0 16px 14px;border-bottom:1px solid var(--ink-3);margin-bottom:10px;text-decoration:none;display:block;color:inherit}
+.brand .mk{font-family:var(--disp);text-transform:uppercase;letter-spacing:.24em;font-size:13px;font-weight:700}
+.brand .sub{font-family:var(--mono);font-size:10px;color:var(--mute);margin-top:3px}
+.rail a.nv{display:flex;align-items:center;gap:10px;padding:9px 16px;color:var(--mute);text-decoration:none;border-left:3px solid transparent}
+.rail a.nv .cd{font-family:var(--mono);font-size:10px;font-weight:600;border:1px solid var(--ink-3);border-radius:2px;padding:2px 4px;min-width:26px;text-align:center;letter-spacing:.05em}
+.rail a.nv .lb{font-family:var(--disp);text-transform:uppercase;letter-spacing:.11em;font-size:12px}
+.rail a.nv .ct{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--tick)}
+.rail a.nv:hover{color:var(--paper);background:var(--ink-2)}
+.rail a.nv[aria-current=page]{color:var(--paper);border-left-color:var(--tick);background:var(--ink-2)}
+.rail a.nv[aria-current=page] .cd{border-color:var(--tick);color:var(--tick)}
+.railfoot{padding:14px 16px 0;margin-top:12px;border-top:1px solid var(--ink-3)}
+.main{flex:1;min-width:0;max-width:920px}
+.mobilebar{display:none}
+.phead{background:var(--ink);color:var(--paper);padding:18px var(--pad) 16px}
+.phead .kicker{font-family:var(--mono);font-size:10.5px;color:var(--mute);letter-spacing:.05em;text-transform:uppercase}
+.phead h1{font-family:var(--disp);text-transform:uppercase;letter-spacing:.05em;font-size:clamp(24px,6vw,32px);margin:2px 0 0;font-weight:700}
+.phead .line{font-family:var(--mono);font-size:12px;color:var(--mute);margin-top:5px}
+.phead .tools{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.ghostw{background:none;border:1px solid var(--ink-3);color:var(--paper);font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:11px;padding:8px 11px;border-radius:2px;cursor:pointer;text-decoration:none;display:inline-block}
+.ghostw:hover{background:var(--ink-2)}
+.pane{padding:var(--pad) var(--pad) 96px}
+button{font:inherit}
+.btn{font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:12px;font-weight:600;padding:11px 14px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:2px;cursor:pointer;text-decoration:none;display:inline-block;text-align:center}
+.btn.ghost{background:none;color:var(--ink)}
+.btn.ghost:hover{background:var(--bar)}
+.foot-note{font-size:12px;color:var(--dim);margin-top:14px;line-height:1.5}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:74px;z-index:60;background:var(--ink);color:var(--paper);padding:9px 15px;border-radius:2px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+.warn{background:#FBE9C8;border:1px solid var(--tick);padding:9px 11px;border-radius:2px;font-size:12.5px;margin:0 0 12px}
+.now{border:1px solid var(--rule);background:#fff;border-radius:2px;padding:18px;margin-bottom:16px;text-align:center}
+.now .lbl{font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--dim)}
+.now .val{font-family:var(--disp);text-transform:uppercase;letter-spacing:.05em;font-size:30px;font-weight:700;margin-top:4px}
+.now .ago{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:6px}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:430px){.statgrid{grid-template-columns:1fr}}
+.stbtn{border:1px solid var(--rule);background:#fff;border-radius:2px;padding:22px 10px;cursor:pointer;font-family:var(--disp);text-transform:uppercase;letter-spacing:.08em;font-size:15px;font-weight:700;color:var(--ink);text-align:center}
+.stbtn:hover{background:var(--bar)}
+.stbtn[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.stbtn .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:8px;vertical-align:middle}
+.d-avail{background:var(--pos)}
+.d-busy{background:var(--tick)}
+.d-meet{background:var(--stamp)}
+.d-dnd{background:#7A1D10}
+@media(max-width:800px){
+.shell{display:block}
+.rail{display:none}
+.main{max-width:none}
+.mobilebar{display:flex;background:var(--ink-2);position:sticky;top:0;z-index:25;overflow-x:auto;scrollbar-width:none}
+.mobilebar::-webkit-scrollbar{display:none}
+.mobilebar a{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 13px;color:var(--mute);text-decoration:none;border-bottom:3px solid transparent}
+.mobilebar a .cd{font-family:var(--mono);font-size:9.5px;font-weight:600}
+.mobilebar a .lb{font-family:var(--disp);text-transform:uppercase;letter-spacing:.09em;font-size:10px}
+.mobilebar a[aria-current=page]{color:var(--paper);border-bottom-color:var(--tick)}
+}
+</style>
+<div class="shell">
+<aside class="rail">
+<a class="brand" href="index.html">
+<div class="mk">Station</div>
+<div class="sub">personal system</div>
+</a>
+<nav id="railNav"></nav>
+<div class="railfoot">
+<button class="ghostw" data-act="search" style="width:100%;margin-bottom:6px">Search</button>
+<button class="ghostw" data-act="backup" style="width:100%">Backup</button>
+</div>
+</aside>
+<div class="main">
+<nav class="mobilebar" id="mobNav"></nav>
+<header class="phead">
+<div class="kicker" id="pKick">—</div>
+<h1 id="pTitle">—</h1>
+<div class="line" id="pLine">&nbsp;</div>
+<div class="tools" id="pTools"></div>
+</header>
+<section class="pane" id="pane">
+<div id="list"></div>
+<p class="foot-note">Tap a status to update it everywhere — including the office sign on the desk.</p>
+</section>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+"use strict";
+var PAGE="office";
+
+/* ============================================================
+STATION CORE — shared by every page.
+Storage goes through DB only. Swap DB to move to a server.
+============================================================ */
+var DB={
+ok:true,
+async get(k){
+try{
+var r=await fetch("/api/kv/"+encodeURIComponent(k),{credentials:"same-origin"});
+if(r.status===404) return null;
+if(!r.ok) throw new Error(r.status);
+return (await r.json()).value;
+}catch(e){ console.error("read failed",k,e); DB.ok=false; return null; }
+},
+async set(k,v){
+try{
+var r=await fetch("/api/kv/"+encodeURIComponent(k),{
+method:"PUT",credentials:"same-origin",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({value:v})});
+if(!r.ok) throw new Error(r.status);
+return true;
+}catch(e){ console.error("write failed",k,e); return false; }
+}
+};
+
+var HKEY="hub:v1", LKEY="cashledger:v1";
+var H={}, L=null;
+function migrateH(){
+H=H||{};
+H.tasks=H.tasks||[];H.events=H.events||[];H.notes=H.notes||[];
+H.habits=H.habits||[];H.things=H.things||[];H.contacts=H.contacts||[];
+H.subs=H.subs||[];H.journal=H.journal||[];
+H.version=H.version||1;
+}
+function migrateL(){
+if(!L) return;
+L.people=L.people||[];L.txns=L.txns||[];L.tickets=L.tickets||[];L.accounts=L.accounts||[];
+L.tickets.forEach(function(t){ if(t.paidCents==null) t.paidCents=(t.status==="paid")?t.cents:0; });
+}
+
+var sT=null;
+function save(){ clearTimeout(sT); sT=setTimeout(function(){
+DB.set(HKEY,H).then(function(ok){ if(!ok&&DB.ok) toast("Couldn't save — download a backup"); }); },140); }
+
+function $(s){return document.querySelector(s);}
+function el(t,c,x){var n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m];});}
+function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function toast(m){var t=$("#toast");t.textContent=m;t.classList.add("on");
+clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove("on");},2400);}
+function download(name,text,mime){
+var b=new Blob([text],{type:mime}),u=URL.createObjectURL(b);
+var a=document.createElement("a");a.href=u;a.download=name;a.click();
+setTimeout(function(){URL.revokeObjectURL(u);},1500);}
+
+function ledgerTotals(){
+if(!L) return null;
+var owe=0,owed=0,late=[];
+L.tickets.forEach(function(t){ if(t.status!=="open") return;
+var rem=t.cents-(t.paidCents||0);
+if(t.dir==="owe")owe+=rem; else owed+=rem;
+if(t.due&&t.due<=today()) late.push(t); });
+return {owe:owe,owed:owed,late:late};
+}
+
+/* ---------- navigation ---------- */
+var MODULES=[
+{id:"index",cd:"//",label:"Today",file:"index.html"},
+{id:"tasks",cd:"TK",label:"Tasks",file:"tasks.html"},
+{id:"calendar",cd:"CL",label:"Calendar",file:"calendar.html"},
+{id:"contacts",cd:"CT",label:"Contacts",file:"contacts.html"},
+{id:"notes",cd:"NT",label:"Notes",file:"notes.html"},
+{id:"habits",cd:"HB",label:"Habits",file:"habits.html"},
+{id:"items",cd:"TH",label:"Lent out",file:"items.html"},
+{id:"money",cd:"$$",label:"Money",file:"money.html"},
+{id:"vault",cd:"PW",label:"Passwords",file:"vault.html"},
+{id:"subs",cd:"SB",label:"Subscriptions",file:"subs.html"},
+{id:"journal",cd:"JR",label:"Journal",file:"journal.html"},
+{id:"docs",cd:"DC",label:"Documents",file:"docs.html"},
+{id:"history",cd:"HI",label:"History",file:"history.html"},
+{id:"office",cd:"OS",label:"Office sign",file:"office.html"}
+];
+function navCounts(){
+var c={},ts=today();
+c.tasks=(H.tasks||[]).filter(function(t){return !t.done&&t.due&&t.due<=ts;}).length;
+c.calendar=(H.events||[]).filter(function(e){return e.date===ts;}).length;
+c.items=(H.things||[]).filter(function(t){return !t.back&&t.due&&t.due<ts;}).length;
+c.habits=(H.habits||[]).filter(function(h){return !(h.days||{})[ts];}).length;
+var lt=ledgerTotals(); c.money=lt?lt.late.length:0;
+c.subs=(H.subs||[]).filter(function(x){return x.active!==false&&x.next&&x.next<=ts;}).length;
+return c;
+}
+function buildNav(){
+var c=navCounts();
+$("#railNav").innerHTML=MODULES.map(function(m){
+var n=c[m.id]||0;
+return '<a class="nv" href="'+m.file+'"'+(m.id===PAGE?' aria-current="page"':'')+'>'+
+'<span class="cd">'+esc(m.cd)+'</span><span class="lb">'+esc(m.label)+'</span>'+
+(n?'<span class="ct">'+n+'</span>':'')+'</a>';}).join("");
+$("#mobNav").innerHTML=MODULES.map(function(m){
+return '<a href="'+m.file+'"'+(m.id===PAGE?' aria-current="page"':'')+'>'+
+'<span class="cd">'+esc(m.cd)+'</span><span class="lb">'+esc(m.label)+'</span></a>';}).join("");
+var act=$("#mobNav a[aria-current=page]");
+if(act&&act.scrollIntoView) act.scrollIntoView({block:"nearest",inline:"center"});
+}
+function setHead(kicker,title,line){
+$("#pKick").textContent=kicker; $("#pTitle").textContent=title; $("#pLine").textContent=line;
+}
+function addTool(label,fn){
+var b=el("button","ghostw",label); b.onclick=fn; $("#pTools").appendChild(b); return b;
+}
+function emptyBox(t,b){
+var e=el("div","empty"); e.appendChild(el("b",null,t));
+e.appendChild(document.createTextNode(b)); return e;
+}
+
+/* ---------- shared: backup (trimmed — no search dialog needed here) ---------- */
+function backupDialog(){
+download("station-backup-"+today()+".json",
+JSON.stringify({station:H,ledger:L,savedOn:today()},null,2),"application/json");
+toast("Downloaded");
+}
+function openSearch(){ window.location.href="index.html"; }
+
+document.addEventListener("click",function(e){
+var b=e.target.closest("[data-act]"); if(!b) return;
+var a=b.dataset.act;
+if(a==="search") openSearch();
+else if(a==="backup") backupDialog();
+});
+
+(async function boot(){
+var h=await DB.get(HKEY); if(h) H=h; migrateH();
+L=await DB.get(LKEY); migrateL();
+buildNav();
+addTool("Backup",backupDialog);
+await pageBoot();
+if(!DB.ok){
+var w=el("p","warn","Can't reach the server — nothing you tap will be saved. Check that the station container is running.");
+$("#pane").insertBefore(w,$("#pane").firstChild);
+}
+})();
+
+/* ============================================================
+PAGE — office sign
+============================================================ */
+var OKEY="officesign:v1";
+var O={status:"available",updated:null};
+var STATUSES=[
+{id:"available",label:"Available",cls:"d-avail"},
+{id:"busy",label:"Busy",cls:"d-busy"},
+{id:"meeting",label:"In a Meeting",cls:"d-meet"},
+{id:"dnd",label:"Do Not Disturb",cls:"d-dnd"}
+];
+function statusOf(id){ return STATUSES.filter(function(s){return s.id===id;})[0]||STATUSES[0]; }
+function ago(iso){
+if(!iso) return "never set";
+var s=(Date.now()-new Date(iso).getTime())/1000;
+if(s<60) return "just now";
+if(s<3600) return Math.floor(s/60)+"m ago";
+if(s<86400) return Math.floor(s/3600)+"h ago";
+return Math.floor(s/86400)+"d ago";
+}
+function pageHead(){
+setHead("OS · office sign","Office sign","What the sign on the desk shows right now");
+}
+function pageRender(){
+var host=$("#list"); host.innerHTML="";
+var cur=statusOf(O.status);
+var now=el("div","now");
+now.appendChild(el("div","lbl","Currently showing"));
+var v=el("div","val"); v.innerHTML='<span class="dot '+cur.cls+'"></span>'+esc(cur.label);
+now.appendChild(v);
+now.appendChild(el("div","ago",ago(O.updated)));
+host.appendChild(now);
+
+var grid=el("div","statgrid");
+STATUSES.forEach(function(s){
+var b=el("button","stbtn");
+b.setAttribute("aria-pressed",s.id===O.status);
+b.innerHTML='<span class="dot '+s.cls+'"></span>'+esc(s.label);
+b.onclick=function(){ setStatus(s.id); };
+grid.appendChild(b);
+});
+host.appendChild(grid);
+}
+async function setStatus(id){
+O={status:id,updated:new Date().toISOString()};
+var ok=await DB.set(OKEY,O);
+if(ok) toast(statusOf(id).label+" — sign updated");
+else toast("Couldn't reach Station");
+pageRender();
+}
+async function pageBoot(){
+var o=await DB.get(OKEY);
+if(o&&o.status) O=o;
+pageHead(); pageRender();
+}
+})();
+</script>
