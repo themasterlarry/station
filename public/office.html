@@ -62,6 +62,11 @@ button{font:inherit}
 .d-busy{background:var(--tick)}
 .d-meet{background:var(--stamp)}
 .d-dnd{background:#7A1D10}
+.d-call{background:#2E5C8A}
+.d-knock{background:var(--tick-deep)}
+.d-live{background:#B0295C}
+.d-away{background:var(--dim)}
+.d-custom{background:#5B4B8A}
 @media(max-width:800px){
 .shell{display:block}
 .rail{display:none}
@@ -259,9 +264,16 @@ var STATUSES=[
 {id:"available",label:"Available",cls:"d-avail"},
 {id:"busy",label:"Busy",cls:"d-busy"},
 {id:"meeting",label:"In a Meeting",cls:"d-meet"},
-{id:"dnd",label:"Do Not Disturb",cls:"d-dnd"}
+{id:"call",label:"On a Call",cls:"d-call"},
+{id:"knock",label:"Knock First",cls:"d-knock"},
+{id:"live",label:"Live / Recording",cls:"d-live"},
+{id:"dnd",label:"Do Not Disturb",cls:"d-dnd"},
+{id:"away",label:"Away",cls:"d-away"}
 ];
-function statusOf(id){ return STATUSES.filter(function(s){return s.id===id;})[0]||STATUSES[0]; }
+function statusOf(id){
+if(id==="custom") return {id:"custom",label:O.customText||"Custom",cls:"d-custom"};
+return STATUSES.filter(function(s){return s.id===id;})[0]||STATUSES[0];
+}
 function ago(iso){
 if(!iso) return "never set";
 var s=(Date.now()-new Date(iso).getTime())/1000;
@@ -292,6 +304,33 @@ b.onclick=function(){ setStatus(s.id); };
 grid.appendChild(b);
 });
 host.appendChild(grid);
+
+var cwrap=el("div"); cwrap.style.marginTop="18px";
+var clabel=el("div"); clabel.style.cssText="font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:11px;color:var(--dim);margin-bottom:6px";
+clabel.textContent="Or set a custom status";
+cwrap.appendChild(clabel);
+var crow=el("div"); crow.style.cssText="display:flex;gap:8px";
+var cinput=document.createElement("input");
+cinput.placeholder="Out to lunch, back at 2...";
+cinput.style.flex="1";
+if(O.status==="custom") cinput.value=O.customText||"";
+var cbtn=el("button","btn","Set");
+cbtn.onclick=function(){
+var v=cinput.value.trim();
+if(!v){ toast("Type something first"); return; }
+setCustom(v);
+};
+cinput.addEventListener("keydown",function(e){ if(e.key==="Enter") cbtn.click(); });
+crow.appendChild(cinput); crow.appendChild(cbtn);
+cwrap.appendChild(crow);
+host.appendChild(cwrap);
+}
+async function setCustom(text){
+O={status:"custom",customText:text,updated:new Date().toISOString()};
+var ok=await DB.set(OKEY,O);
+if(ok) toast("Sign updated");
+else toast("Couldn't reach Station");
+pageRender();
 }
 async function setStatus(id){
 O={status:id,updated:new Date().toISOString()};

@@ -1,0 +1,128 @@
+<!doctype html>
+<title>Office sign</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16202A;--paper:#F3F5EF;--rule:#C3CDBB;--dim:#6B7A6B;
+--pos:#2C6B4C;--tick:#E3A62C;--stamp:#B0402E;
+--disp:"Archivo Narrow",Helvetica,Arial,sans-serif;--mono:"IBM Plex Mono",monospace}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:16px;background:var(--paper);color:var(--ink);font-family:system-ui,sans-serif;padding:24px}
+h1{font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;font-size:13px;color:var(--dim);margin:0}
+.now{font-family:var(--disp);text-transform:uppercase;font-size:clamp(26px,7vw,40px);font-weight:700;margin:0 0 4px}
+.ago{font-family:var(--mono);font-size:12px;color:var(--dim);margin-bottom:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:420px}
+button{font-family:var(--disp);text-transform:uppercase;letter-spacing:.08em;font-size:16px;font-weight:700;
+padding:28px 12px;border:1px solid var(--rule);background:#fff;color:var(--ink);border-radius:3px;cursor:pointer}
+button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block;margin-right:8px;vertical-align:middle}
+.d-avail{background:var(--pos)} .d-busy{background:var(--tick)}
+.d-meet{background:var(--stamp)} .d-dnd{background:#7A1D10}
+.d-call{background:#2E5C8A} .d-knock{background:var(--tick-deep)}
+.d-live{background:#B0295C} .d-away{background:var(--dim)}
+.d-custom{background:#5B4B8A}
+.custom{width:100%;max-width:420px;margin-top:6px}
+.custom label{font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:11px;color:var(--dim);display:block;margin-bottom:6px}
+.custom .row{display:flex;gap:8px}
+.custom input{flex:1;padding:10px;border:1px solid var(--rule);border-radius:2px;font-size:15px;font-family:system-ui,sans-serif}
+.custom button{padding:10px 16px;font-size:13px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);
+padding:9px 15px;border-radius:2px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+<h1>Office sign</h1>
+<div class="now" id="now">—</div>
+<div class="ago" id="ago"></div>
+<div class="grid" id="grid"></div>
+<div class="custom">
+<label>Or set a custom status</label>
+<div class="row">
+<input id="cin" placeholder="Out to lunch, back at 2...">
+<button id="cbtn">Set</button>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var KEY="officesign:v1";
+var STATUSES=[
+{id:"available",label:"Available",cls:"d-avail"},
+{id:"busy",label:"Busy",cls:"d-busy"},
+{id:"meeting",label:"In a Meeting",cls:"d-meet"},
+{id:"call",label:"On a Call",cls:"d-call"},
+{id:"knock",label:"Knock First",cls:"d-knock"},
+{id:"live",label:"Live / Recording",cls:"d-live"},
+{id:"dnd",label:"Do Not Disturb",cls:"d-dnd"},
+{id:"away",label:"Away",cls:"d-away"}
+];
+var O={status:"available",updated:null};
+function statusOf(id){
+if(id==="custom") return {id:"custom",label:O.customText||"Custom",cls:"d-custom"};
+return STATUSES.filter(function(s){return s.id===id;})[0]||STATUSES[0];
+}
+function ago(iso){
+if(!iso) return "never set";
+var s=(Date.now()-new Date(iso).getTime())/1000;
+if(s<60) return "just now";
+if(s<3600) return Math.floor(s/60)+"m ago";
+if(s<86400) return Math.floor(s/3600)+"h ago";
+return Math.floor(s/86400)+"d ago";
+}
+function toast(m){
+var t=document.getElementById("toast"); t.textContent=m; t.classList.add("on");
+clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove("on");},2200);
+}
+function draw(){
+var cur=statusOf(O.status);
+document.getElementById("now").innerHTML='<span class="dot '+cur.cls+'"></span>'+cur.label;
+document.getElementById("ago").textContent=ago(O.updated);
+var g=document.getElementById("grid"); g.innerHTML="";
+STATUSES.forEach(function(s){
+var b=document.createElement("button");
+b.setAttribute("aria-pressed", s.id===O.status);
+b.innerHTML='<span class="dot '+s.cls+'"></span>'+s.label;
+b.onclick=function(){ setStatus(s.id); };
+g.appendChild(b);
+});
+}
+async function setStatus(id){
+O={status:id,updated:new Date().toISOString()};
+try{
+var r=await fetch("/api/kv/"+encodeURIComponent(KEY),{
+method:"PUT",headers:{"Content-Type":"application/json"},
+body:JSON.stringify({value:O})});
+if(!r.ok) throw 0;
+toast(statusOf(id).label+" — sign updated");
+}catch(e){ toast("Couldn't reach Station"); }
+draw();
+}
+async function setCustom(text){
+O={status:"custom",customText:text,updated:new Date().toISOString()};
+try{
+var r=await fetch("/api/kv/"+encodeURIComponent(KEY),{
+method:"PUT",headers:{"Content-Type":"application/json"},
+body:JSON.stringify({value:O})});
+if(!r.ok) throw 0;
+toast("Sign updated");
+}catch(e){ toast("Couldn't reach Station"); }
+draw();
+}
+document.getElementById("cbtn").onclick=function(){
+var v=document.getElementById("cin").value.trim();
+if(!v){ toast("Type something first"); return; }
+setCustom(v);
+};
+document.getElementById("cin").addEventListener("keydown",function(e){
+if(e.key==="Enter") document.getElementById("cbtn").click();
+});
+(async function boot(){
+try{
+var r=await fetch("/api/kv/"+encodeURIComponent(KEY));
+if(r.ok){ var j=await r.json(); if(j.value){ O=j.value; if(O.status==="custom") document.getElementById("cin").value=O.customText||""; } }
+}catch(e){}
+draw();
+})();
+</script>
